@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Test/coverage
+coverage/
+
+# Env
+.env
+.env.local
+
+# OS / editor
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Beads runtime artifacts (keep issues.jsonl, ignore db + daemon)
+.beads/*.db
+.beads/*.db-shm
+.beads/*.db-wal
+.beads/*.sock
+.beads/daemon-*.log*
