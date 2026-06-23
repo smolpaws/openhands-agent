@@ -49,6 +49,19 @@ commit and catch up to newer upstream in deliberate batches, not by chasing HEAD
 Plus `openhands-tools` (~16k LOC): concrete tools (terminal, file editor, browser, etc.).
 `openhands-agent-server` is out of scope for now (possible later sibling package).
 
+## Workflow: tests first (red/green)
+
+**The first thing in every unit of work is tests.** We port the Python tests *and* the examples
+before (or alongside) the implementation, and drive each module red → green:
+
+1. Port the relevant Python tests to vitest (conceptually — adapt to TS idioms, don't copy).
+2. Port the relevant examples so they compile and run against the new API.
+3. Watch them fail (red).
+4. Implement until they pass (green).
+
+Examples and tests are first-class deliverables, not an afterthought — they define the public
+API shape and are the executable spec for each phase.
+
 ## Principles
 
 1. **Idiomatic TS, not literal port.** Respect the architecture (event/conversation/agent
@@ -82,6 +95,32 @@ Plus `openhands-tools` (~16k LOC): concrete tools (terminal, file editor, browse
    named `llm`, run on demand to confirm each API still works.
 4. **Pin upstream** at `9663409` (above). Local `~/repos/agent-sdk` synced to it.
 
+## Intended deviations from the Python SDK
+
+We transpile **anew**, and on purpose we do NOT reproduce everything. The rule on public API:
+
+> **Public APIs should be consistent with the Python SDK across the transpilation** —
+> same shapes, same names (adapted to TS idioms) — **EXCEPT** for the three areas below.
+> And even there, clean code / clean APIs win over fidelity. Idiomatic, clean TS is more
+> important than matching Python signature-for-signature.
+
+1. **No security analyzers. None.** We do not port the risk/security analyzer machinery. Drop it
+   entirely — no `SecurityAnalyzer`, no risk scoring, no analyzer hooks.
+2. **No confirmation mechanism. None.** No confirmation policy, no human-in-the-loop confirm
+   gates, no "pending action awaiting confirmation" flow. The agent acts; we don't gate it.
+3. **LLM is used ONLY via LLM profiles.** There is no bare/standalone `LLM` entry point in the
+   public API. You configure and select a profile; the SDK resolves the client from the profile.
+   **No fallback chains, no implicit default model, nothing** — just profiles. (The 4 clients
+   from decision 3 sit *behind* the profile resolution, never exposed bare.)
+
+Consequence for the roadmap:
+- The Python `security` module (~2084 LOC: confirmation + risk + analyzer) is **mostly dropped**.
+  P7 no longer includes security analyzers or confirmation. If any non-security piece currently
+  lives under `security/` and is genuinely needed elsewhere, it moves to its real home — but the
+  analyzer/confirmation surface itself is gone.
+- The LLM public surface is **profile-first**: `LLMProfile` in, resolved client out. Bare `LLM`
+  is not part of the public API.
+
 ## Phased roadmap
 
 Each phase is a bead (see `bd list`). Dependencies chained so `bd ready` surfaces the next
@@ -93,13 +132,16 @@ workable phase.
   Serialization round-trip tests. (deps: P1)
 - **P3 — Tool abstraction + registry:** base Tool, schema gen via `z.toJSONSchema()`, then one
   concrete tool end-to-end. (deps: P1)
-- **P4 — LLM layer:** the four clients (one sub-bead each, done end-to-end), the live-test
-  harness + `llm` environment, then the minimal shared interface extracted last. (deps: P1)
+- **P4 — LLM layer (profile-first):** profiles are the *only* public entry point. The four
+  clients (one sub-bead each, done end-to-end) sit behind profile resolution — never exposed
+  bare. No fallback, no implicit default. Plus the live-test harness + `llm` environment, then
+  the minimal shared interface extracted last. (deps: P1)
 - **P5 — Conversation + agent loop:** LocalConversation, RemoteConversation, ConversationState,
   agent step loop, stuck detection. (deps: P3, P4)
 - **P6 — Context & condenser, skills:** context-window management, condensation, skill
   discovery/validation. (deps: P5)
-- **P7 — Surrounding subsystems:** security, hooks, critic, subagent, git, mcp. (deps: P5)
+- **P7 — Surrounding subsystems:** hooks, critic, subagent, git, mcp. **No security analyzers
+  and no confirmation mechanism** (see Intended deviations). (deps: P5)
 - **P8 — Concrete tools** (`openhands-tools` equivalent): terminal, file editor, browser,
   grep/glob, task tracker, etc. May become a separate package later. (deps: P3)
 - **P9 — Packaging, examples, docs, release 0.1.0.** (deps: P6, P7, P8)
