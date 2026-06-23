@@ -107,7 +107,13 @@ We transpile **anew**, and on purpose we do NOT reproduce everything. The rule o
 1. **No security analyzers. None.** We do not port the risk/security analyzer machinery. Drop it
    entirely — no `SecurityAnalyzer`, no risk scoring, no analyzer hooks.
 2. **No confirmation mechanism. None.** No confirmation policy, no human-in-the-loop confirm
-   gates, no "pending action awaiting confirmation" flow. The agent acts; we don't gate it.
+   gates, no approval step before an action runs. The agent acts; we don't gate it.
+   **IMPORTANT — this is NOT the pending-actions queue.** We absolutely KEEP the multi-tool-use
+   pending-action mechanics: when the LLM emits multiple tool calls in one response, those become
+   a queue of `ActionEvent`s, executed (incl. in parallel via the `ParallelToolExecutor`
+   equivalent), with the "unmatched actions" tracking (`get_unmatched_actions`) and cancellation
+   support. That is core execution machinery and is required. Only the *confirmation gate* is
+   dropped — not the action queue.
 3. **LLM is used ONLY via LLM profiles.** There is no bare/standalone `LLM` entry point in the
    public API. You configure and select a profile; the SDK resolves the client from the profile.
    **No fallback chains, no implicit default model, nothing** — just profiles. (The 4 clients
