@@ -10,6 +10,20 @@ export * from './agent/index.js';
 export * from './conversation/index.js';
 export * from './context/index.js';
 export * from './event/index.js';
+export {
+  AsyncProcessManager,
+  HookConfig,
+  HookDecision,
+  HookDefinition,
+  HookEventType as HookTriggerEventType,
+  HookExecutor,
+  HookManager,
+  HookMatcher,
+  HookResult,
+  HookType,
+  hookEventSchema,
+} from './hooks/index.js';
+export type { HookConfigInput, HookDefinitionOptions, HookEvent, HookEventFieldName, HookMatcherOptions } from './hooks/index.js';
 export * from './io/index.js';
 export * from './llm/index.js';
 export * from './llm/client.js';
