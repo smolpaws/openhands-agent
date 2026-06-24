@@ -88,13 +88,13 @@ describe('AgentProfile schemas', () => {
       verification: {
         critic_enabled: true,
         critic_model_name: 'gpt-5.5',
-        critic_api_key: 'sk-real-secret-value',
+        critic_api_key: 'REDACT_ME_TEST_VALUE',
       },
     });
 
     expect(JSON.stringify(openHands)).not.toMatch(/api[_-]?key|"llm"/iu);
     expect(JSON.stringify(acp)).not.toMatch(/api[_-]?key|secrets|agent_context|"llm"/iu);
     expect(JSON.stringify(leakedVerification)).not.toContain('critic_api_key');
-    expect(JSON.stringify(leakedVerification)).not.toContain('sk-real-secret-value');
+    expect(JSON.stringify(leakedVerification)).not.toContain('REDACT_ME_TEST_VALUE');
   });
 });

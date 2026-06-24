@@ -26,7 +26,9 @@
     "lint": "eslint ./src",
     "live:llm": "npm run build && node scripts/live/llm-smoke.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:examples": "npm run build && for f in examples/*.ts; do echo \"Running $f\"; tsx \"$f\" || exit 1; done",
+    "typecheck:examples": "tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --strict --skipLibCheck examples/*.ts"
   },
   "dependencies": {
     "zod": "^4.4.3"
@@ -39,6 +41,7 @@
     "eslint": "^9.36.0",
     "globals": "^15.0.0",
     "tsup": "^8.3.0",
+    "tsx": "^4.22.4",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   },
@@ -53,5 +56,8 @@
   "homepage": "https://github.com/smolpaws/openhands-agent#readme",
   "publishConfig": {
     "access": "public"
+  },
+  "overrides": {
+    "esbuild": "^0.28.1"
   }
 }
