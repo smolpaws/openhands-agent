@@ -276,3 +276,82 @@ export function redactTextSecrets(text: string): string {
     .replace(keyValueSecretPattern, (_match: string, key: string) => `${key}=<redacted>`);
 }
 
+export function utcNow(): Date {
+  return new Date();
+}
+
+export function dumps(value: unknown, space?: number): string {
+  return JSON.stringify(value, (_key, item: unknown) => item, space);
+}
+
+export function loads(text: string): unknown {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch (error) {
+    throw new Error(`No valid JSON object found in response.`, { cause: error });
+  }
+}
+
+export function handleDeprecatedModelFields<T>(data: T, deprecatedFields: readonly string[]): T {
+  if (data === null || typeof data !== 'object' || Array.isArray(data)) {
+    return data;
+  }
+  const result: Record<string, unknown> = { ...(data as Record<string, unknown>) };
+  for (const field of deprecatedFields) {
+    delete result[field];
+  }
+  return result as T;
+}
+
+export function displayJson(value: unknown): string {
+  if (Array.isArray(value)) {
+    return [`[List with ${value.length} items]`, ...value.map((item, index) => `  [${index}]: ${formatDisplayValue(item)}`)].join('\n');
+  }
+
+  if (value !== null && typeof value === 'object') {
+    const lines: string[] = [];
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      if (item === null || item === undefined) {
+        continue;
+      }
+      lines.push(`\n  ${key}: ${formatDisplayValue(item)}`);
+    }
+    return lines.join('');
+  }
+
+  if (typeof value === 'string' && value.includes('\n')) {
+    return `String:\n${value
+      .split('\n')
+      .map((line) => `  ${line}`)
+      .join('\n')}`;
+  }
+
+  return formatDisplayValue(value);
+}
+
+function formatDisplayValue(value: unknown): string {
+  if (typeof value === 'string') {
+    return value.includes('\n') ? `\n${value.split('\n').map((line) => `    ${line}`).join('\n')}` : `"${value}"`;
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'True' : 'False';
+  }
+  if (value === null) {
+    return 'null';
+  }
+  if (typeof value === 'number' || typeof value === 'bigint' || typeof value === 'symbol') {
+    return String(value);
+  }
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'undefined') {
+    return 'undefined';
+  }
+  if (typeof value === 'function') {
+    return `[Function ${value.name || 'anonymous'}]`;
+  }
+  return JSON.stringify(value);
+}
+
+

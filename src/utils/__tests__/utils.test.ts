@@ -7,10 +7,14 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_TEXT_CONTENT_LIMIT,
   DEFAULT_TRUNCATE_NOTICE,
+  displayJson,
+  dumps,
   executeCommand,
+  handleDeprecatedModelFields,
   isAbsolutePathSource,
   isHostAbsolutePath,
   isLocalPathSource,
+  loads,
   maybeTruncate,
   pageIterator,
   posixPathName,
@@ -21,6 +25,7 @@ import {
   sanitizedEnv,
   sanitizeOpenHandsMentions,
   toPosixPath,
+  utcNow,
 } from '../index.js';
 
 describe('maybeTruncate', () => {
@@ -177,6 +182,34 @@ describe('redaction utilities', () => {
     expect(redacted).not.toContain('secretvalue123456789');
     expect(redacted).toContain('<redacted>');
     expect(redacted).toContain('DEBUG=true');
+  });
+});
+
+describe('lightweight utility helpers', () => {
+  it('serializes dates with dumps and parses with loads', () => {
+    const encoded = dumps({ at: new Date('2026-01-02T03:04:05.000Z') });
+
+    expect(encoded).toBe('{"at":"2026-01-02T03:04:05.000Z"}');
+    expect(loads(encoded)).toEqual({ at: '2026-01-02T03:04:05.000Z' });
+    expect(() => loads('{not json')).toThrow(/No valid JSON object/u);
+  });
+
+  it('returns a UTC timestamp date', () => {
+    expect(utcNow().toISOString()).toMatch(/Z$/u);
+  });
+
+  it('removes deprecated fields from object inputs without mutating the source', () => {
+    const source = { keep: 1, old_field: 2 };
+
+    expect(handleDeprecatedModelFields(source, ['old_field'])).toEqual({ keep: 1 });
+    expect(source).toEqual({ keep: 1, old_field: 2 });
+  });
+
+  it('displays JSON-like values as readable text', () => {
+    expect(displayJson({ key1: 'value1', key2: 42, key3: null })).toContain('key1');
+    expect(displayJson(['item1', 'item2', 42, true])).toContain('[List with 4 items]');
+    expect(displayJson('line1\nline2')).toContain('String:');
+    expect(displayJson(null)).toBe('null');
   });
 });
 
