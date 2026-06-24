@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { llmProfileSchema, resolveLlmProfileApiKeyRef } from '../../llm/index.js';
+
 import {
   InMemorySecretStore,
   OPENHANDS_KEYRING_SERVICE,
@@ -78,3 +80,45 @@ describe('LLM API key resolution', () => {
     ).resolves.toBeNull();
   });
 });
+
+describe('LLM profiles with secret references', () => {
+  it('parses profile configuration without persisting raw API keys', () => {
+    const profile = llmProfileSchema.parse({
+      profileId: 'eval-proxy',
+      providerId: 'litellm_proxy',
+      model: 'anthropic/claude-sonnet-4-5',
+      baseUrl: 'https://litellm.example.test',
+      useProfileKeyOverride: true,
+      temperature: 0.2,
+      headers: { 'X-Team': 'evals' },
+    });
+
+    expect(profile.profileId).toBe('eval-proxy');
+    expect(profile.providerId).toBe('litellm_proxy');
+    expect(JSON.stringify(profile)).not.toContain('apiKey');
+    expect(() =>
+      llmProfileSchema.parse({
+        profileId: 'bad-secret',
+        providerId: 'openai',
+        model: 'gpt-5.1',
+        apiKey: 'sk-should-not-persist',
+      }),
+    ).toThrow();
+  });
+
+  it('resolves profile API keys through SecretRef lookup', async () => {
+    const profile = llmProfileSchema.parse({
+      profileId: 'eval-proxy',
+      providerId: 'litellm_proxy',
+      model: 'gpt-5.1',
+      useProfileKeyOverride: true,
+    });
+    const store = new InMemorySecretStore([
+      [llmProviderSecretRef('litellm_proxy'), 'provider-key'],
+      [llmProfileSecretRef('eval-proxy'), 'profile-key'],
+    ]);
+
+    await expect(resolveLlmProfileApiKeyRef(profile, store)).resolves.toEqual(llmProfileSecretRef('eval-proxy'));
+  });
+});
+

@@ -1,5 +1,53 @@
 import { z } from 'zod';
 
+import { resolveLlmApiKeyRef } from '../secrets/index.js';
+import type { SecretRef, SecretStore } from '../secrets/index.js';
+
+export const LLM_PROFILE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u;
+
+export const llmProfileIdSchema = z.string().regex(LLM_PROFILE_ID_PATTERN);
+export const llmProviderIdSchema = z.string().min(1).regex(/^[A-Za-z0-9._-]+$/u);
+
+export const openAiApiModeSchema = z.union([z.literal('chat_completions'), z.literal('responses')]);
+export const reasoningEffortSchema = z.union([z.literal('low'), z.literal('medium'), z.literal('high')]);
+export const reasoningSummarySchema = z.union([z.literal('auto'), z.literal('concise'), z.literal('detailed')]);
+
+export const llmProfileSchema = z
+  .object({
+    profileId: llmProfileIdSchema,
+    providerId: llmProviderIdSchema,
+    model: z.string().min(1),
+    baseUrl: z.string().url().nullable().default(null),
+    openAiApiMode: openAiApiModeSchema.default('chat_completions'),
+    temperature: z.number().min(0).nullable().default(null),
+    topP: z.number().min(0).max(1).nullable().default(null),
+    topK: z.number().int().positive().nullable().default(null),
+    maxInputTokens: z.number().int().positive().nullable().default(null),
+    maxOutputTokens: z.number().int().positive().nullable().default(null),
+    timeoutSeconds: z.number().positive().nullable().default(null),
+    reasoningEffort: reasoningEffortSchema.nullable().default(null),
+    reasoningSummary: reasoningSummarySchema.nullable().default(null),
+    headers: z.record(z.string(), z.string()).default({}),
+    useProfileKeyOverride: z.boolean().default(false),
+  })
+  .strict();
+
+export type LLMProfile = z.infer<typeof llmProfileSchema>;
+export type OpenAiApiMode = z.infer<typeof openAiApiModeSchema>;
+export type ReasoningEffort = z.infer<typeof reasoningEffortSchema>;
+export type ReasoningSummary = z.infer<typeof reasoningSummarySchema>;
+
+export function resolveLlmProfileApiKeyRef(profile: LLMProfile, store: SecretStore): Promise<SecretRef | null> {
+  return resolveLlmApiKeyRef(
+    {
+      providerId: profile.providerId,
+      profileId: profile.profileId,
+      useProfileKeyOverride: profile.useProfileKeyOverride,
+    },
+    store,
+  );
+}
+
 export const thinkingBlockSchema = z
   .object({
     type: z.literal('thinking').default('thinking'),
