@@ -4,7 +4,15 @@ Idiomatic TypeScript transpilation of the [OpenHands](https://github.com/OpenHan
 
 ## Status
 
-🚧 Early scaffolding. The transpilation plan is tracked in [beads](#issue-tracking) — see the first issue for the full roadmap.
+`0.1.0` is the first local release candidate of the fresh TypeScript transpilation. It covers the core SDK surfaces needed to build and run agent loops locally:
+
+- zod-backed event, tool, settings, profile, and serialization models
+- profile-first LLM clients for OpenAI chat completions, OpenAI Responses, Anthropic, and Gemini
+- local/remote conversation state, agent loop, pending tool-call queue, parallel execution, and stuck detection
+- context, condensers, skills, hooks, critics, file-based subagents, git helpers, MCP wrappers
+- concrete tools: terminal, file editor, glob, grep, task tracker, and injectable browser adapter
+
+Intentional deviations from Python remain: no security analyzers, risk scoring, confirmation gates, Python Cipher, or Python secret-storage split.
 
 ## Goals
 
@@ -23,6 +31,68 @@ Idiomatic TypeScript transpilation of the [OpenHands](https://github.com/OpenHan
 | Bundler | tsup (ESM + CJS) |
 | Tests | vitest |
 | Lint | eslint with `recommended-type-checked` |
+
+## Install
+
+```sh
+npm install @smolpaws/openhands-agent
+```
+
+For local development in this repo:
+
+```sh
+npm install
+npm test
+npm run build
+```
+
+## Quick start
+
+```ts
+import {
+  Agent,
+  ConversationState,
+  FinishTool,
+  LocalConversation,
+  llmProfileSchema,
+  messageSchema,
+  type LLMClient,
+} from '@smolpaws/openhands-agent';
+
+const llm: LLMClient = {
+  profile: llmProfileSchema.parse({ profileId: 'example', providerId: 'mock', model: 'mock' }),
+  async complete() {
+    return {
+      message: messageSchema.parse({
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            id: 'finish-1',
+            name: 'finish',
+            arguments: JSON.stringify({ message: 'Hello from TypeScript OpenHands.' }),
+            origin: 'completion',
+          },
+        ],
+      }),
+      usage: null,
+      raw: {},
+    };
+  },
+};
+
+const state = new ConversationState();
+const conversation = new LocalConversation({
+  agent: new Agent({ llm, tools: [FinishTool.create()] }),
+  state,
+});
+
+conversation.sendMessage('Say hello and finish.');
+await conversation.run();
+console.log(state.executionStatus);
+```
+
+More examples live in [`examples/`](examples/).
 
 ## Issue tracking
 
