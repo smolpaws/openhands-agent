@@ -4,7 +4,9 @@ import { InMemorySecretStore, llmProviderSecretRef, llmProfileSecretRef } from '
 import { textContent } from '../index.js';
 import {
   OpenAIChatClient,
+  OpenAIResponsesClient,
   createLlmClientFromProfile,
+  createOpenAIResponsesClientFromProfile,
   llmCompletionResponseSchema,
   llmProfileSchema,
 } from '../openai.js';
@@ -82,6 +84,41 @@ describe('profile-resolved OpenAI-compatible chat client', () => {
     expect(result.usage).toEqual({ promptTokens: 7, completionTokens: 3, totalTokens: 10 });
   });
 
+  it('posts OpenAI Responses requests and parses response output text', async () => {
+    const profile = llmProfileSchema.parse({
+      profileId: 'responses',
+      providerId: 'openai',
+      model: 'gpt-5.1',
+      openAiApiMode: 'responses',
+      reasoningEffort: 'medium',
+      maxOutputTokens: 256,
+    });
+    const store = new InMemorySecretStore([[llmProviderSecretRef('openai'), 'openai-key']]);
+    const calls: FakeFetchCall[] = [];
+    const client = await createOpenAIResponsesClientFromProfile(profile, store, {
+      fetch: fakeResponsesFetch({ content: 'response pong' }, calls),
+    });
+
+    const result = await client.complete([
+      { role: 'system', content: [textContent('Follow instructions.')] },
+      { role: 'user', content: [textContent('Ping responses?')] },
+    ]);
+
+    expect(client).toBeInstanceOf(OpenAIResponsesClient);
+    expect(calls[0]?.url).toBe('https://api.openai.com/v1/responses');
+    expect(calls[0]?.headers.authorization).toBe('Bearer openai-key');
+    expect(calls[0]?.body).toMatchObject({
+      model: 'gpt-5.1',
+      instructions: 'Follow instructions.',
+      max_output_tokens: 256,
+      reasoning: { effort: 'medium' },
+      input: [{ role: 'user', content: [{ type: 'input_text', text: 'Ping responses?' }] }],
+    });
+    expect(result.message.role).toBe('assistant');
+    expect(result.message.content).toEqual([textContent('response pong')]);
+    expect(result.usage).toEqual({ promptTokens: 17, completionTokens: 9, totalTokens: 26 });
+  });
+
   it('requires a keyring-backed API key', async () => {
     const profile = llmProfileSchema.parse({ profileId: 'default', providerId: 'openai', model: 'gpt-5.1' });
 
@@ -115,6 +152,29 @@ function fakeFetch(response: { content: string }, calls: FakeFetchCall[] = []) {
         return {
           choices: [{ message: { role: 'assistant', content: response.content } }],
           usage: { prompt_tokens: 7, completion_tokens: 3, total_tokens: 10 },
+        };
+      },
+      async text() {
+        return JSON.stringify(await this.json());
+      },
+    };
+  };
+}
+
+function fakeResponsesFetch(response: { content: string }, calls: FakeFetchCall[] = []) {
+  return async (url: string, init: { headers?: HeadersInit; body?: BodyInit | null }) => {
+    calls.push({
+      url,
+      headers: normalizeHeaders(init.headers),
+      body: JSON.parse(String(init.body)) as Record<string, unknown>,
+    });
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          output: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: response.content }] }],
+          usage: { input_tokens: 17, output_tokens: 9, total_tokens: 26 },
         };
       },
       async text() {

@@ -81,9 +81,38 @@ export class OpenAIChatClient implements LLMClient {
       throw new Error(`OpenAI-compatible completion failed with HTTP ${response.status}: ${text}`);
     }
 
+
     return parseChatCompletionsResponse(await response.json());
   }
 }
+
+export class OpenAIResponsesClient implements LLMClient {
+  readonly profile: LLMProfile;
+  private readonly apiKey: string;
+  private readonly fetchImpl: FetchLike;
+
+  constructor(profile: LLMProfile, apiKey: string, fetchImpl: FetchLike = defaultFetch) {
+    this.profile = profile;
+    this.apiKey = apiKey;
+    this.fetchImpl = fetchImpl;
+  }
+
+  async complete(messages: readonly Message[]): Promise<LLMCompletionResponse> {
+    const response = await this.fetchImpl(`${resolveBaseUrl(this.profile)}/responses`, {
+      method: 'POST',
+      headers: buildHeaders(this.profile, this.apiKey),
+      body: JSON.stringify(buildOpenAIResponsesBody(this.profile, messages)),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`OpenAI Responses completion failed with HTTP ${response.status}: ${text}`);
+    }
+
+    return parseOpenAIResponsesResponse(await response.json());
+  }
+}
+
 
 export async function createLlmClientFromProfile(
   profile: LLMProfile,
@@ -106,6 +135,28 @@ export async function createLlmClientFromProfile(
   return new OpenAIChatClient(profile, apiKey, options.fetch ?? defaultFetch);
 }
 
+
+export async function createOpenAIResponsesClientFromProfile(
+  profile: LLMProfile,
+  store: SecretStore,
+  options: CreateLlmClientOptions = {},
+): Promise<OpenAIResponsesClient> {
+  const apiKey = await getLlmApiKey(
+    {
+      providerId: profile.providerId,
+      profileId: profile.profileId,
+      useProfileKeyOverride: profile.useProfileKeyOverride,
+    },
+    store,
+  );
+  if (apiKey === null) {
+    throw new Error(
+      `Missing API key for LLM profile '${profile.profileId}'. Set provider key '${profile.providerId}' or enable and set a profile override.`,
+    );
+  }
+  return new OpenAIResponsesClient(profile, apiKey, options.fetch ?? defaultFetch);
+}
+
 export function buildChatCompletionsBody(profile: LLMProfile, messages: readonly Message[]): Record<string, unknown> {
   const body: Record<string, unknown> = {
     model: profile.model,
@@ -124,6 +175,43 @@ export function buildChatCompletionsBody(profile: LLMProfile, messages: readonly
     body.timeout = profile.timeoutSeconds;
   }
   return body;
+}
+
+export function buildOpenAIResponsesBody(profile: LLMProfile, messages: readonly Message[]): Record<string, unknown> {
+  const parsedMessages = messages.map((message) => messageSchema.parse(message));
+  const instructions = parsedMessages.filter((message) => message.role === 'system').flatMap((message) => contentToString(message.content));
+  const body: Record<string, unknown> = {
+    model: profile.model,
+    input: parsedMessages.filter((message) => message.role !== 'system').map(toOpenAIResponsesInput),
+  };
+  if (instructions.length > 0) {
+    body.instructions = instructions.join('\n');
+  }
+  if (profile.maxOutputTokens !== null) {
+    body.max_output_tokens = profile.maxOutputTokens;
+  }
+  if (profile.temperature !== null) {
+    body.temperature = profile.temperature;
+  }
+  if (profile.topP !== null) {
+    body.top_p = profile.topP;
+  }
+  if (profile.reasoningEffort !== null) {
+    body.reasoning = { effort: profile.reasoningEffort };
+  }
+  return body;
+}
+
+function toOpenAIResponsesInput(message: Message): Record<string, unknown> {
+  return {
+    role: message.role,
+    content: message.content.map((content) => {
+      if (content.type === 'text') {
+        return { type: message.role === 'assistant' ? 'output_text' : 'input_text', text: content.text };
+      }
+      return { type: 'input_image', image_url: content.image_urls[0] ?? '' };
+    }),
+  };
 }
 
 function toOpenAIChatMessage(message: Message): Record<string, unknown> {
@@ -200,6 +288,27 @@ function fromOpenAIChatToolCall(toolCall: OpenAIChatToolCall): MessageToolCall {
   };
 }
 
+function parseOpenAIResponsesResponse(raw: unknown): LLMCompletionResponse {
+  const parsed = openAIResponsesResponseSchema.parse(raw);
+  const text = parsed.output
+    .filter((item): item is OpenAIResponsesMessageItem => item.type === 'message')
+    .flatMap((item) => item.content)
+    .filter((content): content is OpenAIResponsesOutputText => content.type === 'output_text')
+    .map((content) => content.text)
+    .join('\n');
+
+  return llmCompletionResponseSchema.parse({
+    message: { role: 'assistant', content: text },
+    usage: parsed.usage === null ? null : {
+      promptTokens: parsed.usage.input_tokens,
+      completionTokens: parsed.usage.output_tokens,
+      totalTokens: parsed.usage.total_tokens,
+    },
+    raw,
+  });
+}
+
+
 function resolveBaseUrl(profile: LLMProfile): string {
   const baseUrl = profile.baseUrl ?? defaultBaseUrlForProvider(profile.providerId);
   return baseUrl.replace(/\/+$/u, '');
@@ -256,6 +365,35 @@ const openAIChatCompletionResponseSchema = z
       .object({
         prompt_tokens: z.number().int().min(0).default(0),
         completion_tokens: z.number().int().min(0).default(0),
+        total_tokens: z.number().int().min(0).default(0),
+      })
+      .strict()
+      .nullable()
+      .default(null),
+  })
+  .passthrough();
+
+const openAIResponsesOutputTextSchema = z.object({ type: z.literal('output_text'), text: z.string() }).passthrough();
+const openAIResponsesContentItemSchema = z.union([openAIResponsesOutputTextSchema, z.object({ type: z.string() }).passthrough()]);
+const openAIResponsesMessageItemSchema = z
+  .object({
+    type: z.literal('message'),
+    role: z.literal('assistant').default('assistant'),
+    content: z.array(openAIResponsesContentItemSchema).default([]),
+  })
+  .passthrough();
+const openAIResponsesOutputItemSchema = z.union([openAIResponsesMessageItemSchema, z.object({ type: z.string() }).passthrough()]);
+
+type OpenAIResponsesOutputText = z.infer<typeof openAIResponsesOutputTextSchema>;
+type OpenAIResponsesMessageItem = z.infer<typeof openAIResponsesMessageItemSchema>;
+
+const openAIResponsesResponseSchema = z
+  .object({
+    output: z.array(openAIResponsesOutputItemSchema).default([]),
+    usage: z
+      .object({
+        input_tokens: z.number().int().min(0).default(0),
+        output_tokens: z.number().int().min(0).default(0),
         total_tokens: z.number().int().min(0).default(0),
       })
       .strict()
