@@ -1,7 +1,64 @@
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+
+import type { Event } from '../event/index.js';
+
+export type AsyncConversationCallback<TEvent = Event> = (event: TEvent) => Promise<void>;
+
+export class AsyncCallbackWrapper<TEvent = Event> {
+  readonly callback: (event: TEvent) => void;
+  private readonly asyncCallback: AsyncConversationCallback<TEvent>;
+  private readonly pending = new Set<Promise<void>>();
+
+  constructor(asyncCallback: AsyncConversationCallback<TEvent>) {
+    this.asyncCallback = asyncCallback;
+    this.callback = (event) => this.call(event);
+  }
+
+  get pendingCount(): number {
+    return this.pending.size;
+  }
+
+  call(event: TEvent): void {
+    const pending = Promise.resolve()
+      .then(() => this.asyncCallback(event))
+      .catch(() => undefined)
+      .finally(() => this.pending.delete(pending));
+    this.pending.add(pending);
+  }
+
+  async waitForPending(timeoutMs?: number): Promise<void> {
+    const current = [...this.pending];
+    if (current.length === 0) {
+      return;
+    }
+
+    const waitForAll = Promise.allSettled(current).then(() => undefined);
+    if (timeoutMs === undefined || timeoutMs === null) {
+      await waitForAll;
+      return;
+    }
+
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        waitForAll,
+        new Promise<never>((_resolve, reject) => {
+          timeout = setTimeout(
+            () => reject(new Error(`Timed out waiting for async callbacks after ${timeoutMs}ms`)),
+            timeoutMs,
+          );
+        }),
+      ]);
+    } finally {
+      if (timeout !== undefined) {
+        clearTimeout(timeout);
+      }
+    }
+  }
+}
 
 export const DEFAULT_TEXT_CONTENT_LIMIT = 50_000;
 export const DEFAULT_TRUNCATE_NOTICE =

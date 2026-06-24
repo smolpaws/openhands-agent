@@ -26,6 +26,8 @@ import {
   sanitizeOpenHandsMentions,
   toPosixPath,
   utcNow,
+  AsyncCallbackWrapper,
+  type AsyncConversationCallback,
 } from '../index.js';
 
 describe('maybeTruncate', () => {
@@ -210,6 +212,73 @@ describe('lightweight utility helpers', () => {
     expect(displayJson(['item1', 'item2', 42, true])).toContain('[List with 4 items]');
     expect(displayJson('line1\nline2')).toContain('String:');
     expect(displayJson(null)).toBe('null');
+  });
+});
+
+describe('AsyncCallbackWrapper', () => {
+  interface MockEvent {
+    readonly id: string;
+    readonly source: 'agent' | 'user';
+  }
+
+  it('accepts async conversation callbacks as a typed callback', () => {
+    const callback: AsyncConversationCallback<MockEvent> = async () => undefined;
+
+    expect(typeof callback).toBe('function');
+  });
+
+  it('schedules async callbacks without requiring callers to await', async () => {
+    const processed: string[] = [];
+    const wrapper = new AsyncCallbackWrapper<MockEvent>(async (event) => {
+      processed.push(`processed: ${event.source}`);
+    });
+
+    wrapper.call({ id: 'event-1', source: 'agent' });
+    expect(processed).toEqual([]);
+
+    await wrapper.waitForPending();
+
+    expect(processed).toEqual(['processed: agent']);
+  });
+
+  it('tracks multiple pending callbacks and waits for all of them', async () => {
+    const processed: string[] = [];
+    const wrapper = new AsyncCallbackWrapper<MockEvent>(async (event) => {
+      await Promise.resolve();
+      processed.push(event.id);
+    });
+
+    wrapper.call({ id: 'event-1', source: 'agent' });
+    wrapper.call({ id: 'event-2', source: 'agent' });
+    wrapper.callback({ id: 'event-3', source: 'user' });
+
+    expect(wrapper.pendingCount).toBe(3);
+
+    await wrapper.waitForPending();
+
+    expect(processed.sort()).toEqual(['event-1', 'event-2', 'event-3']);
+    expect(wrapper.pendingCount).toBe(0);
+  });
+
+  it('does not reject when an async callback fails', async () => {
+    const wrapper = new AsyncCallbackWrapper<MockEvent>(async () => {
+      throw new Error('boom');
+    });
+
+    expect(() => wrapper.call({ id: 'event-1', source: 'agent' })).not.toThrow();
+    await expect(wrapper.waitForPending()).resolves.toBeUndefined();
+    expect(wrapper.pendingCount).toBe(0);
+  });
+
+  it('supports a timeout while waiting for pending callbacks', async () => {
+    const wrapper = new AsyncCallbackWrapper<MockEvent>(
+      () => new Promise((resolve) => setTimeout(resolve, 50)),
+    );
+
+    wrapper.call({ id: 'event-1', source: 'agent' });
+
+    await expect(wrapper.waitForPending(1)).rejects.toThrow(/Timed out/u);
+    await wrapper.waitForPending();
   });
 });
 
