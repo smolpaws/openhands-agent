@@ -44,7 +44,7 @@ commit and catch up to newer upstream in deliberate batches, not by chasing HEAD
 | io | 5 | 431 | |
 | logger | 3 | 330 | |
 | testing | 2 | 339 | test helpers |
-| secret | ? | 155 | secret handling |
+| secret | ? | 155 | Python source reference only; TS uses OS keyring, not Python's plaintext/encrypted-at-rest split |
 
 Plus `openhands-tools` (~16k LOC): concrete tools (terminal, file editor, browser, etc.).
 `openhands-agent-server` is out of scope for now (possible later sibling package).
@@ -77,6 +77,9 @@ API shape and are the executable spec for each phase.
    type-checked, tsc strict, target ES2022.
 6. **Wire-protocol compatibility.** TS types must serialize to the same JSON the Python SDK and
    agent-server expect. Round-trip serialization tests are the correctness anchor.
+7. **Secret safety overrides source parity.** Settings and profiles may persist secret references,
+   never raw secret values. Runtime secret values live in an OS keyring backend (macOS Keychain
+   first); encryption/cipher/plaintext-storage machinery from Python is not ported.
 
 ## Decisions (resolved 2026-06-23 with Engel)
 
@@ -94,13 +97,20 @@ API shape and are the executable spec for each phase.
    up front. Live-test scripts live in `scripts/live/` (NOT CI), keys from a GitHub environment
    named `llm`, run on demand to confirm each API still works.
 4. **Pin upstream** at `9663409` (above). Local `~/repos/agent-sdk` synced to it.
+5. **Secrets: OS keyring, not Python's storage split.** The Python SDK has environment-specific
+   secret behavior (plaintext local paths plus encrypted-at-rest docker/remote/agent-server
+   handling). We intentionally do not port that complexity. The TS package persists only secret
+   references in settings/profiles, stores actual values in the OS keyring, and resolves them at
+   use time. macOS Keychain is the first supported backend; add Windows Credential Manager or
+   Linux Secret Service later only if the abstraction stays simple. Environment variables may be
+   used as ephemeral import/input, but not as persistent storage.
 
 ## Intended deviations from the Python SDK
 
 We transpile **anew**, and on purpose we do NOT reproduce everything. The rule on public API:
 
 > **Public APIs should be consistent with the Python SDK across the transpilation** —
-> same shapes, same names (adapted to TS idioms) — **EXCEPT** for the three areas below.
+> same shapes, same names (adapted to TS idioms) — **EXCEPT** for the deviations below.
 > And even there, clean code / clean APIs win over fidelity. Idiomatic, clean TS is more
 > important than matching Python signature-for-signature.
 
@@ -118,6 +128,10 @@ We transpile **anew**, and on purpose we do NOT reproduce everything. The rule o
    public API. You configure and select a profile; the SDK resolves the client from the profile.
    **No fallback chains, no implicit default model, nothing** — just profiles. (The 4 clients
    from decision 3 sit *behind* the profile resolution, never exposed bare.)
+4. **Secrets are keyring-backed references.** Do not port Python's `Cipher`, local plaintext
+   secret persistence, or docker/remote/agent-server encrypted-at-rest branching. Persistent
+   settings/profiles contain stable references such as `{ service, account }`; the raw value is
+   written to and read from OS keyring at runtime, then redacted from logs/events.
 
 Consequence for the roadmap:
 - The Python `security` module (~2084 LOC: confirmation + risk + analyzer) is **mostly dropped**.
@@ -126,6 +140,9 @@ Consequence for the roadmap:
   analyzer/confirmation surface itself is gone.
 - The LLM public surface is **profile-first**: `LLMProfile` in, resolved client out. Bare `LLM`
   is not part of the public API.
+- Secret handling is its own small settings/profile concern, not a port of Python's cipher stack:
+  implement `SecretRef`/`SecretStore` around OS keyring, then make provider profiles refer to
+  secrets by reference.
 
 ## Phased roadmap
 
@@ -134,14 +151,16 @@ workable phase.
 
 - **P1 — Foundations:** utils, logger, io, event model. Low-dependency leaves first; establishes
   the zod patterns and the event discriminated-union shape everything builds on.
-- **P2 — Types & settings:** settings models, profiles. Validates the zod approach at scale.
-  Serialization round-trip tests. (deps: P1)
+- **P2 — Types & settings:** settings models, profiles, `SecretRef`, and the keyring-backed
+  `SecretStore` abstraction. Settings/profiles serialize references only, never raw values.
+  Validates the zod approach at scale. Serialization round-trip tests. (deps: P1)
 - **P3 — Tool abstraction + registry:** base Tool, schema gen via `z.toJSONSchema()`, then one
   concrete tool end-to-end. (deps: P1)
 - **P4 — LLM layer (profile-first):** profiles are the *only* public entry point. The four
   clients (one sub-bead each, done end-to-end) sit behind profile resolution — never exposed
-  bare. No fallback, no implicit default. Plus the live-test harness + `llm` environment, then
-  the minimal shared interface extracted last. (deps: P1)
+  bare. Profiles resolve API keys through `SecretRef`/keyring, not embedded values. No fallback,
+  no implicit default. Plus the live-test harness + `llm` environment, then the minimal shared
+  interface extracted last. (deps: P1)
 - **P5 — Conversation + agent loop:** LocalConversation, RemoteConversation, ConversationState,
   agent step loop, stuck detection. (deps: P3, P4)
 - **P6 — Context & condenser, skills:** context-window management, condensation, skill
