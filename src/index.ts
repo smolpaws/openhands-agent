@@ -14,4 +14,5 @@ export * from './profiles/index.js';
 export * from './secrets/index.js';
 export * from './settings/index.js';
 export * from './tool/index.js';
+export * from './tool/builtins.js';
 export * from './utils/index.js';
