@@ -170,18 +170,40 @@ export const acpToolCallEventSchema = eventObject({
   source: z.literal('agent').default('agent'),
   tool_call_id: z.string(),
   title: z.string(),
-  kind_name: z.string().nullable().default(null),
   status: z.string().nullable().default(null),
-  content: z.array(contentSchema).default([]),
+  tool_kind: z.string().nullable().default(null),
+  raw_input: z.unknown().nullable().default(null),
+  raw_output: z.unknown().nullable().default(null),
+  content: z.array(z.unknown()).nullable().default(null),
+  is_error: z.boolean().default(false),
 });
+
+export const hookEventTypeSchema = z.union([
+  z.literal('PreToolUse'),
+  z.literal('PostToolUse'),
+  z.literal('UserPromptSubmit'),
+  z.literal('SessionStart'),
+  z.literal('SessionEnd'),
+  z.literal('Stop'),
+]);
 
 export const hookExecutionEventSchema = eventObject({
   kind: z.literal('HookExecutionEvent').default('HookExecutionEvent'),
   source: z.literal('hook').default('hook'),
-  hook_name: z.string(),
-  event_type: z.string(),
-  status: z.string(),
-  message: z.string().nullable().default(null),
+  hook_event_type: hookEventTypeSchema,
+  hook_command: z.string(),
+  tool_name: z.string().nullable().default(null),
+  success: z.boolean(),
+  blocked: z.boolean().default(false),
+  exit_code: z.number().int(),
+  stdout: z.string().default(''),
+  stderr: z.string().default(''),
+  reason: z.string().nullable().default(null),
+  additional_context: z.string().nullable().default(null),
+  error: z.string().nullable().default(null),
+  action_id: z.string().nullable().default(null),
+  message_id: z.string().nullable().default(null),
+  hook_input: recordSchema.nullable().default(null),
 });
 
 export const resumeTranscriptEventSchema = eventObject({
@@ -240,7 +262,41 @@ export type AgentErrorEvent = z.infer<typeof agentErrorEventSchema>;
 export type Condensation = z.infer<typeof condensationSchema>;
 export type CondensationRequest = z.infer<typeof condensationRequestSchema>;
 export type CondensationSummaryEvent = z.infer<typeof condensationSummaryEventSchema>;
+export type ACPToolCallEvent = z.infer<typeof acpToolCallEventSchema>;
+export type HookEventType = z.infer<typeof hookEventTypeSchema>;
+export type HookExecutionEvent = z.infer<typeof hookExecutionEventSchema>;
+export type ResumeTranscriptEvent = z.infer<typeof resumeTranscriptEventSchema>;
 export type LLMConvertibleEvent = z.infer<typeof llmConvertibleEventSchema>;
+
+export function isAcpPatchEdit(event: ACPToolCallEvent): boolean {
+  const diffBlocks = (event.content ?? []).filter((block) => blockField(block, 'type') === 'diff');
+  if (diffBlocks.length > 0) {
+    return diffBlocks.some((block) => blockField(block, 'old_text', 'oldText') !== null);
+  }
+
+  const rawInput = event.raw_input;
+  if (!isRecord(rawInput)) {
+    return false;
+  }
+  const oldString = rawInput.old_string;
+  return typeof oldString === 'string' && oldString.length > 0;
+}
+
+function blockField(block: unknown, ...names: readonly string[]): unknown {
+  if (!isRecord(block)) {
+    return null;
+  }
+  for (const name of names) {
+    if (Object.hasOwn(block, name)) {
+      return block[name];
+    }
+  }
+  return null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 export function toLLMMessage(event: LLMConvertibleEvent): Message {
   switch (event.kind) {

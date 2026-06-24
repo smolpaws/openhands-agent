@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  acpToolCallEventSchema,
   actionEventSchema,
   agentErrorEventSchema,
   condensationSchema,
   eventSchema,
   eventsToMessages,
+  hookExecutionEventSchema,
+  isAcpPatchEdit,
   messageEventSchema,
   streamingDeltaEventSchema,
   systemPromptEventSchema,
@@ -97,6 +100,63 @@ describe('event serialization', () => {
 
     expect(actionEventSchema.parse(JSON.parse(JSON.stringify(action)))).toEqual(action);
     expect(agentErrorEventSchema.parse(JSON.parse(JSON.stringify(error)))).toEqual(error);
+  });
+
+  it('parses ACP tool call events with Python-compatible fields', () => {
+    const event = acpToolCallEventSchema.parse({
+      tool_call_id: 'tool-1',
+      title: 'Edit file',
+      status: 'completed',
+      tool_kind: 'edit',
+      raw_input: { old_string: 'before', new_string: 'after' },
+      raw_output: { ok: true },
+      content: [{ type: 'diff', path: 'file.ts', oldText: 'before', newText: 'after' }],
+      is_error: false,
+    });
+
+    expect(event.source).toBe('agent');
+    expect(event.tool_kind).toBe('edit');
+    expect(event.raw_input).toEqual({ old_string: 'before', new_string: 'after' });
+    expect(isAcpPatchEdit(event)).toBe(true);
+    expect(acpToolCallEventSchema.parse(JSON.parse(JSON.stringify(event)))).toEqual(event);
+  });
+
+  it('detects ACP full-file writes separately from patch edits', () => {
+    const writeEvent = acpToolCallEventSchema.parse({
+      tool_call_id: 'tool-1',
+      title: 'Write file',
+      content: [{ type: 'diff', path: 'new.ts', oldText: null, newText: 'created' }],
+    });
+    const fallbackPatchEvent = acpToolCallEventSchema.parse({
+      tool_call_id: 'tool-2',
+      title: 'Edit fallback',
+      raw_input: { old_string: 'before' },
+    });
+
+    expect(isAcpPatchEdit(writeEvent)).toBe(false);
+    expect(isAcpPatchEdit(fallbackPatchEvent)).toBe(true);
+  });
+
+  it('parses hook execution events with Python-compatible fields', () => {
+    const event = hookExecutionEventSchema.parse({
+      hook_event_type: 'PreToolUse',
+      hook_command: 'check-tool',
+      tool_name: 'terminal',
+      success: false,
+      blocked: true,
+      exit_code: 2,
+      stdout: 'out',
+      stderr: 'err',
+      reason: 'blocked by policy',
+      additional_context: 'extra context',
+      error: null,
+      action_id: 'action-1',
+      hook_input: { command: 'ls' },
+    });
+
+    expect(event.source).toBe('hook');
+    expect(event.reason).toBe('blocked by policy');
+    expect(hookExecutionEventSchema.parse(JSON.parse(JSON.stringify(event)))).toEqual(event);
   });
 });
 
