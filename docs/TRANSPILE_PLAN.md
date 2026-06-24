@@ -79,7 +79,9 @@ API shape and are the executable spec for each phase.
    agent-server expect. Round-trip serialization tests are the correctness anchor.
 7. **Secret safety overrides source parity.** Settings and profiles may persist secret references,
    never raw secret values. Runtime secret values live in an OS keyring backend (macOS Keychain
-   first); encryption/cipher/plaintext-storage machinery from Python is not ported.
+   first) under the `openhands` service; encryption/cipher/plaintext-storage machinery from
+   Python is not ported. LLM API keys are provider-scoped by default, with explicit per-profile
+   overrides only when the same provider needs multiple credentials.
 
 ## Decisions (resolved 2026-06-23 with Engel)
 
@@ -100,10 +102,12 @@ API shape and are the executable spec for each phase.
 5. **Secrets: OS keyring, not Python's storage split.** The Python SDK has environment-specific
    secret behavior (plaintext local paths plus encrypted-at-rest docker/remote/agent-server
    handling). We intentionally do not port that complexity. The TS package persists only secret
-   references in settings/profiles, stores actual values in the OS keyring, and resolves them at
-   use time. macOS Keychain is the first supported backend; add Windows Credential Manager or
+   references in settings/profiles and stores actual values in the OS keyring under service
+   `openhands`. macOS Keychain is the first supported backend; add Windows Credential Manager or
    Linux Secret Service later only if the abstraction stays simple. Environment variables may be
-   used as ephemeral import/input, but not as persistent storage.
+   used as ephemeral import/input, but not as persistent storage. LLM key resolution follows the
+   OpenHands-Tab profile behavior: provider key as the shared default, optional per-profile
+   override when a particular profile needs a different credential for the same provider.
 
 ## Intended deviations from the Python SDK
 
@@ -126,12 +130,40 @@ We transpile **anew**, and on purpose we do NOT reproduce everything. The rule o
    dropped — not the action queue.
 3. **LLM is used ONLY via LLM profiles.** There is no bare/standalone `LLM` entry point in the
    public API. You configure and select a profile; the SDK resolves the client from the profile.
-   **No fallback chains, no implicit default model, nothing** — just profiles. (The 4 clients
+   **No model fallback chains, no implicit default model, nothing** — just profiles. (The 4 clients
    from decision 3 sit *behind* the profile resolution, never exposed bare.)
 4. **Secrets are keyring-backed references.** Do not port Python's `Cipher`, local plaintext
    secret persistence, or docker/remote/agent-server encrypted-at-rest branching. Persistent
-   settings/profiles contain stable references such as `{ service, account }`; the raw value is
-   written to and read from OS keyring at runtime, then redacted from logs/events.
+   settings/profiles contain stable references such as `{ service: 'openhands', account }`; the raw
+   value is written to and read from OS keyring at runtime, then redacted from logs/events.
+   Provider keys use accounts like `llm-provider:<providerId>` (for example `llm-provider:openai`
+   or `llm-provider:litellm_proxy`). Per-profile overrides use accounts like
+   `llm-profile:<profileId>:api-key`, and are only used when enabled/selected for that profile.
+
+### LLM key resolution
+
+LLM API key lookup is provider-driven, not model-family-driven. A profile whose provider is
+`litellm_proxy` must resolve a `litellm_proxy` key even if its model string looks like an OpenAI,
+Anthropic, or Gemini model. The default keyring account for a provider is:
+
+- service: `openhands`
+- account: `llm-provider:<providerId>`
+
+Profiles may opt into a profile-scoped key only when the same provider needs distinct credentials
+or endpoints. This covers cases like an app LiteLLM proxy profile and an eval LiteLLM proxy profile
+that both use provider `litellm_proxy` but need different proxy API keys. The profile override
+account is:
+
+- service: `openhands`
+- account: `llm-profile:<profileId>:api-key`
+
+Resolution for a profile:
+
+1. If the profile explicitly enables a profile key override and that key exists, use
+   `llm-profile:<profileId>:api-key`.
+2. Otherwise use `llm-provider:<providerId>`.
+3. If neither exists, fail with a clear error telling the caller to set the provider key or enable
+   and set a profile override.
 
 Consequence for the roadmap:
 - The Python `security` module (~2084 LOC: confirmation + risk + analyzer) is **mostly dropped**.
@@ -153,14 +185,16 @@ workable phase.
   the zod patterns and the event discriminated-union shape everything builds on.
 - **P2 — Types & settings:** settings models, profiles, `SecretRef`, and the keyring-backed
   `SecretStore` abstraction. Settings/profiles serialize references only, never raw values.
-  Validates the zod approach at scale. Serialization round-trip tests. (deps: P1)
+  Model provider-key and profile-override references explicitly. Validates the zod approach at
+  scale. Serialization round-trip tests. (deps: P1)
 - **P3 — Tool abstraction + registry:** base Tool, schema gen via `z.toJSONSchema()`, then one
   concrete tool end-to-end. (deps: P1)
 - **P4 — LLM layer (profile-first):** profiles are the *only* public entry point. The four
   clients (one sub-bead each, done end-to-end) sit behind profile resolution — never exposed
-  bare. Profiles resolve API keys through `SecretRef`/keyring, not embedded values. No fallback,
-  no implicit default. Plus the live-test harness + `llm` environment, then the minimal shared
-  interface extracted last. (deps: P1)
+  bare. Profiles resolve API keys through `SecretRef`/keyring, not embedded values: explicit
+  profile override first when enabled, otherwise provider key by `providerId` (not by model
+  family). No model fallback chains, no implicit default model. Plus the live-test harness +
+  `llm` environment, then the minimal shared interface extracted last. (deps: P1)
 - **P5 — Conversation + agent loop:** LocalConversation, RemoteConversation, ConversationState,
   agent step loop, stuck detection. (deps: P3, P4)
 - **P6 — Context & condenser, skills:** context-window management, condensation, skill
