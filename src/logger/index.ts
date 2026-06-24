@@ -23,13 +23,6 @@ export interface LoggingOptions {
 const loggerLevels = new Map<string, LogLevel>();
 let rootLevel = envLogLevel();
 
-for (const name of ['litellm', 'LiteLLM', 'openai']) {
-  disableLogger(name, LogLevel.ERROR);
-}
-for (const name of ['httpcore', 'httpx', 'libtmux']) {
-  disableLogger(name, LogLevel.WARN);
-}
-
 export function setupLogging(options: LoggingOptions = {}): void {
   rootLevel = options.level ?? envLogLevel();
 }

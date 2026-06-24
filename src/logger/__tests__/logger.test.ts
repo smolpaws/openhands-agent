@@ -3,12 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { disableLogger, getLogger, isEnabledFor, LogLevel, setupLogging } from '../index.js';
 
 describe('logger', () => {
-  it('suppresses LiteLLM/OpenAI loggers below error by default', () => {
-    for (const name of ['litellm', 'LiteLLM', 'openai']) {
-      expect(isEnabledFor(name, LogLevel.INFO)).toBe(false);
-      expect(isEnabledFor(name, LogLevel.WARN)).toBe(false);
-      expect(isEnabledFor(name, LogLevel.ERROR)).toBe(true);
-    }
+  it('uses neutral provider logging defaults', () => {
+    setupLogging({ level: LogLevel.INFO });
+
+    expect(isEnabledFor('provider.client', LogLevel.INFO)).toBe(true);
+    expect(isEnabledFor('provider.client', LogLevel.DEBUG)).toBe(false);
   });
 
   it('returns module loggers that honor configured levels', () => {
