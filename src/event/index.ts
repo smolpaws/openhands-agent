@@ -145,8 +145,9 @@ export const agentErrorEventSchema = eventObject({
 
 export const condensationSchema = eventObject({
   kind: z.literal('Condensation').default('Condensation'),
-  source: z.literal('agent').default('agent'),
-  summary: z.string(),
+  source: z.literal('environment').default('environment'),
+  summary: z.string().nullable().default(null),
+  summary_offset: z.number().int().min(0).nullable().default(null),
   forgotten_event_ids: z
     .union([z.set(z.string()), z.array(z.string())])
     .transform((ids) => (ids instanceof Set ? ids : new Set(ids))),
@@ -155,14 +156,13 @@ export const condensationSchema = eventObject({
 
 export const condensationRequestSchema = eventObject({
   kind: z.literal('CondensationRequest').default('CondensationRequest'),
-  source: z.literal('agent').default('agent'),
+  source: z.literal('environment').default('environment'),
 });
 
 export const condensationSummaryEventSchema = eventObject({
   kind: z.literal('CondensationSummaryEvent').default('CondensationSummaryEvent'),
-  source: z.literal('agent').default('agent'),
+  source: z.literal('environment').default('environment'),
   summary: z.string(),
-  llm_response_id: z.string().nullable().default(null),
 });
 
 export const acpToolCallEventSchema = eventObject({
@@ -335,7 +335,7 @@ export function toLLMMessage(event: LLMConvertibleEvent): Message {
       return toolMessage(event.tool_name, event.tool_call_id, [textContent(event.error)]);
     case 'CondensationSummaryEvent':
       return {
-        role: 'assistant',
+        role: 'user',
         content: [textContent(event.summary)],
         tool_calls: null,
         tool_call_id: null,
