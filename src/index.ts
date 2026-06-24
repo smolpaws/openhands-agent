@@ -6,6 +6,7 @@
 
 export const VERSION = '0.0.0';
 
+export * from './agent/index.js';
 export * from './conversation/index.js';
 export * from './event/index.js';
 export * from './io/index.js';
