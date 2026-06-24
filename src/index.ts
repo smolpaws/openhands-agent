@@ -12,4 +12,5 @@ export * from './llm/index.js';
 export * from './logger/index.js';
 export * from './profiles/index.js';
 export * from './secrets/index.js';
+export * from './settings/index.js';
 export * from './utils/index.js';
