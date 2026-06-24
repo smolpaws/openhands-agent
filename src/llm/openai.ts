@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { getLlmApiKey } from '../secrets/index.js';
 import type { SecretStore } from '../secrets/index.js';
+import { llmCompletionResponseSchema, type FetchLike, type FetchResponseLike, type LLMClient, type LLMCompletionResponse } from './client.js';
 import {
   contentToString,
   messageSchema,
@@ -11,51 +12,17 @@ import {
   type MessageToolCall,
 } from './index.js';
 
+export { llmCompletionResponseSchema, llmUsageSchema } from './client.js';
+export type { FetchLike, FetchResponseLike, LLMClient, LLMCompletionResponse, LLMUsage } from './client.js';
 export { llmProfileSchema } from './index.js';
 export type { LLMProfile } from './index.js';
 
 const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
 const DEFAULT_OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
-export interface FetchResponseLike {
-  readonly ok: boolean;
-  readonly status: number;
-  json(): Promise<unknown>;
-  text(): Promise<string>;
-}
-
-export type FetchLike = (
-  url: string,
-  init: { readonly method: 'POST'; readonly headers: Readonly<Record<string, string>>; readonly body: string },
-) => Promise<FetchResponseLike>;
-
 export interface CreateLlmClientOptions {
   readonly fetch?: FetchLike;
 }
-
-export interface LLMClient {
-  readonly profile: LLMProfile;
-  complete(messages: readonly Message[]): Promise<LLMCompletionResponse>;
-}
-
-export const llmUsageSchema = z
-  .object({
-    promptTokens: z.number().int().min(0).default(0),
-    completionTokens: z.number().int().min(0).default(0),
-    totalTokens: z.number().int().min(0).default(0),
-  })
-  .strict();
-
-export const llmCompletionResponseSchema = z
-  .object({
-    message: messageSchema,
-    usage: llmUsageSchema.nullable().default(null),
-    raw: z.unknown().optional(),
-  })
-  .strict();
-
-export type LLMUsage = z.infer<typeof llmUsageSchema>;
-export type LLMCompletionResponse = z.infer<typeof llmCompletionResponseSchema>;
 
 export class OpenAIChatClient implements LLMClient {
   readonly profile: LLMProfile;

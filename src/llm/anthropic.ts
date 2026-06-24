@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 import { getLlmApiKey } from '../secrets/index.js';
 import type { SecretStore } from '../secrets/index.js';
+import { llmCompletionResponseSchema, type FetchLike, type LLMClient, type LLMCompletionResponse } from './client.js';
 import { contentToString, messageSchema, type Content, type LLMProfile, type Message } from './index.js';
-import { llmCompletionResponseSchema, type FetchLike, type LLMClient, type LLMCompletionResponse } from './openai.js';
 
 export { llmProfileSchema } from './index.js';
 export type { LLMProfile } from './index.js';

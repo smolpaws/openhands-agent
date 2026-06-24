@@ -9,6 +9,7 @@ export const VERSION = '0.0.0';
 export * from './event/index.js';
 export * from './io/index.js';
 export * from './llm/index.js';
+export * from './llm/client.js';
 export * from './llm/anthropic.js';
 export * from './llm/gemini.js';
 export * from './llm/openai.js';
