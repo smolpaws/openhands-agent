@@ -22,6 +22,7 @@
     "build:bundle": "tsup --config tsup.config.ts",
     "build:types": "tsc -p tsconfig.json",
     "lint": "eslint ./src",
+    "live:llm": "npm run build && node scripts/live/llm-smoke.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
