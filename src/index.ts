@@ -25,6 +25,7 @@ export {
   hookEventSchema,
 } from './hooks/index.js';
 export type { HookConfigInput, HookDefinitionOptions, HookEvent, HookEventFieldName, HookMatcherOptions } from './hooks/index.js';
+export * from './git/index.js';
 export * from './io/index.js';
 export * from './llm/index.js';
 export * from './llm/client.js';
@@ -32,6 +33,7 @@ export * from './llm/anthropic.js';
 export * from './llm/gemini.js';
 export * from './llm/openai.js';
 export * from './logger/index.js';
+export * from './mcp/index.js';
 export * from './profiles/index.js';
 export * from './secrets/index.js';
 export * from './settings/index.js';
