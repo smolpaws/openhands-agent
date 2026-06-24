@@ -9,6 +9,7 @@ export const VERSION = '0.0.0';
 export * from './agent/index.js';
 export * from './conversation/index.js';
 export * from './context/index.js';
+export * from './critic/index.js';
 export * from './event/index.js';
 export {
   AsyncProcessManager,
@@ -35,6 +36,7 @@ export * from './profiles/index.js';
 export * from './secrets/index.js';
 export * from './settings/index.js';
 export * from './skills/index.js';
+export * from './subagent/index.js';
 export * from './tool/index.js';
 export * from './tool/builtins.js';
 export * from './utils/index.js';
