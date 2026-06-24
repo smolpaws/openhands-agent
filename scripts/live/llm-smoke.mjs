@@ -15,6 +15,7 @@ const profileId = process.env.LLM_PROFILE_ID ?? `live-${providerId}`;
 const model = process.env.LLM_MODEL;
 const baseUrl = process.env.LLM_BASE_URL ?? null;
 const openAiApiMode = process.env.OPENAI_API_MODE ?? 'chat_completions';
+const useProfileKeyOverride = process.env.LLM_USE_PROFILE_KEY_OVERRIDE === 'true';
 
 if (model === undefined || model.length === 0) {
   throw new Error('Set LLM_MODEL to the model to smoke-test. API keys are read from the OS keyring only.');
@@ -27,6 +28,7 @@ const profile = llmProfileSchema.parse({
   baseUrl,
   openAiApiMode,
   maxOutputTokens: 32,
+  useProfileKeyOverride,
 });
 const store = new MacOSKeychainSecretStore();
 const client = await createClient(profile, store);
