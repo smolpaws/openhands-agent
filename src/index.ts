@@ -10,4 +10,5 @@ export * from './event/index.js';
 export * from './io/index.js';
 export * from './llm/index.js';
 export * from './logger/index.js';
+export * from './secrets/index.js';
 export * from './utils/index.js';
