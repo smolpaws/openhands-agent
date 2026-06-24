@@ -7,12 +7,18 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_TEXT_CONTENT_LIMIT,
   DEFAULT_TRUNCATE_NOTICE,
+  executeCommand,
   isAbsolutePathSource,
   isHostAbsolutePath,
   isLocalPathSource,
   maybeTruncate,
   pageIterator,
   posixPathName,
+  redactTextSecrets,
+  redactUrlCredentials,
+  redactUrlCredentialsInText,
+  redactUrlParams,
+  sanitizedEnv,
   sanitizeOpenHandsMentions,
   toPosixPath,
 } from '../index.js';
@@ -115,3 +121,62 @@ describe('pageIterator', () => {
     expect(calls).toEqual([undefined, 'second']);
   });
 });
+
+
+describe('command utilities', () => {
+  it('returns a sanitized environment copy', () => {
+    const env = {
+      FOO: 'bar',
+      LD_LIBRARY_PATH: '/pyinstaller',
+      LD_LIBRARY_PATH_ORIG: '/original',
+      SESSION_API_KEY: 'secret-session',
+    };
+
+    const result = sanitizedEnv(env);
+
+    expect(result).toEqual({ FOO: 'bar', LD_LIBRARY_PATH: '/original', LD_LIBRARY_PATH_ORIG: '/original' });
+    expect(result).not.toBe(env);
+  });
+
+  it('removes LD_LIBRARY_PATH when the original value is empty', () => {
+    const result = sanitizedEnv({ LD_LIBRARY_PATH: '/pyinstaller', LD_LIBRARY_PATH_ORIG: '' });
+
+    expect(result).toEqual({ LD_LIBRARY_PATH_ORIG: '' });
+  });
+
+  it('executes commands and captures stdout and stderr', () => {
+    const result = executeCommand('printf out && printf err >&2', { printOutput: false });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('out');
+    expect(result.stderr).toBe('err');
+  });
+});
+
+describe('redaction utilities', () => {
+  it('redacts credentials embedded in URLs', () => {
+    expect(redactUrlCredentials('https://oauth2:SECRET@gitlab.com/repo.git')).toBe('https://****@gitlab.com/repo.git');
+    expect(redactUrlCredentials('git@github.com:owner/repo.git')).toBe('git@github.com:owner/repo.git');
+    expect(redactUrlCredentialsInText("fatal: unable to access 'https://oauth2:SECRET@github.com/o/r.git/'"))
+      .toBe("fatal: unable to access 'https://****@github.com/o/r.git/'");
+  });
+
+  it('redacts sensitive URL parameters while preserving safe ones', () => {
+    const result = redactUrlParams('https://example.com/search?q=hello&apikey=secret123&Authorization=Bearer+xyz');
+
+    expect(result).not.toContain('secret123');
+    expect(result).not.toContain('Bearer');
+    expect(result).not.toContain('xyz');
+    expect(result).toContain('q=hello');
+    expect(redactUrlParams('https://example.com/path')).toBe('https://example.com/path');
+  });
+
+  it('redacts key-value secrets in arbitrary text', () => {
+    const redacted = redactTextSecrets("docker run -e api_key='secretvalue123456789' -e DEBUG=true image");
+
+    expect(redacted).not.toContain('secretvalue123456789');
+    expect(redacted).toContain('<redacted>');
+    expect(redacted).toContain('DEBUG=true');
+  });
+});
+

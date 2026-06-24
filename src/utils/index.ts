@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 export const DEFAULT_TEXT_CONTENT_LIMIT = 50_000;
 export const DEFAULT_TRUNCATE_NOTICE =
@@ -141,3 +142,137 @@ export async function* pageIterator<T, P extends Record<string, unknown>>(
     }
   }
 }
+
+const SENSITIVE_ENV_VARS = new Set(['SESSION_API_KEY']);
+
+export function sanitizedEnv(env: Readonly<Record<string, string | undefined>> = process.env): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(env)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+
+  for (const key of SENSITIVE_ENV_VARS) {
+    delete result[key];
+  }
+
+  if (Object.hasOwn(result, 'LD_LIBRARY_PATH_ORIG')) {
+    const original = result.LD_LIBRARY_PATH_ORIG;
+    if (original === undefined || original === '') {
+      delete result.LD_LIBRARY_PATH;
+    } else {
+      result.LD_LIBRARY_PATH = original;
+    }
+  }
+
+  return result;
+}
+
+export interface ExecuteCommandOptions {
+  readonly env?: Readonly<Record<string, string | undefined>>;
+  readonly cwd?: string;
+  readonly timeoutMs?: number;
+  readonly printOutput?: boolean;
+}
+
+export interface CommandResult {
+  readonly command: string | readonly string[];
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+}
+
+export function executeCommand(command: string | readonly string[], options: ExecuteCommandOptions = {}): CommandResult {
+  const shell = typeof command === 'string';
+  const executable = shell ? command : command[0];
+  if (executable === undefined) {
+    throw new Error('Command must not be empty');
+  }
+
+  const args = shell ? [] : command.slice(1);
+  const result = spawnSync(executable, args, {
+    cwd: options.cwd,
+    env: sanitizedEnv(options.env),
+    shell,
+    timeout: options.timeoutMs,
+    encoding: 'utf8',
+  });
+
+  const stdout = result.stdout ?? '';
+  const stderr = result.stderr ?? '';
+  if (options.printOutput ?? true) {
+    process.stdout.write(stdout);
+    process.stderr.write(stderr);
+  }
+
+  return {
+    command,
+    status: result.error?.name === 'ETIMEDOUT' ? -1 : result.status,
+    stdout,
+    stderr,
+  };
+}
+
+export const SECRET_KEY_PATTERNS = new Set([
+  'AUTHORIZATION',
+  'COOKIE',
+  'CREDENTIAL',
+  'KEY',
+  'PASSWORD',
+  'SECRET',
+  'SESSION',
+  'TOKEN',
+]);
+
+export const SENSITIVE_URL_PARAMS = new Set(['tavilyapikey', 'apikey', 'api_key', 'token', 'access_token', 'secret', 'key']);
+
+export function isSecretKey(key: string): boolean {
+  const upper = key.toUpperCase();
+  return [...SECRET_KEY_PATTERNS].some((pattern) => upper.includes(pattern));
+}
+
+export function redactUrlCredentials(url: string): string {
+  return url.replace(/^(https?:\/\/)([^@/]+)@(.+)$/u, '$1****@$3');
+}
+
+const embeddedUrlCredentialsPattern = /(https?:\/\/)[^/@\s]+@/gu;
+
+export function redactUrlCredentialsInText(text: string): string {
+  return text.replace(embeddedUrlCredentialsPattern, '$1****@');
+}
+
+export function redactUrlParams(url: string): string {
+  if (url.length === 0 || !url.includes('?')) {
+    return url;
+  }
+
+  try {
+    const parsed = new URL(url);
+    if (parsed.search.length === 0) {
+      return url;
+    }
+    for (const key of [...parsed.searchParams.keys()]) {
+      if (SENSITIVE_URL_PARAMS.has(key.toLowerCase()) || isSecretKey(key)) {
+        const values = parsed.searchParams.getAll(key);
+        parsed.searchParams.delete(key);
+        for (let index = 0; index < Math.max(1, values.length); index += 1) {
+          parsed.searchParams.append(key, '<redacted>');
+        }
+      }
+    }
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+const keyValueSecretPattern = /\b([A-Za-z0-9_.-]*(?:api[_-]?key|authorization|cookie|credential|password|secret|session|token|key)[A-Za-z0-9_.-]*)\s*=\s*("[^"]*"|'[^']*'|[^\s]+)/giu;
+const anthropicKeyPattern = /sk-ant-api\d{2}-[A-Za-z0-9_-]{20,}/gu;
+
+export function redactTextSecrets(text: string): string {
+  return redactUrlCredentialsInText(text)
+    .replace(anthropicKeyPattern, '<redacted>')
+    .replace(keyValueSecretPattern, (_match: string, key: string) => `${key}=<redacted>`);
+}
+
