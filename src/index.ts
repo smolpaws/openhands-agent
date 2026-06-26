@@ -11,6 +11,7 @@ export * from './conversation/index.js';
 export * from './context/index.js';
 export * from './critic/index.js';
 export * from './event/index.js';
+export * from './extensions/index.js';
 export {
   AsyncProcessManager,
   HookConfig,
