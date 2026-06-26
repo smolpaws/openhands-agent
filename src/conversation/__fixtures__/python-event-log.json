@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "MessageEvent",
+    "source": "user",
+    "llm_message": { "role": "user", "content": "hello" },
+    "activated_skills": ["skill-a"]
+  }
+]
