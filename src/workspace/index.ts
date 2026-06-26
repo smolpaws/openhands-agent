@@ -1,11 +1,13 @@
 import { exec } from 'node:child_process';
-import { copyFile, mkdir, stat } from 'node:fs/promises';
-import { dirname, isAbsolute, resolve } from 'node:path';
+import { copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { dirname, isAbsolute, resolve, sep, posix } from 'node:path';
 import { promisify } from 'node:util';
 
 import { getChangesInRepo, getGitDiff, type GitChange, type GitDiff } from '../git/index.js';
 
 const execAsync = promisify(exec);
+type FetchRequestInit = NonNullable<Parameters<typeof fetch>[1]> & { readonly timeoutMs?: number };
+
 
 export type TargetType = 'binary' | 'binary-minimal' | 'source' | 'source-minimal' | 'base-image-minimal' | 'base-image' | 'builder';
 export type PlatformType = 'linux/amd64' | 'linux/arm64';
@@ -112,13 +114,196 @@ export class LocalWorkspace implements BaseWorkspace {
   }
 }
 
+export interface RemoteWorkspaceOptions extends LocalWorkspaceOptions {
+  readonly host: string;
+  readonly apiKey?: string | null;
+  readonly api_key?: string | null;
+  readonly readTimeoutSeconds?: number;
+  readonly read_timeout?: number;
+}
+
+export class RemoteWorkspace implements BaseWorkspace {
+  readonly host: string;
+  readonly apiKey: string | null;
+  readonly workingDir: string;
+  readonly readTimeoutSeconds: number;
+
+  constructor(options: RemoteWorkspaceOptions) {
+    this.host = options.host.replace(/\/+$/u, '');
+    this.apiKey = options.apiKey ?? options.api_key ?? null;
+    this.workingDir = remotePath(options.workingDir ?? options.working_dir ?? 'workspace/project');
+    this.readTimeoutSeconds = options.readTimeoutSeconds ?? options.read_timeout ?? 600;
+  }
+
+  async alive(): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.host}/health`, { signal: AbortSignal.timeout(5_000) });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  async getServerInfo(): Promise<Record<string, unknown>> {
+    const response = await this.request('/server_info');
+    const data = await response.json();
+    return isRecord(data) ? data : {};
+  }
+
+  async executeCommand(command: string, options: { readonly cwd?: string | null; readonly timeoutSeconds?: number } = {}): Promise<WorkspaceCommandResult> {
+    const timeoutSeconds = options.timeoutSeconds ?? 30;
+    const payload: Record<string, unknown> = { command, timeout: Math.trunc(timeoutSeconds) };
+    payload.cwd = options.cwd === undefined || options.cwd === null ? this.workingDir : joinRemotePath(this.workingDir, options.cwd);
+
+    try {
+      const start = await this.request('/api/bash/start_bash_command', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { 'content-type': 'application/json' },
+        timeoutMs: (timeoutSeconds + 5) * 1000,
+      });
+      const started = (await start.json()) as { id?: string };
+      if (started.id === undefined) {
+        throw new Error('agent-server did not return a bash command id');
+      }
+
+      const stdoutParts: string[] = [];
+      const stderrParts: string[] = [];
+      const seen = new Set<string>();
+      let exitCode: number | null = null;
+      let lastOrder = -1;
+      const deadline = Date.now() + timeoutSeconds * 1000;
+
+      while (Date.now() < deadline) {
+        const params = new URLSearchParams({ command_id__eq: started.id, sort_order: 'TIMESTAMP', limit: '100', kind__eq: 'BashOutput' });
+        if (lastOrder >= 0) {
+          params.set('order__gt', String(lastOrder));
+        }
+        const response = await this.request(`/api/bash/bash_events/search?${params.toString()}`, { timeoutMs: this.readTimeoutSeconds * 1000 });
+        const result = (await response.json()) as { items?: Array<Record<string, unknown>> };
+        for (const event of result.items ?? []) {
+          if (event.kind !== 'BashOutput') {
+            continue;
+          }
+          if (typeof event.id === 'string') {
+            if (seen.has(event.id)) {
+              throw new Error(`Duplicate bash event received: ${event.id}`);
+            }
+            seen.add(event.id);
+          }
+          if (typeof event.order === 'number' && event.order > lastOrder) {
+            lastOrder = event.order;
+          }
+          if (typeof event.stdout === 'string') {
+            stdoutParts.push(event.stdout);
+          }
+          if (typeof event.stderr === 'string') {
+            stderrParts.push(event.stderr);
+          }
+          if (typeof event.exit_code === 'number') {
+            exitCode = event.exit_code;
+          }
+        }
+        if (exitCode !== null) {
+          break;
+        }
+        await delay(100);
+      }
+
+      if (exitCode === null) {
+        exitCode = -1;
+        stderrParts.push(`Command timed out after ${timeoutSeconds} seconds`);
+      }
+      const stderr = stderrParts.join('');
+      return { command, exitCode, stdout: stdoutParts.join(''), stderr, timeoutOccurred: exitCode === -1 && stderr.includes('timed out') };
+    } catch (error) {
+      return { command, exitCode: -1, stdout: '', stderr: `Remote execution error: ${error instanceof Error ? error.message : String(error)}`, timeoutOccurred: false };
+    }
+  }
+
+  async fileUpload(sourcePath: string, destinationPath: string): Promise<FileOperationResult> {
+    const source = resolve(sourcePath);
+    const destination = joinRemotePath(this.workingDir, destinationPath);
+    try {
+      const content = await readFile(source);
+      const form = new FormData();
+      form.set('file', new Blob([content]), source.split(/[\\/]/u).at(-1) ?? 'file');
+      const params = new URLSearchParams({ path: destination });
+      const response = await this.request(`/api/file/upload?${params.toString()}`, { method: 'POST', body: form, timeoutMs: 60_000 });
+      const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+      const result: FileOperationResult = { success: data.success !== false, sourcePath: source, destinationPath: destination, fileSize: typeof data.file_size === 'number' ? data.file_size : content.length };
+      if (typeof data.error === 'string') {
+        return { ...result, error: data.error };
+      }
+      return result;
+    } catch (error) {
+      return { success: false, sourcePath: source, destinationPath: destination, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  async fileDownload(sourcePath: string, destinationPath: string): Promise<FileOperationResult> {
+    const source = joinRemotePath(this.workingDir, sourcePath);
+    const destination = resolve(destinationPath);
+    try {
+      const params = new URLSearchParams({ path: source });
+      const response = await this.request(`/api/file/download?${params.toString()}`, { timeoutMs: 60_000 });
+      const content = Buffer.from(await response.arrayBuffer());
+      await mkdir(dirname(destination), { recursive: true });
+      await writeFile(destination, content);
+      return { success: true, sourcePath: source, destinationPath: destination, fileSize: content.length };
+    } catch (error) {
+      return { success: false, sourcePath: source, destinationPath: destination, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  async gitChanges(path: string): Promise<GitChange[]> {
+    const params = new URLSearchParams({ path: joinRemotePath(this.workingDir, path), ref: 'HEAD' });
+    const response = await this.request(`/api/git/changes?${params.toString()}`, { timeoutMs: 60_000 });
+    return ((await response.json()) as GitChange[]).sort((left, right) => left.path.localeCompare(right.path));
+  }
+
+  async gitDiff(path: string): Promise<GitDiff> {
+    const params = new URLSearchParams({ path: joinRemotePath(this.workingDir, path), ref: 'HEAD' });
+    const response = await this.request(`/api/git/diff?${params.toString()}`, { timeoutMs: 60_000 });
+    return (await response.json()) as GitDiff;
+  }
+
+  async pause(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  async resume(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  private async request(path: string, init: FetchRequestInit = {}): Promise<Response> {
+    const headers = new Headers(init.headers);
+    if (this.apiKey !== null) {
+      headers.set('X-Session-API-Key', this.apiKey);
+    }
+    const response = await fetch(path.startsWith('http') ? path : `${this.host}${path}`, {
+      ...init,
+      headers,
+      signal: init.signal ?? AbortSignal.timeout(init.timeoutMs ?? this.readTimeoutSeconds * 1000),
+    });
+    if (!response.ok) {
+      throw new Error(`agent-server request failed: ${response.status} ${response.statusText} ${await response.text().catch(() => '')}`.trim());
+    }
+    return response;
+  }
+}
+
 export interface WorkspaceOptions extends LocalWorkspaceOptions {
   readonly host?: string | null;
+  readonly apiKey?: string | null;
+  readonly api_key?: string | null;
+  readonly readTimeoutSeconds?: number;
+  readonly read_timeout?: number;
 }
 
 export function workspace(options: WorkspaceOptions = {}): BaseWorkspace {
   if (options.host !== undefined && options.host !== null && options.host.length > 0) {
-    throw new Error('Remote workspace is not implemented in the TypeScript package yet');
+    return new RemoteWorkspace({ ...options, host: options.host });
   }
   return new LocalWorkspace(options);
 }
@@ -256,6 +441,29 @@ function providerFromHost(host: string): GitProvider | null {
     }
   }
   return null;
+}
+
+function remotePath(path: string): string {
+  return path.split(sep).join(posix.sep);
+}
+
+function joinRemotePath(base: string, path: string): string {
+  const pathStr = remotePath(path);
+  if (pathStr.startsWith('/') || /^[a-zA-Z]:\//u.test(pathStr)) {
+    return pathStr;
+  }
+  const baseStr = remotePath(base);
+  const prefix = baseStr.startsWith('/') ? '/' : '';
+  const parts = [...baseStr.split('/'), ...pathStr.split('/')].filter((part) => part.length > 0 && part !== '.');
+  return `${prefix}${parts.join('/')}`;
+}
+
+async function delay(ms: number): Promise<void> {
+  await new Promise((resolveDelay) => setTimeout(resolveDelay, ms));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 interface ExecError {
