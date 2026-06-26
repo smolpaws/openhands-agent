@@ -10,6 +10,13 @@ OpenHands Python `agent-sdk` (local source: `~/repos/agent-sdk`, upstream
 `OpenHands/software-agent-sdk`). We transpile *anew* — we do **not** copy the outdated TS
 attempt in `oh-tab/packages/agent-sdk`. That older code is reference-only (tooling, tests).
 
+## Current status after 0.1.0
+
+The first 0.1.0 line is released and covers the core event/conversation/agent/tool/LLM/profile path, concrete tools, hooks, critic, subagents, git helpers, MCP utilities, docs, examples, and CI. The remaining work is the cleanup/completeness pass needed to make this a faithful TypeScript transpilation within the rules and explicit exceptions below.
+
+Accepted clarification: low-level LLM client classes may remain exported from the npm package as advanced/testing/building blocks. The product/REST boundary must still be **profile-only**: REST callers select LLM profiles, never raw clients or a Python-style bare `LLM` object.
+
+
 ## Pinned upstream target
 
 Python `OpenHands/software-agent-sdk` main @
@@ -32,14 +39,14 @@ commit and catch up to newer upstream in deliberate batches, not by chasing HEAD
 | utils | 16 | 2004 | Shared helpers |
 | event | 19 | 1923 | Event model hierarchy |
 | hooks | 6 | 1669 | Lifecycle hooks |
-| plugin | 7 | 1471 | Plugin system |
+| plugin | 7 | 1471 | **Intentionally skipped for this roadmap** unless Engel explicitly brings it back |
 | critic | 12 | 1446 | Critic models |
 | git | 6 | 1355 | Git integration |
 | profiles | 5 | 1267 | LLM profiles |
 | subagent | 4 | 1011 | Delegation |
 | extensions | 8 | 988 | |
 | mcp | 6 | 750 | MCP client |
-| marketplace | 4 | 649 | |
+| marketplace | 4 | 649 | **Intentionally skipped for this roadmap** unless Engel explicitly brings it back |
 | observability | 3 | 447 | |
 | io | 5 | 431 | |
 | logger | 3 | 330 | |
@@ -48,6 +55,15 @@ commit and catch up to newer upstream in deliberate batches, not by chasing HEAD
 
 Plus `openhands-tools` (~16k LOC): concrete tools (terminal, file editor, browser, etc.).
 `openhands-agent-server` is out of scope for now (possible later sibling package).
+
+Follow-up scope after 0.1.0:
+
+- **Workspace** is not present in an equivalent TS shape yet. Some local execution/file behavior exists in concrete tools, but Python `BaseWorkspace`/`LocalWorkspace`/remote workspace and repo-cloning are separate concepts and need an applicable TS port.
+- **Extensions** are not present yet. Port fetch/source-resolution and installation metadata only where they are useful without bringing back plugins/marketplace.
+- **Observability** is not present yet. Python uses Laminar with OTEL-compatible environment switches; TS should use the standard JS OpenTelemetry/Laminar path if practical, otherwise a tiny no-op-compatible wrapper that can be wired to OTEL later.
+- **Testing helpers** are not present yet. Python `TestLLM` corresponds to a scripted `LLMClient` helper in TS; port it as a public testing helper if it improves downstream tests without encouraging mocks of real code paths.
+- **Plugin** and **marketplace** remain intentionally skipped. Do not create beads for them unless explicitly requested.
+
 
 ## Workflow: tests first (red/green)
 
@@ -97,7 +113,8 @@ API shape and are the executable spec for each phase.
 
    The shared surface is *extracted from what clients actually share*, built last — not designed
    up front. Live-test scripts live in `scripts/live/` (NOT CI), keys from a GitHub environment
-   named `llm`, run on demand to confirm each API still works.
+   named `llm`, run on demand to confirm each API still works. Low-level clients may be exported
+   from the npm package for advanced SDK use and tests, but REST/product callers use profiles only.
 4. **Pin upstream** at `9663409` (above). Local `~/repos/agent-sdk` synced to it.
 5. **Secrets: OS keyring, not Python's storage split.** The Python SDK has environment-specific
    secret behavior (plaintext local paths plus encrypted-at-rest docker/remote/agent-server
@@ -128,10 +145,11 @@ We transpile **anew**, and on purpose we do NOT reproduce everything. The rule o
    equivalent), with the "unmatched actions" tracking (`get_unmatched_actions`) and cancellation
    support. That is core execution machinery and is required. Only the *confirmation gate* is
    dropped — not the action queue.
-3. **LLM is used ONLY via LLM profiles.** There is no bare/standalone `LLM` entry point in the
-   public API. You configure and select a profile; the SDK resolves the client from the profile.
-   **No model fallback chains, no implicit default model, nothing** — just profiles. (The 4 clients
-   from decision 3 sit *behind* the profile resolution, never exposed bare.)
+3. **LLM is profile-first at the product/REST boundary.** There is no Python-style
+   bare/standalone `LLM` class in the supported REST path. REST callers configure and select a
+   profile; the SDK resolves the client from the profile. **No model fallback chains, no implicit
+   default model, nothing** — just profiles. The npm package may expose low-level clients for
+   advanced SDK users and tests, but they are not the REST interface.
 4. **Secrets are keyring-backed references.** Do not port Python's `Cipher`, local plaintext
    secret persistence, or docker/remote/agent-server encrypted-at-rest branching. Persistent
    settings/profiles contain stable references such as `{ service: 'openhands', account }`; the raw
@@ -170,8 +188,9 @@ Consequence for the roadmap:
   P7 no longer includes security analyzers or confirmation. If any non-security piece currently
   lives under `security/` and is genuinely needed elsewhere, it moves to its real home — but the
   analyzer/confirmation surface itself is gone.
-- The LLM public surface is **profile-first**: `LLMProfile` in, resolved client out. Bare `LLM`
-  is not part of the public API.
+- The LLM product/REST surface is **profile-first**: `LLMProfile` in, resolved client out. Bare
+  Python-style `LLM` is not part of the supported REST boundary. Low-level clients may remain
+  exported for advanced SDK/test use.
 - Secret handling is its own small settings/profile concern, not a port of Python's cipher stack:
   implement `SecretRef`/`SecretStore` around OS keyring, then make provider profiles refer to
   secrets by reference.
@@ -189,9 +208,10 @@ workable phase.
   scale. Serialization round-trip tests. (deps: P1)
 - **P3 — Tool abstraction + registry:** base Tool, schema gen via `z.toJSONSchema()`, then one
   concrete tool end-to-end. (deps: P1)
-- **P4 — LLM layer (profile-first):** profiles are the *only* public entry point. The four
-  clients (one sub-bead each, done end-to-end) sit behind profile resolution — never exposed
-  bare. Profiles resolve API keys through `SecretRef`/keyring, not embedded values: explicit
+- **P4 — LLM layer (profile-first):** profiles are the supported product/REST entry point. The
+  four clients (one sub-bead each, done end-to-end) sit behind profile resolution for REST, while
+  low-level npm exports may remain available for advanced SDK/test use. Profiles resolve API keys
+  through `SecretRef`/keyring, not embedded values: explicit
   profile override first when enabled, otherwise provider key by `providerId` (not by model
   family). No model fallback chains, no implicit default model. Plus the live-test harness +
   `llm` environment, then the minimal shared interface extracted last. (deps: P1)
@@ -204,6 +224,18 @@ workable phase.
 - **P8 — Concrete tools** (`openhands-tools` equivalent): terminal, file editor, browser,
   grep/glob, task tracker, etc. May become a separate package later. (deps: P3)
 - **P9 — Packaging, examples, docs, release 0.1.0.** (deps: P6, P7, P8)
+
+## Remaining beads after 0.1.0
+
+These are the not-quite-done gaps to close next, in tests-first order where applicable:
+
+1. **Remove confirmation residues.** Keep pending-action/multi-tool execution. Remove local/public confirmation-shaped APIs and file-agent `permission_mode` confirmation parsing unless a field is strictly needed for wire compatibility and is documented as ignored metadata.
+2. **Conversation wire compatibility and restore migrations.** Add Python/TS golden JSON fixtures for events/conversation state, import/export round trips, and a restore migration utility that drops or maps intentionally unsupported Python fields such as security analyzer metadata.
+3. **Workspace.** Port applicable workspace models and local workspace behavior, then remote workspace only if it cleanly matches the REST architecture.
+4. **Extensions.** Port applicable extension source parsing/fetching and installation metadata. Do not port plugin/marketplace behavior as part of this bead.
+5. **Observability.** Add a TS observability wrapper compatible with standard JS OTEL and, if practical, Laminar. It must be no-op when env vars are absent.
+6. **Testing helpers.** Port Python `TestLLM` into a scripted `LLMClient` helper and transfuse applicable Python tests before implementation.
+7. **Examples/tests coverage expansion.** Port applicable Python examples/tests for persistence, async/send-message-while-running, condenser, remote conversation, workspace, extensions, observability, and testing helpers. The examples workflow remains label/manual-only.
 
 ## Reference materials
 
