@@ -44,3 +44,4 @@ export * from './tool/index.js';
 export * from './tool/builtins.js';
 export * from './tools/index.js';
 export * from './utils/index.js';
+export * from './workspace/index.js';
