@@ -37,6 +37,7 @@ export * from './logger/index.js';
 export * from './mcp/index.js';
 export * from './profiles/index.js';
 export * from './secrets/index.js';
+export * from './observability/index.js';
 export * from './settings/index.js';
 export * from './skills/index.js';
 export * from './subagent/index.js';
