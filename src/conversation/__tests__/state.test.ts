@@ -26,17 +26,6 @@ describe('ConversationState pending action tracking', () => {
     expect(ConversationState.getUnmatchedActions(events).map((event) => event.id)).toEqual([first.id, last.id]);
   });
 
-  it('rejects pending actions by appending user rejection observations', () => {
-    const state = new ConversationState({ events: [actionEvent('action-1', 'call-1'), actionEvent('action-2', 'call-2')] });
-
-    const rejections = state.rejectPendingActions('not now');
-
-    expect(rejections).toHaveLength(2);
-    expect(rejections.map((event) => event.kind)).toEqual(['UserRejectObservation', 'UserRejectObservation']);
-    expect(ConversationState.getUnmatchedActions(state.events)).toHaveLength(0);
-    expect(rejections[0]?.rejection_reason).toBe('not now');
-  });
-
   it('emits agent errors for orphaned actions after interruption', () => {
     const state = new ConversationState({ events: [actionEvent('action-1', 'call-1')] });
 

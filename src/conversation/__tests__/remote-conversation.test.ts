@@ -39,24 +39,20 @@ describe('RemoteConversation', () => {
     expect(conversation.state.executionStatus).toBe(conversationExecutionStatus.FINISHED);
   });
 
-  it('rejects pending actions and can pause or interrupt remotely', async () => {
+  it('can pause or interrupt remotely', async () => {
     const fetch = new FakeRemoteFetch([
-      { status: 204, body: null },
       { status: 204, body: null },
       { status: 204, body: null },
     ]);
     const conversation = new RemoteConversation({ host: 'https://agent.example', conversationId: 'abc', fetch });
 
-    await conversation.rejectPendingActions('no');
     await conversation.pause();
     await conversation.interrupt();
 
     expect(fetch.calls.map((call) => `${call.method} ${call.url}`)).toEqual([
-      'POST https://agent.example/api/conversations/abc/events/respond_to_confirmation',
       'POST https://agent.example/api/conversations/abc/pause',
       'POST https://agent.example/api/conversations/abc/interrupt',
     ]);
-    expect(JSON.parse(fetch.calls[0]?.body ?? '{}')).toEqual({ accept: false, reason: 'no' });
   });
 });
 

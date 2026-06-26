@@ -1,11 +1,9 @@
 import {
   actionEventSchema,
   agentErrorEventSchema,
-  userRejectObservationSchema,
   type ActionEvent,
   type AgentErrorEvent,
   type Event,
-  type UserRejectObservation,
 } from '../event/index.js';
 import { messageSchema, type Message } from '../llm/index.js';
 
@@ -42,19 +40,6 @@ export class ConversationState {
 
   pendingActions(): ActionEvent[] {
     return ConversationState.getUnmatchedActions(this.events);
-  }
-
-  rejectPendingActions(reason = 'User rejected the action'): UserRejectObservation[] {
-    const rejections = this.pendingActions().map((action) =>
-      userRejectObservationSchema.parse({
-        action_id: action.id,
-        tool_name: action.tool_name,
-        tool_call_id: action.tool_call_id,
-        rejection_reason: reason,
-      }),
-    );
-    this.events.push(...rejections);
-    return rejections;
   }
 
   emitOrphanedActionErrors(error = 'Tool call interrupted before completion. The conversation was paused.'): AgentErrorEvent[] {

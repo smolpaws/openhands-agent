@@ -2,6 +2,8 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, extname, join, posix, sep } from 'node:path';
 
+// Retain permission_mode as a known frontmatter key so legacy agent files load,
+// but do not expose or enforce Python confirmation semantics.
 const knownAgentFields = new Set([
   'name',
   'description',
@@ -18,7 +20,6 @@ const knownAgentFields = new Set([
   'condenser',
 ]);
 
-const permissionModes = new Set(['always_confirm', 'never_confirm', 'confirm_risky']);
 const agentDirectories = ['.agents/agents', '.openhands/agents'] as const;
 const skipFiles = new Set(['README.md', 'readme.md']);
 
@@ -33,7 +34,6 @@ export interface AgentDefinitionOptions {
   readonly source?: string | null;
   readonly when_to_use_examples?: readonly string[];
   readonly hooks?: unknown;
-  readonly permission_mode?: string | null;
   readonly max_iteration_per_run?: number | null;
   readonly max_budget_per_run?: number | null;
   readonly mcp_servers?: Record<string, unknown> | null;
@@ -53,7 +53,6 @@ export class AgentDefinition {
   readonly source: string | null;
   readonly when_to_use_examples: string[];
   readonly hooks: unknown;
-  readonly permission_mode: string | null;
   readonly max_iteration_per_run: number | null;
   readonly max_budget_per_run: number | null;
   readonly mcp_servers: Record<string, unknown> | null;
@@ -72,7 +71,6 @@ export class AgentDefinition {
     this.source = options.source ?? null;
     this.when_to_use_examples = [...(options.when_to_use_examples ?? [])];
     this.hooks = options.hooks ?? null;
-    this.permission_mode = normalizePermissionMode(options.permission_mode ?? null);
     this.max_iteration_per_run = positiveNumberOrNull(options.max_iteration_per_run ?? null, 'max_iteration_per_run');
     this.max_budget_per_run = positiveNumberOrNull(options.max_budget_per_run ?? null, 'max_budget_per_run');
     this.mcp_servers = options.mcp_servers ?? null;
@@ -95,7 +93,6 @@ export class AgentDefinition {
       color: nullableString(metadata.color),
       tools: stringList(metadata.tools, false),
       skills: stringList(metadata.skills, true),
-      permission_mode: nullableString(metadata.permission_mode),
       max_iteration_per_run: optionalNumber(metadata.max_iteration_per_run),
       max_budget_per_run: optionalNumber(metadata.max_budget_per_run),
       mcp_servers: recordOrNull(metadata.mcp_servers, 'mcp_servers'),
@@ -318,17 +315,6 @@ function recordOrNull(value: unknown, field: string): Record<string, unknown> | 
     return value as Record<string, unknown>;
   }
   throw new Error(`${field} must be a mapping`);
-}
-
-function normalizePermissionMode(value: string | null): string | null {
-  if (value === null) {
-    return null;
-  }
-  const normalized = value.trim().toLowerCase();
-  if (!permissionModes.has(normalized)) {
-    throw new Error(`Invalid permission_mode '${value}'`);
-  }
-  return normalized;
 }
 
 function examplesFrom(description: string): string[] {
