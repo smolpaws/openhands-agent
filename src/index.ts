@@ -4,7 +4,7 @@
 // This is the package entry point. Modules are added as the transpilation
 // progresses (see the transpile plan tracked in beads).
 
-export const VERSION = '0.0.0';
+export const VERSION = '0.1.0';
 
 export * from './agent/index.js';
 export * from './conversation/index.js';
