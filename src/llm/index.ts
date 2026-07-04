@@ -157,6 +157,14 @@ export function imageContent(imageUrls: readonly string[], cachePrompt = false):
   return imageContentSchema.parse({ image_urls: [...imageUrls], cache_prompt: cachePrompt });
 }
 
+export function reduceTextContent(message: Message): string {
+  return message.content
+    .filter((item): item is TextContent => item.type === 'text')
+    .map((item) => item.text)
+    .join('\n');
+}
+
+
 export function contentToString(content: readonly Content[]): string[] {
   return content.map((item) => (item.type === 'text' ? item.text : `[Image: ${item.image_urls.length} URLs]`));
 }

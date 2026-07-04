@@ -268,6 +268,22 @@ export type HookExecutionEvent = z.infer<typeof hookExecutionEventSchema>;
 export type ResumeTranscriptEvent = z.infer<typeof resumeTranscriptEventSchema>;
 export type LLMConvertibleEvent = z.infer<typeof llmConvertibleEventSchema>;
 
+
+export function isMessageEvent(event: unknown): event is MessageEvent {
+  return eventKind(event) === 'MessageEvent';
+}
+
+export function isConversationStateUpdateEvent(event: unknown): event is ConversationStateUpdateEvent {
+  return eventKind(event) === 'ConversationStateUpdateEvent';
+}
+
+function eventKind(event: unknown): string | undefined {
+  if (!isRecord(event)) {
+    return undefined;
+  }
+  return typeof event.kind === 'string' ? event.kind : undefined;
+}
+
 export function isAcpPatchEdit(event: ACPToolCallEvent): boolean {
   const diffBlocks = (event.content ?? []).filter((block) => blockField(block, 'type') === 'diff');
   if (diffBlocks.length > 0) {
