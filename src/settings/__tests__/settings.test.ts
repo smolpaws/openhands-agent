@@ -51,6 +51,38 @@ describe('AgentSettings', () => {
     expect(JSON.stringify(settings)).not.toMatch(/api[_-]?key|"llm"/iu);
   });
 
+  it('keeps OpenHandsAgentSettings aligned with canonical Python agent fields at the profile seam', () => {
+    const settings = openHandsAgentSettingsSchema.parse({
+      agent_kind: 'openhands',
+      llm_profile_ref: 'cat-prod',
+      agent: 'CodeActAgent',
+      tools: [{ name: 'TerminalTool' }],
+      enable_sub_agents: true,
+      enable_switch_llm_tool: false,
+      tool_concurrency_limit: 2,
+      mcp_config: { mcpServers: {} },
+      condenser: { condenser_kind: 'noop' },
+      verification: {},
+    });
+
+    expect(Object.keys(settings).sort()).toEqual([
+      'agent',
+      'agent_kind',
+      'condenser',
+      'enable_sub_agents',
+      'enable_switch_llm_tool',
+      'llm_profile_ref',
+      'mcp_config',
+      'schema_version',
+      'tool_concurrency_limit',
+      'tools',
+      'verification',
+    ]);
+    expect(settings.llm_profile_ref).toBe('cat-prod');
+    expect(settings.mcp_config).toEqual({ mcpServers: {} });
+    expect(JSON.stringify(settings)).not.toMatch(/api[_-]?key|agent_context|"llm"/iu);
+  });
+
   it('defaults a missing discriminator to OpenHands and rejects cross-variant fields', () => {
     expect(validateAgentSettings({ llm_profile_ref: 'default' }).agent_kind).toBe('openhands');
     expect(() => validateAgentSettings({ agent_kind: 'openhands', llm_profile_ref: 'default', acp_server: 'codex' })).toThrow();

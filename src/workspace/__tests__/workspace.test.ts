@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { runGitCommand } from '../../git/index.js';
-import { LocalWorkspace, RepoSource, buildCloneUrl, getReposContext, workspace } from '../index.js';
+import { LocalWorkspace, RemoteWorkspace, RepoSource, buildCloneUrl, getReposContext, workspace } from '../index.js';
 
 describe('LocalWorkspace', () => {
   it('executes shell commands in the workspace directory', async () => {
@@ -81,5 +81,15 @@ describe('workspace repo helpers', () => {
 
     expect(ws).toBeInstanceOf(LocalWorkspace);
     expect(getReposContext({ repo: { url: 'https://github.com/a/repo', dirName: 'repo', localPath: '/workspace/repo', ref: 'main' } })).toContain('`https://github.com/a/repo` (ref: main) → `/workspace/repo/`');
+  });
+
+  it('uses LocalWorkspace and RemoteWorkspace instances as the workspace guard surface', () => {
+    const local = workspace({ workingDir: '/tmp/project' });
+    const remote = workspace({ host: 'http://127.0.0.1:18999', workingDir: '/workspace/project' });
+
+    expect(local).toBeInstanceOf(LocalWorkspace);
+    expect(local).not.toBeInstanceOf(RemoteWorkspace);
+    expect(remote).toBeInstanceOf(RemoteWorkspace);
+    expect(remote).not.toBeInstanceOf(LocalWorkspace);
   });
 });
