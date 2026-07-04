@@ -5,6 +5,32 @@ import {
   profileVerificationSettingsSchema,
   type ProfileVerificationSettings,
 } from '../profiles/index.js';
+export const RAW_LLM_FIELDS_IGNORED_WHEN_PROFILE_SELECTED = [
+  'provider',
+  'model',
+  'openaiApiMode',
+  'baseUrl',
+  'apiVersion',
+  'timeout',
+  'temperature',
+  'topP',
+  'topK',
+  'maxInputTokens',
+  'maxOutputTokens',
+  'reasoningEffort',
+  'reasoningSummary',
+  'inputCostPerToken',
+  'outputCostPerToken',
+] as const;
+
+export type RawLlmFieldIgnoredWhenProfileSelected = (typeof RAW_LLM_FIELDS_IGNORED_WHEN_PROFILE_SELECTED)[number];
+
+export type ProfileSelectedLlmSettings = {
+  readonly profileId?: string | null;
+  readonly encrypted_reasoning?: string | null;
+} & {
+  readonly [K in RawLlmFieldIgnoredWhenProfileSelected]?: unknown;
+};
 
 export const AGENT_SETTINGS_SCHEMA_VERSION = 4;
 export const CONVERSATION_SETTINGS_SCHEMA_VERSION = 1;
@@ -64,6 +90,31 @@ export type ConversationSettings = z.infer<typeof conversationSettingsSchema>;
 export type OpenHandsAgentSettings = z.infer<typeof openHandsAgentSettingsSchema>;
 export type ACPAgentSettings = z.infer<typeof acpAgentSettingsSchema>;
 export type AgentSettings = OpenHandsAgentSettings | ACPAgentSettings;
+
+export function clearRawLlmFieldsWhenProfileSelected<T extends ProfileSelectedLlmSettings>(llm: T): T {
+  const profileId = typeof llm.profileId === 'string' ? llm.profileId.trim() : '';
+  if (profileId.length === 0) {
+    return llm;
+  }
+  return {
+    ...llm,
+    provider: undefined,
+    model: undefined,
+    openaiApiMode: undefined,
+    baseUrl: undefined,
+    apiVersion: undefined,
+    timeout: undefined,
+    temperature: undefined,
+    topP: undefined,
+    topK: undefined,
+    maxInputTokens: undefined,
+    maxOutputTokens: undefined,
+    reasoningEffort: undefined,
+    reasoningSummary: undefined,
+    inputCostPerToken: undefined,
+    outputCostPerToken: undefined,
+  };
+}
 
 export function validateAgentSettings(data: unknown): AgentSettings {
   const payload = applySettingsVersion(data, AGENT_SETTINGS_SCHEMA_VERSION, 'AgentSettings');

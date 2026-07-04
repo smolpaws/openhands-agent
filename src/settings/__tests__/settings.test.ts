@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   AGENT_SETTINGS_SCHEMA_VERSION,
   CONVERSATION_SETTINGS_SCHEMA_VERSION,
+  RAW_LLM_FIELDS_IGNORED_WHEN_PROFILE_SELECTED,
   acpAgentSettingsSchema,
+  clearRawLlmFieldsWhenProfileSelected,
   conversationSettingsSchema,
   defaultAgentSettings,
   openHandsAgentSettingsSchema,
@@ -81,6 +83,58 @@ describe('AgentSettings', () => {
     expect(settings.llm_profile_ref).toBe('cat-prod');
     expect(settings.mcp_config).toEqual({ mcpServers: {} });
     expect(JSON.stringify(settings)).not.toMatch(/api[_-]?key|agent_context|"llm"/iu);
+  });
+
+  it('clears raw LLM fields when a profile is selected', () => {
+    const llm = clearRawLlmFieldsWhenProfileSelected({
+      profileId: ' default ',
+      provider: 'openai',
+      model: 'gpt-5',
+      openaiApiMode: 'responses',
+      baseUrl: 'https://api.example.test',
+      apiVersion: '2024-01-01',
+      timeout: 60,
+      temperature: 0.1,
+      topP: 0.9,
+      topK: 40,
+      maxInputTokens: 1000,
+      maxOutputTokens: 2000,
+      reasoningEffort: 'high',
+      reasoningSummary: 'auto',
+      inputCostPerToken: 0.1,
+      outputCostPerToken: 0.2,
+      encrypted_reasoning: 'kept',
+    });
+
+    expect(RAW_LLM_FIELDS_IGNORED_WHEN_PROFILE_SELECTED).toEqual([
+      'provider',
+      'model',
+      'openaiApiMode',
+      'baseUrl',
+      'apiVersion',
+      'timeout',
+      'temperature',
+      'topP',
+      'topK',
+      'maxInputTokens',
+      'maxOutputTokens',
+      'reasoningEffort',
+      'reasoningSummary',
+      'inputCostPerToken',
+      'outputCostPerToken',
+    ]);
+    for (const field of RAW_LLM_FIELDS_IGNORED_WHEN_PROFILE_SELECTED) {
+      expect(llm[field]).toBeUndefined();
+    }
+    expect(llm.profileId).toBe(' default ');
+    expect(llm.encrypted_reasoning).toBe('kept');
+  });
+
+  it('leaves raw LLM fields untouched without a selected profile', () => {
+    const llm = { profileId: ' ', provider: 'openai', model: 'gpt-5' };
+
+    expect(clearRawLlmFieldsWhenProfileSelected(llm)).toBe(llm);
+    expect(llm).toEqual({ profileId: ' ', provider: 'openai', model: 'gpt-5' });
   });
 
   it('defaults a missing discriminator to OpenHands and rejects cross-variant fields', () => {
