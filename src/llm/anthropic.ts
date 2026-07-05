@@ -161,7 +161,7 @@ const anthropicMessagesResponseSchema = z
         input_tokens: z.number().int().min(0).default(0),
         output_tokens: z.number().int().min(0).default(0),
       })
-      .strict()
+      .passthrough()
       .nullable()
       .default(null),
   })

@@ -187,10 +187,11 @@ Tests are the executable parity spec. Important suites live next to their module
 
 Runnable examples in `examples/` cover:
 
-- minimal local agent loop;
+- real OpenAI profile completion through `examples/_shared/exampleProfile.ts` when `OPENAI_API_KEY` is set;
+- graceful local skips for real-LLM examples when no key is present;
 - concrete tools;
 - settings/profiles/secrets;
-- pause/resume and parallel execution;
+- pause/resume state and parallel execution;
 - skills/context;
 - hooks;
 - MCP wrappers;

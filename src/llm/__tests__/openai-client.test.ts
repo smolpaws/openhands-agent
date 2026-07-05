@@ -192,8 +192,25 @@ function fakeFetch(response: { content: string }, calls: FakeFetchCall[] = []) {
       status: 200,
       async json() {
         return {
-          choices: [{ message: { role: 'assistant', content: response.content } }],
-          usage: { prompt_tokens: 7, completion_tokens: 3, total_tokens: 10 },
+          choices: [
+            {
+              index: 0,
+              finish_reason: 'stop',
+              message: { role: 'assistant', content: response.content, refusal: null, annotations: [] },
+            },
+          ],
+          usage: {
+            prompt_tokens: 7,
+            completion_tokens: 3,
+            total_tokens: 10,
+            prompt_tokens_details: { cached_tokens: 0, audio_tokens: 0 },
+            completion_tokens_details: {
+              reasoning_tokens: 0,
+              audio_tokens: 0,
+              accepted_prediction_tokens: 0,
+              rejected_prediction_tokens: 0,
+            },
+          },
         };
       },
       async text() {
@@ -216,7 +233,13 @@ function fakeResponsesFetch(response: { content: string }, calls: FakeFetchCall[
       async json() {
         return {
           output: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: response.content }] }],
-          usage: { input_tokens: 17, output_tokens: 9, total_tokens: 26 },
+          usage: {
+            input_tokens: 17,
+            output_tokens: 9,
+            total_tokens: 26,
+            input_tokens_details: { cached_tokens: 0 },
+            output_tokens_details: { reasoning_tokens: 0 },
+          },
         };
       },
       async text() {

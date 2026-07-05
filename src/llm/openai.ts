@@ -343,9 +343,9 @@ const openAIChatCompletionResponseSchema = z
               content: z.string().nullable().default(null),
               tool_calls: z.array(openAIChatToolCallSchema).optional(),
             })
-            .strict(),
+            .passthrough(),
         })
-        .strict(),
+        .passthrough(),
     ),
     usage: z
       .object({
@@ -353,7 +353,7 @@ const openAIChatCompletionResponseSchema = z
         completion_tokens: z.number().int().min(0).default(0),
         total_tokens: z.number().int().min(0).default(0),
       })
-      .strict()
+      .passthrough()
       .nullable()
       .default(null),
   })
@@ -382,7 +382,7 @@ const openAIResponsesResponseSchema = z
         output_tokens: z.number().int().min(0).default(0),
         total_tokens: z.number().int().min(0).default(0),
       })
-      .strict()
+      .passthrough()
       .nullable()
       .default(null),
   })

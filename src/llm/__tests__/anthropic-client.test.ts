@@ -79,7 +79,7 @@ function fakeAnthropicFetch(response: { text: string }, calls: FakeFetchCall[] =
         return {
           role: 'assistant',
           content: [{ type: 'text', text: response.text }],
-          usage: { input_tokens: 11, output_tokens: 5 },
+          usage: { input_tokens: 11, output_tokens: 5, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
         };
       },
       async text() {

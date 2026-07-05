@@ -109,15 +109,15 @@ console.log(state.executionStatus);
 
 ## Examples
 
-Runnable TypeScript examples live in [`examples/`](examples/) and are checked by `npm run test:examples`.
+Runnable TypeScript examples live in [`examples/`](examples/) and are checked by `npm run test:examples`. Real-LLM examples use [`examples/_shared/exampleProfile.ts`](examples/_shared/exampleProfile.ts): set `OPENAI_API_KEY` to run them against an OpenAI LLM profile, optionally override the model with `OPENAI_MODEL` or `LLM_MODEL`, and leave the key unset for graceful local skips.
 
 | Example | Covers |
 |---------|--------|
-| [`hello-world.ts`](examples/hello-world.ts) | Minimal local agent loop with a mocked LLM and `FinishTool` |
+| [`hello-world.ts`](examples/hello-world.ts) | Real OpenAI profile completion through the shared env-backed example profile helper |
 | [`tools.ts`](examples/tools.ts) | Concrete terminal, file editor, glob, grep, and task tracker tools |
 | [`profiles-and-secrets.ts`](examples/profiles-and-secrets.ts) | Provider/profile-scoped LLM API key references and secret store usage |
 | [`agent-settings.ts`](examples/agent-settings.ts) | Agent settings/profile validation and profile-selected raw LLM field cleanup |
-| [`conversation-patterns.ts`](examples/conversation-patterns.ts) | Pause/resume, parallel tool execution, manual observation parsing, and stuck detection |
+| [`conversation-patterns.ts`](examples/conversation-patterns.ts) | Real profile completion, pause/resume status, parallel tool execution, manual observation parsing, and stuck detection |
 | [`skills-and-context.ts`](examples/skills-and-context.ts) | Agent context, static skills, and keyword-triggered skill suffixes |
 | [`hooks.ts`](examples/hooks.ts) | Hook config and pre-tool-use hook execution |
 | [`mcp.ts`](examples/mcp.ts) | MCP tool definitions, action argument sanitization, and observations |
