@@ -12,7 +12,19 @@ Idiomatic TypeScript transpilation of the [OpenHands](https://github.com/OpenHan
 - context, condensers, skills, hooks, critics, file-based subagents, git helpers, MCP wrappers
 - concrete tools: terminal, file editor, glob, grep, task tracker, and injectable browser adapter
 
-Intentional deviations from Python remain: no security analyzers, risk scoring, confirmation gates, Python Cipher, or Python secret-storage split.
+Intentional deviations from Python remain: no ACP runtime, security analyzers, risk scoring, confirmation gates, Python Cipher, or Python secret-storage split. The Python `SecretRegistry` surface maps to the current TypeScript `SecretStore`/keyring model.
+
+## Python SDK parity
+
+This package is tracking the Python `agent-sdk` architecture while staying idiomatic TypeScript. The implemented surfaces currently include focused parity coverage for:
+
+- LLM message/content serialization, OpenAI chat completions/Responses, Anthropic, and Gemini request/response mapping
+- event schemas and `eventsToMessages` conversion, including parallel tool-call batching behavior
+- conversation state, local/remote conversations, pause/resume, restore, parallel execution, and stuck detection
+- settings/profiles, profile-selected LLM field hygiene, provider/profile-scoped API key references, and keyring-backed secret storage
+- tools, workspace abstractions, git helpers, hooks, skills/context, MCP wrappers, critics, and file-based subagents
+
+Accepted deviations are deliberate and should not be treated as missing work unless the product needs them later: ACP runtime execution, security/confirmation policy execution, and Python's older `SecretRegistry` API.
 
 ## Goals
 
@@ -42,8 +54,11 @@ For local development in this repo:
 
 ```sh
 npm install
+npm run typecheck
+npm run lint
 npm test
 npm run build
+npm run test:examples
 ```
 
 ## Quick start
@@ -92,7 +107,21 @@ await conversation.run();
 console.log(state.executionStatus);
 ```
 
-More examples live in [`examples/`](examples/).
+## Examples
+
+Runnable TypeScript examples live in [`examples/`](examples/) and are checked by `npm run test:examples`.
+
+| Example | Covers |
+|---------|--------|
+| [`hello-world.ts`](examples/hello-world.ts) | Minimal local agent loop with a mocked LLM and `FinishTool` |
+| [`tools.ts`](examples/tools.ts) | Concrete terminal, file editor, glob, grep, and task tracker tools |
+| [`profiles-and-secrets.ts`](examples/profiles-and-secrets.ts) | Provider/profile-scoped LLM API key references and secret store usage |
+| [`agent-settings.ts`](examples/agent-settings.ts) | Agent settings/profile validation and profile-selected raw LLM field cleanup |
+| [`conversation-patterns.ts`](examples/conversation-patterns.ts) | Pause/resume, parallel tool execution, manual observation parsing, and stuck detection |
+| [`skills-and-context.ts`](examples/skills-and-context.ts) | Agent context, static skills, and keyword-triggered skill suffixes |
+| [`hooks.ts`](examples/hooks.ts) | Hook config and pre-tool-use hook execution |
+| [`mcp.ts`](examples/mcp.ts) | MCP tool definitions, action argument sanitization, and observations |
+| [`remote-workspace.ts`](examples/remote-workspace.ts) | Guarded remote workspace usage against an agent-server |
 
 ## Issue tracking
 
