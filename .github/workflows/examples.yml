@@ -13,6 +13,7 @@ jobs:
     name: Type-check and run examples
     if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'test-examples'
     runs-on: ubuntu-latest
+    environment: examples
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -34,3 +35,5 @@ jobs:
 
       - name: Run examples
         run: npm run test:examples
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
