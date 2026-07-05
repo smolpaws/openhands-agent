@@ -188,6 +188,9 @@ function toOpenAIChatMessage(message: Message): Record<string, unknown> {
   };
   if (message.tool_calls !== null) {
     out.tool_calls = message.tool_calls.map(toOpenAIChatToolCall);
+    if (isEmptySerializedContent(out.content)) {
+      delete out.content;
+    }
   }
   if (message.tool_call_id !== null) {
     out.tool_call_id = message.tool_call_id;
@@ -207,6 +210,22 @@ function serializeContent(content: readonly Content[]): string | readonly Record
       return { type: 'text', text: item.text };
     }
     return { type: 'image_url', image_url: { url: item.image_urls[0] ?? '' } };
+  });
+}
+
+function isEmptySerializedContent(content: unknown): boolean {
+  if (content === '') {
+    return true;
+  }
+  if (!Array.isArray(content)) {
+    return false;
+  }
+  return content.every((item) => {
+    if (typeof item !== 'object' || item === null || !('type' in item)) {
+      return false;
+    }
+    const record = item as { readonly type?: unknown; readonly text?: unknown };
+    return record.type === 'text' && record.text === '';
   });
 }
 

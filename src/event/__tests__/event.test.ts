@@ -216,6 +216,40 @@ describe('eventsToMessages', () => {
     expect(messages).toHaveLength(2);
   });
 
+  it('does not merge user messages with tool calls or names', () => {
+    const withToolCalls = eventsToMessages([
+      messageEventSchema.parse({
+        source: 'user',
+        llm_message: {
+          role: 'user',
+          content: [textContent('Call this tool')],
+          tool_calls: [toolCall('call_1', 'search')],
+        },
+      }),
+      messageEventSchema.parse({
+        source: 'user',
+        llm_message: { role: 'user', content: [textContent('Plain message')] },
+      }),
+    ]);
+    const withName = eventsToMessages([
+      messageEventSchema.parse({
+        source: 'user',
+        llm_message: {
+          role: 'user',
+          content: [textContent('Named output')],
+          name: 'search_results',
+        },
+      }),
+      messageEventSchema.parse({
+        source: 'user',
+        llm_message: { role: 'user', content: [textContent('Plain message')] },
+      }),
+    ]);
+
+    expect(withToolCalls).toHaveLength(2);
+    expect(withName).toHaveLength(2);
+  });
+
   it('combines parallel action events from one LLM response', () => {
     const events: LLMConvertibleEvent[] = [
       actionEventSchema.parse({
@@ -244,5 +278,30 @@ describe('eventsToMessages', () => {
     expect(messages[0]?.role).toBe('assistant');
     expect(messages[0]?.content).toEqual([textContent('I need to inspect two things')]);
     expect(messages[0]?.tool_calls?.map((call) => call.id)).toEqual(['call_1', 'call_2']);
+  });
+
+  it('rejects non-empty thoughts after the first parallel action in a response', () => {
+    expect(() =>
+      eventsToMessages([
+        actionEventSchema.parse({
+          source: 'agent',
+          thought: [textContent('First thought')],
+          action: { command: 'pwd' },
+          tool_name: 'terminal',
+          tool_call_id: 'call_1',
+          tool_call: toolCall('call_1'),
+          llm_response_id: 'response_1',
+        }),
+        actionEventSchema.parse({
+          source: 'agent',
+          thought: [textContent('Unexpected second thought')],
+          action: { command: 'ls' },
+          tool_name: 'terminal',
+          tool_call_id: 'call_2',
+          tool_call: toolCall('call_2'),
+          llm_response_id: 'response_1',
+        }),
+      ]),
+    ).toThrow(/empty thought/u);
   });
 });

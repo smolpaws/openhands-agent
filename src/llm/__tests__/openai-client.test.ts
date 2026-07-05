@@ -5,6 +5,7 @@ import { textContent } from '../index.js';
 import {
   OpenAIChatClient,
   OpenAIResponsesClient,
+  buildChatCompletionsBody,
   createLlmClientFromProfile,
   createOpenAIResponsesClientFromProfile,
   llmCompletionResponseSchema,
@@ -129,6 +130,47 @@ describe('profile-resolved OpenAI-compatible chat client', () => {
 
   it('validates normalized completion responses', () => {
     expect(() => llmCompletionResponseSchema.parse({ message: { role: 'assistant', content: 'ok' } })).not.toThrow();
+  });
+});
+
+describe('OpenAI chat message serialization parity', () => {
+  it('drops empty assistant content when tool calls are present', () => {
+    const profile = llmProfileSchema.parse({ profileId: 'default', providerId: 'openai', model: 'gpt-5.1' });
+
+    const body = buildChatCompletionsBody(profile, [
+      {
+        role: 'assistant',
+        content: [],
+        tool_calls: [{ id: 'call_empty', name: 'test_function', arguments: '{}', origin: 'completion' }],
+      },
+    ]);
+
+    expect(body.messages).toEqual([
+      {
+        role: 'assistant',
+        tool_calls: [
+          {
+            id: 'call_empty',
+            type: 'function',
+            function: { name: 'test_function', arguments: '{}' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('drops blank text-list assistant content when tool calls are present', () => {
+    const profile = llmProfileSchema.parse({ profileId: 'default', providerId: 'openai', model: 'gpt-5.1' });
+
+    const body = buildChatCompletionsBody(profile, [
+      {
+        role: 'assistant',
+        content: [textContent('')],
+        tool_calls: [{ id: 'call_blank', name: 'test_function', arguments: '{}', origin: 'completion' }],
+      },
+    ]);
+
+    expect((body.messages as Array<Record<string, unknown>>)[0]).not.toHaveProperty('content');
   });
 });
 

@@ -75,6 +75,7 @@ export const reasoningItemSchema = z
 
 const baseContentSchema = z.object({
   cache_prompt: z.boolean().default(false),
+  enable_truncation: z.boolean().optional(),
 });
 
 export const textContentSchema = baseContentSchema
@@ -123,6 +124,11 @@ const rawMessageSchema = z
     tool_calls: z.array(messageToolCallSchema).nullable().default(null),
     tool_call_id: z.string().nullable().default(null),
     name: z.string().nullable().default(null),
+    cache_enabled: z.boolean().optional(),
+    vision_enabled: z.boolean().optional(),
+    function_calling_enabled: z.boolean().optional(),
+    force_string_serializer: z.boolean().optional(),
+    send_reasoning_content: z.boolean().optional(),
     reasoning_content: z.string().nullable().default(null),
     thinking_blocks: z.array(z.union([thinkingBlockSchema, redactedThinkingBlockSchema])).default([]),
     responses_reasoning_item: reasoningItemSchema.nullable().default(null),
