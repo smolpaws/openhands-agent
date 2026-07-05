@@ -4,7 +4,7 @@ Idiomatic TypeScript transpilation of the [OpenHands](https://github.com/OpenHan
 
 ## Status
 
-`0.1.0` is the first local release candidate of the fresh TypeScript transpilation. It covers the core SDK surfaces needed to build and run agent loops locally:
+`0.2.0` is the first documentation-backed parity release of the fresh TypeScript transpilation. It covers the core SDK surfaces needed to build and run agent loops locally and documents the main architecture in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md):
 
 - zod-backed event, tool, settings, profile, and serialization models
 - profile-first LLM clients for OpenAI chat completions, OpenAI Responses, Anthropic, and Gemini

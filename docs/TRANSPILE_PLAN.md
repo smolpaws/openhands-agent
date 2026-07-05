@@ -10,9 +10,11 @@ OpenHands Python `agent-sdk` (local source: `~/repos/agent-sdk`, upstream
 `OpenHands/software-agent-sdk`). We transpile *anew* — we do **not** copy the outdated TS
 attempt in `oh-tab/packages/agent-sdk`. That older code is reference-only (tooling, tests).
 
-## Current status after 0.1.0
+## Current status after 0.2.0
 
-The first 0.1.0 line is released and covers the core event/conversation/agent/tool/LLM/profile path, concrete tools, hooks, critic, subagents, git helpers, MCP utilities, docs, examples, and CI. The remaining work is the cleanup/completeness pass needed to make this a faithful TypeScript transpilation within the rules and explicit exceptions below.
+The 0.2.0 line is the first documentation-backed parity release. It covers the implemented core event/conversation/agent/tool/LLM/profile path, concrete tools, local/remote workspaces, hooks, critic, subagents, git helpers, MCP utilities, docs, examples, and CI-style verification commands.
+
+Additional 0.2.0 parity work added compatibility/helper exports for smolpaws, profile-selected LLM field hygiene, Python-compatible message/content backward-compatibility shims, OpenAI tool-call serialization behavior, event merge guards, parallel-action guard coverage, and runnable examples for settings, conversation patterns, MCP, and remote workspace.
 
 Accepted clarification: low-level LLM client classes may remain exported from the npm package as advanced/testing/building blocks. The product/REST boundary must still be **profile-only**: REST callers select LLM profiles, never raw clients or a Python-style bare `LLM` object.
 
@@ -56,12 +58,13 @@ commit and catch up to newer upstream in deliberate batches, not by chasing HEAD
 Plus `openhands-tools` (~16k LOC): concrete tools (terminal, file editor, browser, etc.).
 `openhands-agent-server` is out of scope for now (possible later sibling package).
 
-Follow-up scope after 0.1.0:
+Follow-up scope after 0.2.0:
 
-- **Workspace** is not present in an equivalent TS shape yet. Some local execution/file behavior exists in concrete tools, but Python `BaseWorkspace`/`LocalWorkspace`/remote workspace and repo-cloning are separate concepts and need an applicable TS port.
-- **Extensions** are not present yet. Port fetch/source-resolution and installation metadata only where they are useful without bringing back plugins/marketplace.
-- **Observability** is not present yet. Python uses Laminar with OTEL-compatible environment switches; TS should use the standard JS OpenTelemetry/Laminar path if practical, otherwise a tiny no-op-compatible wrapper that can be wired to OTEL later.
-- **Testing helpers** are not present yet. Python `TestLLM` corresponds to a scripted `LLMClient` helper in TS; port it as a public testing helper if it improves downstream tests without encouraging mocks of real code paths.
+- **Golden wire compatibility.** Add more Python/TS golden JSON fixtures for conversation restore, events, settings, and remote runtime payloads.
+- **Examples parity expansion.** Continue adding relevant TypeScript examples for persistence, async/send-message-while-running, condenser workflows, observability wiring, and testing helpers where the TS surface supports them.
+- **Remote runtime hardening.** Keep `RemoteConversation`/`RemoteWorkspace` aligned with the agent-server API used by smolpaws and add integration coverage when the local dev stack exposes stable endpoints.
+- **Observability depth.** The current wrapper is intentionally small; add real OpenTelemetry/Laminar integration only when a downstream product needs it.
+- **Extensions metadata.** Keep source-resolution and installation metadata useful without reviving plugin/marketplace runtime behavior.
 - **Plugin** and **marketplace** remain intentionally skipped. Do not create beads for them unless explicitly requested.
 
 
@@ -224,18 +227,18 @@ workable phase.
 - **P8 — Concrete tools** (`openhands-tools` equivalent): terminal, file editor, browser,
   grep/glob, task tracker, etc. May become a separate package later. (deps: P3)
 - **P9 — Packaging, examples, docs, release 0.1.0.** (deps: P6, P7, P8)
+- **P10 — Parity hardening, examples, architecture docs, release 0.2.0.** Smolpaws seam proof, profile-selected LLM hygiene, high-signal Python parity tests, example inventory expansion, architecture docs, and release notes.
 
-## Remaining beads after 0.1.0
+## Remaining beads after 0.2.0
 
-These are the not-quite-done gaps to close next, in tests-first order where applicable:
+These are the next useful gaps to close in tests-first order where applicable:
 
-1. **Remove confirmation residues.** Keep pending-action/multi-tool execution. Remove local/public confirmation-shaped APIs and file-agent `permission_mode` confirmation parsing unless a field is strictly needed for wire compatibility and is documented as ignored metadata.
-2. **Conversation wire compatibility and restore migrations.** Add Python/TS golden JSON fixtures for events/conversation state, import/export round trips, and a restore migration utility that drops or maps intentionally unsupported Python fields such as security analyzer metadata.
-3. **Workspace.** Port applicable workspace models and local workspace behavior, then remote workspace only if it cleanly matches the REST architecture.
-4. **Extensions.** Port applicable extension source parsing/fetching and installation metadata. Do not port plugin/marketplace behavior as part of this bead.
-5. **Observability.** Add a TS observability wrapper compatible with standard JS OTEL and, if practical, Laminar. It must be no-op when env vars are absent.
-6. **Testing helpers.** Port Python `TestLLM` into a scripted `LLMClient` helper and transfuse applicable Python tests before implementation.
-7. **Examples/tests coverage expansion.** Port applicable Python examples/tests for persistence, async/send-message-while-running, condenser, remote conversation, workspace, extensions, observability, and testing helpers. The examples workflow remains label/manual-only.
+1. **Conversation wire compatibility and restore migrations.** Add Python/TS golden JSON fixtures for events/conversation state, import/export round trips, and restore migrations for unsupported Python fields such as security analyzer metadata.
+2. **Remote runtime integration.** Keep remote conversation/workspace payloads aligned with the agent-server API and smolpaws SDK swap requirements.
+3. **Observability hardening.** Expand the no-op-compatible wrapper into real JS OpenTelemetry/Laminar wiring when needed by production use.
+4. **Testing helper parity.** Continue porting Python `TestLLM`-style helpers only where they improve downstream tests without encouraging mocks over real code paths.
+5. **Examples/tests coverage expansion.** Port applicable Python examples/tests for persistence, async/send-message-while-running, condenser, remote conversation, workspace, extensions, observability, and testing helpers. The examples workflow remains part of release verification.
+6. **Documentation maintenance.** Keep `README.md`, `docs/README.md`, `docs/ARCHITECTURE.md`, and release notes in sync with every public API/release change.
 
 ## Reference materials
 
