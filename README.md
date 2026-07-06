@@ -109,7 +109,7 @@ console.log(state.executionStatus);
 
 ## Examples
 
-Runnable TypeScript examples live in [`examples/`](examples/) and are checked by `npm run test:examples`. Real-LLM examples use [`examples/_shared/exampleProfile.ts`](examples/_shared/exampleProfile.ts): set `OPENAI_API_KEY` to run them against an OpenAI LLM profile, optionally override the model with `OPENAI_MODEL` or `LLM_MODEL`, and leave the key unset for graceful local skips.
+Runnable TypeScript examples live in [`examples/`](examples/) and are checked by `npm run test:examples`. Real-LLM examples use [`examples/_shared/exampleProfile.ts`](examples/_shared/exampleProfile.ts): by default set `OPENAI_API_KEY` to run them against an OpenAI LLM profile, or set `LLM_PROVIDER_ID`/`LLM_PROVIDER` and the matching `<PROVIDER>_API_KEY` env var to exercise another provider. The helper stores keys under `llmProviderSecretRef(profile.providerId)`, optionally overrides the model with `OPENAI_MODEL` or `LLM_MODEL`, and skips gracefully when no provider key is present.
 
 | Example | Covers |
 |---------|--------|
