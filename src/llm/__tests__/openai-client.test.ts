@@ -119,6 +119,14 @@ describe('profile-resolved OpenAI-compatible chat client', () => {
     expect(result.message.role).toBe('assistant');
     expect(result.message.content).toEqual([textContent('response pong')]);
     expect(result.usage).toEqual({ promptTokens: 17, completionTokens: 9, totalTokens: 26 });
+    expect(result.message.responses_reasoning_item).toEqual({
+      id: 'rs_123',
+      summary: ['short summary'],
+      content: null,
+      encrypted_content: 'encrypted_reasoning_payload',
+      status: 'completed',
+    });
+
   });
 
   it('requires a keyring-backed API key', async () => {
@@ -202,6 +210,46 @@ describe('OpenAI chat message serialization parity', () => {
     expect(body).not.toHaveProperty('temperature');
     expect(body).toMatchObject({ reasoning: { effort: 'low' } });
   });
+
+  it('replays Responses reasoning items with encrypted content in stateless mode', () => {
+    const profile = llmProfileSchema.parse({
+      profileId: 'responses',
+      providerId: 'openai',
+      model: 'gpt-5-mini',
+      openAiApiMode: 'responses',
+      reasoningEffort: 'medium',
+      reasoningSummary: 'detailed',
+    });
+
+    const body = buildOpenAIResponsesBody(profile, [
+      {
+        role: 'assistant',
+        content: [textContent('previous answer')],
+        responses_reasoning_item: {
+          id: 'rs_123',
+          summary: ['short summary'],
+          content: ['hidden chain'],
+          encrypted_content: 'encrypted_reasoning_payload',
+          status: 'completed',
+        },
+      },
+    ]);
+
+    expect(body).toMatchObject({
+      store: false,
+      include: ['reasoning.encrypted_content'],
+      reasoning: { effort: 'medium', summary: 'detailed' },
+      input: [
+        {
+          type: 'reasoning',
+          id: 'rs_123',
+          summary: [{ type: 'summary_text', text: 'short summary' }],
+          encrypted_content: 'encrypted_reasoning_payload',
+        },
+        { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: 'previous answer' }] },
+      ],
+    });
+  });
 });
 
 interface FakeFetchCall {
@@ -262,7 +310,16 @@ function fakeResponsesFetch(response: { content: string }, calls: FakeFetchCall[
       status: 200,
       async json() {
         return {
-          output: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: response.content }] }],
+          output: [
+            {
+              type: 'reasoning',
+              id: 'rs_123',
+              summary: [{ type: 'summary_text', text: 'short summary' }],
+              encrypted_content: 'encrypted_reasoning_payload',
+              status: 'completed',
+            },
+            { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: response.content }] },
+          ],
           usage: {
             input_tokens: 17,
             output_tokens: 9,

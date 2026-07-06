@@ -155,7 +155,9 @@ export function buildOpenAIResponsesBody(profile: LLMProfile, messages: readonly
   const instructions = parsedMessages.filter((message) => message.role === 'system').flatMap((message) => contentToString(message.content));
   const body: Record<string, unknown> = {
     model: normalizedProfile.model,
-    input: parsedMessages.filter((message) => message.role !== 'system').map(toOpenAIResponsesInput),
+    input: parsedMessages.filter((message) => message.role !== 'system').flatMap(toOpenAIResponsesInputItems),
+    include: ['reasoning.encrypted_content'],
+    store: false,
   };
   if (instructions.length > 0) {
     body.instructions = instructions.join('\n');
@@ -169,22 +171,79 @@ export function buildOpenAIResponsesBody(profile: LLMProfile, messages: readonly
   if (normalizedProfile.topP !== null) {
     body.top_p = normalizedProfile.topP;
   }
-  if (normalizedProfile.reasoningEffort !== null) {
-    body.reasoning = { effort: normalizedProfile.reasoningEffort };
+  if (normalizedProfile.reasoningEffort !== null || normalizedProfile.reasoningSummary !== null) {
+    body.reasoning = {
+      ...(normalizedProfile.reasoningEffort === null ? {} : { effort: normalizedProfile.reasoningEffort }),
+      ...(normalizedProfile.reasoningSummary === null ? {} : { summary: normalizedProfile.reasoningSummary }),
+    };
   }
   return body;
 }
 
-function toOpenAIResponsesInput(message: Message): Record<string, unknown> {
-  return {
-    role: message.role,
-    content: message.content.map((content) => {
-      if (content.type === 'text') {
-        return { type: message.role === 'assistant' ? 'output_text' : 'input_text', text: content.text };
+function toOpenAIResponsesInputItems(message: Message): readonly Record<string, unknown>[] {
+  if (message.role === 'user') {
+    const content = message.content.map((contentItem) => {
+      if (contentItem.type === 'text') {
+        return { type: 'input_text', text: contentItem.text };
       }
-      return { type: 'input_image', image_url: content.image_urls[0] ?? '' };
-    }),
+      return { type: 'input_image', image_url: contentItem.image_urls[0] ?? '', detail: 'auto' };
+    });
+    return [{ type: 'message', role: 'user', content: content.length > 0 ? content : [{ type: 'input_text', text: '' }] }];
+  }
+
+  if (message.role === 'assistant') {
+    const items: Record<string, unknown>[] = [];
+    const reasoningItem = toOpenAIResponsesReasoningInputItem(message);
+    if (reasoningItem !== null) {
+      items.push(reasoningItem);
+    }
+    const content = message.content
+      .filter((contentItem): contentItem is Extract<Content, { type: 'text' }> => contentItem.type === 'text' && contentItem.text.length > 0)
+      .map((contentItem) => ({ type: 'output_text', text: contentItem.text }));
+    if (content.length > 0) {
+      items.push({ type: 'message', role: 'assistant', content });
+    }
+    if (message.tool_calls !== null) {
+      items.push(...message.tool_calls.map(toOpenAIResponsesFunctionCallInputItem));
+    }
+    return items;
+  }
+
+  if (message.role === 'tool') {
+    return message.content
+      .filter((contentItem): contentItem is Extract<Content, { type: 'text' }> => contentItem.type === 'text' && message.tool_call_id !== null)
+      .map((contentItem) => ({ type: 'function_call_output', call_id: normalizeResponsesCallId(message.tool_call_id ?? ''), output: contentItem.text }));
+  }
+
+  return [];
+}
+
+function toOpenAIResponsesReasoningInputItem(message: Message): Record<string, unknown> | null {
+  const reasoning = message.responses_reasoning_item;
+  if (reasoning === null || reasoning.id === null || reasoning.encrypted_content === null) {
+    return null;
+  }
+  return {
+    type: 'reasoning',
+    id: reasoning.id,
+    summary: reasoning.summary.map((text) => ({ type: 'summary_text', text })),
+    encrypted_content: reasoning.encrypted_content,
   };
+}
+
+function toOpenAIResponsesFunctionCallInputItem(toolCall: MessageToolCall): Record<string, unknown> {
+  const callId = normalizeResponsesCallId(toolCall.id);
+  return {
+    type: 'function_call',
+    id: toolCall.responses_item_id ?? callId,
+    call_id: callId,
+    name: toolCall.name,
+    arguments: toolCall.arguments,
+  };
+}
+
+function normalizeResponsesCallId(value: string): string {
+  return value.startsWith('call_') ? value : `call_${value.replace(/[^a-zA-Z0-9_-]/gu, '_')}`;
 }
 
 function toOpenAIChatMessage(message: Message): Record<string, unknown> {
@@ -288,9 +347,24 @@ function parseOpenAIResponsesResponse(raw: unknown): LLMCompletionResponse {
     .filter((content): content is OpenAIResponsesOutputText => content.type === 'output_text')
     .map((content) => content.text)
     .join('\n');
+  const reasoningItem = parsed.output.find((item): item is OpenAIResponsesReasoningItem => item.type === 'reasoning') ?? null;
+  const toolCalls = parsed.output
+    .filter((item): item is OpenAIResponsesFunctionCallItem => item.type === 'function_call')
+    .map(fromOpenAIResponsesFunctionCall);
 
   return llmCompletionResponseSchema.parse({
-    message: { role: 'assistant', content: text },
+    message: {
+      role: 'assistant',
+      content: text,
+      tool_calls: toolCalls.length > 0 ? toolCalls : null,
+      responses_reasoning_item: reasoningItem === null ? null : {
+        id: reasoningItem.id,
+        summary: normalizeResponsesReasoningSummary(reasoningItem.summary),
+        content: normalizeResponsesReasoningContent(reasoningItem.content),
+        encrypted_content: reasoningItem.encrypted_content ?? null,
+        status: reasoningItem.status ?? null,
+      },
+    },
     usage: parsed.usage === null ? null : {
       promptTokens: parsed.usage.input_tokens,
       completionTokens: parsed.usage.output_tokens,
@@ -298,6 +372,36 @@ function parseOpenAIResponsesResponse(raw: unknown): LLMCompletionResponse {
     },
     raw,
   });
+}
+
+function fromOpenAIResponsesFunctionCall(item: OpenAIResponsesFunctionCallItem): MessageToolCall {
+  return {
+    id: item.call_id,
+    responses_item_id: item.id,
+    name: item.name,
+    arguments: item.arguments,
+    origin: 'responses',
+  };
+}
+
+function normalizeResponsesReasoningSummary(summary: readonly OpenAIResponsesReasoningSummaryItem[]): string[] {
+  return summary.flatMap((item) => (item.text.length === 0 ? [] : [item.text]));
+}
+
+function normalizeResponsesReasoningContent(content: readonly OpenAIResponsesReasoningContentItem[] | null): string[] | null {
+  if (content === null) {
+    return null;
+  }
+  const values = content.flatMap((item) => {
+    if (item.text !== null && item.text.length > 0) {
+      return [item.text];
+    }
+    if (item.content !== null && item.content.length > 0) {
+      return [item.content];
+    }
+    return [];
+  });
+  return values.length > 0 ? values : null;
 }
 
 
@@ -374,10 +478,51 @@ const openAIResponsesMessageItemSchema = z
     content: z.array(openAIResponsesContentItemSchema).default([]),
   })
   .passthrough();
-const openAIResponsesOutputItemSchema = z.union([openAIResponsesMessageItemSchema, z.object({ type: z.string() }).passthrough()]);
+const openAIResponsesReasoningSummaryItemSchema = z
+  .object({
+    type: z.string().default('summary_text'),
+    text: z.string().default(''),
+  })
+  .passthrough();
+const openAIResponsesReasoningContentItemSchema = z
+  .object({
+    type: z.string().default('reasoning_text'),
+    text: z.string().nullable().default(null),
+    content: z.string().nullable().default(null),
+  })
+  .passthrough();
+const openAIResponsesReasoningItemSchema = z
+  .object({
+    type: z.literal('reasoning'),
+    id: z.string().nullable().default(null),
+    summary: z.array(openAIResponsesReasoningSummaryItemSchema).default([]),
+    content: z.array(openAIResponsesReasoningContentItemSchema).nullable().default(null),
+    encrypted_content: z.string().nullable().default(null),
+    status: z.string().nullable().default(null),
+  })
+  .passthrough();
+const openAIResponsesFunctionCallItemSchema = z
+  .object({
+    type: z.literal('function_call'),
+    id: z.string().nullable().default(null),
+    call_id: z.string(),
+    name: z.string(),
+    arguments: z.string().default('{}'),
+  })
+  .passthrough();
+const openAIResponsesOutputItemSchema = z.union([
+  openAIResponsesMessageItemSchema,
+  openAIResponsesReasoningItemSchema,
+  openAIResponsesFunctionCallItemSchema,
+  z.object({ type: z.string() }).passthrough(),
+]);
 
 type OpenAIResponsesOutputText = z.infer<typeof openAIResponsesOutputTextSchema>;
 type OpenAIResponsesMessageItem = z.infer<typeof openAIResponsesMessageItemSchema>;
+type OpenAIResponsesReasoningItem = z.infer<typeof openAIResponsesReasoningItemSchema>;
+type OpenAIResponsesReasoningSummaryItem = z.infer<typeof openAIResponsesReasoningSummaryItemSchema>;
+type OpenAIResponsesReasoningContentItem = z.infer<typeof openAIResponsesReasoningContentItemSchema>;
+type OpenAIResponsesFunctionCallItem = z.infer<typeof openAIResponsesFunctionCallItemSchema>;
 
 const openAIResponsesResponseSchema = z
   .object({

@@ -12,7 +12,7 @@ const DEFAULT_MODEL = 'gpt-5-nano';
 
 export function hasExampleLlmCredentials(env: NodeJS.ProcessEnv = process.env): boolean {
   const profile = buildExampleLlmProfile(env);
-  return readProviderApiKey(profile.providerId, env) !== null;
+  return readExampleProviderApiKey(profile.providerId, env) !== null;
 }
 
 export function buildExampleLlmProfile(env: NodeJS.ProcessEnv = process.env): LLMProfile {
@@ -26,13 +26,20 @@ export function buildExampleLlmProfile(env: NodeJS.ProcessEnv = process.env): LL
 
 export async function getExampleLlmClient(env: NodeJS.ProcessEnv = process.env): Promise<LLMClient | null> {
   const profile = buildExampleLlmProfile(env);
-  const apiKey = readProviderApiKey(profile.providerId, env);
-  if (apiKey === null) {
+  const store = createExampleLlmSecretStore(profile, env);
+  if (store === null) {
     return null;
   }
 
-  const store = new InMemorySecretStore([[llmProviderSecretRef(profile.providerId), apiKey]]);
   return createLlmClientFromProfile(profile, store);
+}
+
+export function createExampleLlmSecretStore(profile: LLMProfile, env: NodeJS.ProcessEnv = process.env): InMemorySecretStore | null {
+  const apiKey = readExampleProviderApiKey(profile.providerId, env);
+  if (apiKey === null) {
+    return null;
+  }
+  return new InMemorySecretStore([[llmProviderSecretRef(profile.providerId), apiKey]]);
 }
 
 export function explainSkippedExample(name: string): void {
@@ -40,11 +47,11 @@ export function explainSkippedExample(name: string): void {
   console.log(`${name}: set ${providerApiKeyEnvName(profile.providerId)} to run this example against a real ${profile.providerId} LLM profile.`);
 }
 
-function readProviderApiKey(providerId: string, env: NodeJS.ProcessEnv): string | null {
+export function readExampleProviderApiKey(providerId: string, env: NodeJS.ProcessEnv = process.env): string | null {
   const value = env[providerApiKeyEnvName(providerId)]?.trim();
   return value === undefined || value.length === 0 ? null : value;
 }
 
-function providerApiKeyEnvName(providerId: string): string {
+export function providerApiKeyEnvName(providerId: string): string {
   return `${providerId.replace(/[^a-zA-Z0-9]/gu, '_').toUpperCase()}_API_KEY`;
 }
