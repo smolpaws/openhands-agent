@@ -6,6 +6,7 @@ import {
   OpenAIChatClient,
   OpenAIResponsesClient,
   buildChatCompletionsBody,
+  buildOpenAIResponsesBody,
   createLlmClientFromProfile,
   createOpenAIResponsesClientFromProfile,
   llmCompletionResponseSchema,
@@ -52,7 +53,7 @@ describe('profile-resolved OpenAI-compatible chat client', () => {
     const profile = llmProfileSchema.parse({
       profileId: 'default',
       providerId: 'openai',
-      model: 'gpt-5.1',
+      model: 'gpt-4.1',
       temperature: 0.2,
       maxOutputTokens: 123,
       headers: { 'X-Trace': 'abc' },
@@ -72,7 +73,7 @@ describe('profile-resolved OpenAI-compatible chat client', () => {
     expect(calls[0]?.headers['content-type']).toBe('application/json');
     expect(calls[0]?.headers['x-trace']).toBe('abc');
     expect(calls[0]?.body).toMatchObject({
-      model: 'gpt-5.1',
+      model: 'gpt-4.1',
       temperature: 0.2,
       max_completion_tokens: 123,
       messages: [
@@ -171,6 +172,35 @@ describe('OpenAI chat message serialization parity', () => {
     ]);
 
     expect((body.messages as Array<Record<string, unknown>>)[0]).not.toHaveProperty('content');
+  });
+
+  it('omits temperature for GPT-5 chat-completions models', () => {
+    const profile = llmProfileSchema.parse({
+      profileId: 'default',
+      providerId: 'openai',
+      model: 'gpt-5-nano',
+      temperature: 0.7,
+    });
+
+    const body = buildChatCompletionsBody(profile, [{ role: 'user', content: [textContent('ping')] }]);
+
+    expect(body).not.toHaveProperty('temperature');
+  });
+
+  it('omits temperature for GPT-5 Responses models while preserving reasoning', () => {
+    const profile = llmProfileSchema.parse({
+      profileId: 'responses',
+      providerId: 'openai',
+      model: 'openai/gpt-5-nano',
+      openAiApiMode: 'responses',
+      temperature: 0.7,
+      reasoningEffort: 'low',
+    });
+
+    const body = buildOpenAIResponsesBody(profile, [{ role: 'user', content: [textContent('ping')] }]);
+
+    expect(body).not.toHaveProperty('temperature');
+    expect(body).toMatchObject({ reasoning: { effort: 'low' } });
   });
 });
 

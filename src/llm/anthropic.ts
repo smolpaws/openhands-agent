@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { getLlmApiKey } from '../secrets/index.js';
 import type { SecretStore } from '../secrets/index.js';
 import { llmCompletionResponseSchema, type FetchLike, type LLMClient, type LLMCompletionResponse } from './client.js';
-import { contentToString, messageSchema, type Content, type LLMProfile, type Message } from './index.js';
+import { contentToString, messageSchema, reduceTextContent, type Content, type LLMProfile, type Message, type MessageToolCall } from './index.js';
+import { getAnthropicThinkingBudget, normalizeGenerationParamsForModel, supportsPromptCaching } from './provider-quirks.js';
 
 export { llmProfileSchema } from './index.js';
 export type { LLMProfile } from './index.js';
@@ -66,46 +67,110 @@ export async function createAnthropicClientFromProfile(
 }
 
 export function buildAnthropicMessagesBody(profile: LLMProfile, messages: readonly Message[]): Record<string, unknown> {
+  const normalizedProfile = normalizeGenerationParamsForModel(profile);
   const parsedMessages = messages.map((message) => messageSchema.parse(message));
-  const system = parsedMessages.filter((message) => message.role === 'system').flatMap((message) => contentToString(message.content));
+  const systemMessages = parsedMessages.filter((message) => message.role === 'system');
+  const system = systemMessages.flatMap((message) => contentToString(message.content));
+  const shouldCacheSystem = supportsPromptCaching(normalizedProfile) && systemMessages.some((message) => message.content.some((content) => content.cache_prompt));
+  const maxTokens = normalizedProfile.maxOutputTokens ?? DEFAULT_MAX_TOKENS;
+  const thinkingBudget = getAnthropicThinkingBudget(normalizedProfile, maxTokens);
   const body: Record<string, unknown> = {
-    model: profile.model,
-    max_tokens: profile.maxOutputTokens ?? DEFAULT_MAX_TOKENS,
-    messages: parsedMessages.filter((message) => message.role !== 'system').map(toAnthropicMessage),
+    model: normalizedProfile.model,
+    max_tokens: maxTokens,
+    messages: parsedMessages.filter((message) => message.role !== 'system').map((message) => toAnthropicMessage(normalizedProfile, message)),
   };
   if (system.length > 0) {
-    body.system = system.join('\n');
+    body.system = shouldCacheSystem
+      ? [{ type: 'text', text: system.join('\n'), cache_control: { type: 'ephemeral' } }]
+      : system.join('\n');
   }
-  if (profile.temperature !== null) {
-    body.temperature = profile.temperature;
+  if (normalizedProfile.temperature !== null) {
+    body.temperature = normalizedProfile.temperature;
   }
-  if (profile.topP !== null) {
-    body.top_p = profile.topP;
+  if (normalizedProfile.topP !== null) {
+    body.top_p = normalizedProfile.topP;
   }
-  if (profile.topK !== null) {
-    body.top_k = profile.topK;
+  if (normalizedProfile.topK !== null) {
+    body.top_k = normalizedProfile.topK;
+  }
+  if (thinkingBudget !== undefined) {
+    body.thinking = { type: 'enabled', budget_tokens: thinkingBudget };
   }
   return body;
 }
 
-function toAnthropicMessage(message: Message): Record<string, unknown> {
+function toAnthropicMessage(profile: LLMProfile, message: Message): Record<string, unknown> {
+  if (message.role === 'assistant') {
+    return { role: 'assistant', content: toAnthropicAssistantContent(message) };
+  }
+  if (message.role === 'tool') {
+    return { role: 'user', content: [toAnthropicToolResultBlock(message)] };
+  }
   return {
-    role: message.role === 'assistant' ? 'assistant' : 'user',
-    content: message.content.map(toAnthropicContentBlock),
+    role: 'user',
+    content: message.content.map((content) => toAnthropicContentBlock(profile, content)),
   };
 }
 
-function toAnthropicContentBlock(content: Content): Record<string, unknown> {
-  if (content.type === 'text') {
-    return { type: 'text', text: content.text };
+function toAnthropicAssistantContent(message: Message): readonly Record<string, unknown>[] {
+  const blocks: Record<string, unknown>[] = [];
+  const thinkingBlock = message.thinking_blocks.find(
+    (block): block is Extract<Message['thinking_blocks'][number], { type: 'thinking' }> => block.type === 'thinking' && block.signature !== null,
+  );
+  if (thinkingBlock !== undefined) {
+    blocks.push({ type: 'thinking', thinking: thinkingBlock.thinking, signature: thinkingBlock.signature });
   }
+
+  const text = reduceTextContent(message);
+  if (text.length > 0) {
+    blocks.push({ type: 'text', text });
+  }
+  if (message.tool_calls !== null) {
+    blocks.push(...message.tool_calls.map(toAnthropicToolUseBlock));
+  }
+  return blocks.length > 0 ? blocks : [{ type: 'text', text: '' }];
+}
+
+function toAnthropicToolUseBlock(toolCall: MessageToolCall): Record<string, unknown> {
   return {
-    type: 'image',
-    source: {
-      type: 'url',
-      url: content.image_urls[0] ?? '',
-    },
+    type: 'tool_use',
+    id: toolCall.id,
+    name: toolCall.name,
+    input: parseToolArguments(toolCall.arguments),
   };
+}
+
+function toAnthropicToolResultBlock(message: Message): Record<string, unknown> {
+  const block: Record<string, unknown> = {
+    type: 'tool_result',
+    tool_use_id: message.tool_call_id ?? '',
+    content: reduceTextContent(message),
+  };
+  return block;
+}
+
+function toAnthropicContentBlock(profile: LLMProfile, content: Content): Record<string, unknown> {
+  const block: Record<string, unknown> = content.type === 'text'
+    ? { type: 'text', text: content.text }
+    : {
+        type: 'image',
+        source: {
+          type: 'url',
+          url: content.image_urls[0] ?? '',
+        },
+      };
+  if (content.cache_prompt && supportsPromptCaching(profile)) {
+    block.cache_control = { type: 'ephemeral' };
+  }
+  return block;
+}
+
+function parseToolArguments(args: string): unknown {
+  try {
+    return JSON.parse(args) as unknown;
+  } catch {
+    return args;
+  }
 }
 
 function parseAnthropicMessagesResponse(raw: unknown): LLMCompletionResponse {
@@ -114,9 +179,20 @@ function parseAnthropicMessagesResponse(raw: unknown): LLMCompletionResponse {
     .filter((block): block is AnthropicTextBlock => block.type === 'text')
     .map((block) => block.text)
     .join('\n');
+  const thinkingBlocks = parsed.content.filter((block): block is AnthropicThinkingBlock => block.type === 'thinking');
+  const reasoningContent = thinkingBlocks.map((block) => block.thinking).join('');
 
   return llmCompletionResponseSchema.parse({
-    message: { role: 'assistant', content: text },
+    message: {
+      role: 'assistant',
+      content: text,
+      reasoning_content: reasoningContent.length > 0 ? reasoningContent : null,
+      thinking_blocks: thinkingBlocks.map((block) => ({
+        type: 'thinking',
+        thinking: block.thinking,
+        signature: block.signature ?? null,
+      })),
+    },
     usage: parsed.usage === null ? null : {
       promptTokens: parsed.usage.input_tokens,
       completionTokens: parsed.usage.output_tokens,
@@ -147,10 +223,14 @@ async function defaultFetch(
 }
 
 const anthropicTextBlockSchema = z.object({ type: z.literal('text'), text: z.string() }).passthrough();
+const anthropicThinkingBlockSchema = z
+  .object({ type: z.literal('thinking'), thinking: z.string(), signature: z.string().nullable().optional() })
+  .passthrough();
 const anthropicOtherBlockSchema = z.object({ type: z.string() }).passthrough();
-const anthropicContentBlockSchema = z.union([anthropicTextBlockSchema, anthropicOtherBlockSchema]);
+const anthropicContentBlockSchema = z.union([anthropicTextBlockSchema, anthropicThinkingBlockSchema, anthropicOtherBlockSchema]);
 
 type AnthropicTextBlock = z.infer<typeof anthropicTextBlockSchema>;
+type AnthropicThinkingBlock = z.infer<typeof anthropicThinkingBlockSchema>;
 
 const anthropicMessagesResponseSchema = z
   .object({

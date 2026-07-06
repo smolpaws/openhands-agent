@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { InMemorySecretStore, llmProviderSecretRef } from '../../secrets/index.js';
 import { textContent } from '../index.js';
-import { AnthropicMessagesClient, createAnthropicClientFromProfile, llmProfileSchema } from '../anthropic.js';
+import { AnthropicMessagesClient, buildAnthropicMessagesBody, createAnthropicClientFromProfile, llmProfileSchema } from '../anthropic.js';
 
 describe('profile-resolved Anthropic Messages client', () => {
   it('resolves provider-scoped Anthropic keys and constructs a client', async () => {
@@ -56,6 +56,55 @@ describe('profile-resolved Anthropic Messages client', () => {
     await expect(createAnthropicClientFromProfile(profile, new InMemorySecretStore())).rejects.toThrow(
       /Missing API key for Anthropic LLM profile 'sonnet'/u,
     );
+  });
+
+  it('normalizes extended thinking requests and preserves signed thinking blocks', () => {
+    const profile = llmProfileSchema.parse({
+      profileId: 'sonnet',
+      providerId: 'anthropic',
+      model: 'claude-sonnet-4-5',
+      temperature: 0.2,
+      maxOutputTokens: 4096,
+      reasoningEffort: 'high',
+    });
+
+    const body = buildAnthropicMessagesBody(profile, [
+      {
+        role: 'assistant',
+        content: [textContent('answer')],
+        reasoning_content: 'private thoughts',
+        thinking_blocks: [{ type: 'thinking', thinking: 'private thoughts', signature: 'sig_123' }],
+        tool_calls: [{ id: 'tool_1', name: 'lookup', arguments: '{"query":"x"}', origin: 'completion' }],
+      },
+    ]);
+
+    expect(body.temperature).toBe(1);
+    expect(body.thinking).toMatchObject({ type: 'enabled' });
+    expect((body.thinking as { budget_tokens: number }).budget_tokens).toBeGreaterThanOrEqual(1024);
+    expect((body.thinking as { budget_tokens: number }).budget_tokens).toBeLessThan(4096);
+    expect(body.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'thinking', thinking: 'private thoughts', signature: 'sig_123' },
+          { type: 'text', text: 'answer' },
+          { type: 'tool_use', id: 'tool_1', name: 'lookup', input: { query: 'x' } },
+        ],
+      },
+    ]);
+  });
+
+  it('gates Anthropic prompt cache-control on supported models', () => {
+    const supported = llmProfileSchema.parse({ profileId: 'sonnet', providerId: 'anthropic', model: 'claude-sonnet-4-5' });
+    const unsupported = llmProfileSchema.parse({ profileId: 'legacy', providerId: 'anthropic', model: 'claude-2.1' });
+    const messages = [{ role: 'user' as const, content: [textContent('cache me', true)] }];
+
+    expect(buildAnthropicMessagesBody(supported, messages).messages).toEqual([
+      { role: 'user', content: [{ type: 'text', text: 'cache me', cache_control: { type: 'ephemeral' } }] },
+    ]);
+    expect(buildAnthropicMessagesBody(unsupported, messages).messages).toEqual([
+      { role: 'user', content: [{ type: 'text', text: 'cache me' }] },
+    ]);
   });
 });
 

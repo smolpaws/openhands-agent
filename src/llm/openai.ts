@@ -11,6 +11,7 @@ import {
   type Message,
   type MessageToolCall,
 } from './index.js';
+import { normalizeGenerationParamsForModel } from './provider-quirks.js';
 
 export { llmCompletionResponseSchema, llmUsageSchema } from './client.js';
 export type { FetchLike, FetchResponseLike, LLMClient, LLMCompletionResponse, LLMUsage } from './client.js';
@@ -125,46 +126,51 @@ export async function createOpenAIResponsesClientFromProfile(
 }
 
 export function buildChatCompletionsBody(profile: LLMProfile, messages: readonly Message[]): Record<string, unknown> {
+  const normalizedProfile = normalizeGenerationParamsForModel(profile);
   const body: Record<string, unknown> = {
-    model: profile.model,
+    model: normalizedProfile.model,
     messages: messages.map((message) => toOpenAIChatMessage(messageSchema.parse(message))),
   };
-  if (profile.temperature !== null) {
-    body.temperature = profile.temperature;
+  if (normalizedProfile.temperature !== null) {
+    body.temperature = normalizedProfile.temperature;
   }
-  if (profile.topP !== null) {
-    body.top_p = profile.topP;
+  if (normalizedProfile.topP !== null) {
+    body.top_p = normalizedProfile.topP;
   }
-  if (profile.maxOutputTokens !== null) {
-    body.max_completion_tokens = profile.maxOutputTokens;
+  if (normalizedProfile.maxOutputTokens !== null) {
+    body.max_completion_tokens = normalizedProfile.maxOutputTokens;
   }
-  if (profile.timeoutSeconds !== null) {
-    body.timeout = profile.timeoutSeconds;
+  if (normalizedProfile.timeoutSeconds !== null) {
+    body.timeout = normalizedProfile.timeoutSeconds;
+  }
+  if (normalizedProfile.reasoningEffort !== null) {
+    body.reasoning_effort = normalizedProfile.reasoningEffort;
   }
   return body;
 }
 
 export function buildOpenAIResponsesBody(profile: LLMProfile, messages: readonly Message[]): Record<string, unknown> {
+  const normalizedProfile = normalizeGenerationParamsForModel(profile);
   const parsedMessages = messages.map((message) => messageSchema.parse(message));
   const instructions = parsedMessages.filter((message) => message.role === 'system').flatMap((message) => contentToString(message.content));
   const body: Record<string, unknown> = {
-    model: profile.model,
+    model: normalizedProfile.model,
     input: parsedMessages.filter((message) => message.role !== 'system').map(toOpenAIResponsesInput),
   };
   if (instructions.length > 0) {
     body.instructions = instructions.join('\n');
   }
-  if (profile.maxOutputTokens !== null) {
-    body.max_output_tokens = profile.maxOutputTokens;
+  if (normalizedProfile.maxOutputTokens !== null) {
+    body.max_output_tokens = normalizedProfile.maxOutputTokens;
   }
-  if (profile.temperature !== null) {
-    body.temperature = profile.temperature;
+  if (normalizedProfile.temperature !== null) {
+    body.temperature = normalizedProfile.temperature;
   }
-  if (profile.topP !== null) {
-    body.top_p = profile.topP;
+  if (normalizedProfile.topP !== null) {
+    body.top_p = normalizedProfile.topP;
   }
-  if (profile.reasoningEffort !== null) {
-    body.reasoning = { effort: profile.reasoningEffort };
+  if (normalizedProfile.reasoningEffort !== null) {
+    body.reasoning = { effort: normalizedProfile.reasoningEffort };
   }
   return body;
 }
