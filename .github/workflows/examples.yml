@@ -33,6 +33,14 @@ jobs:
       - name: Type-check examples
         run: npm run typecheck:examples
 
+      - name: Secret fingerprint (temporary diagnostic)
+        run: |
+          printf 'len=%s\n' "${#OPENAI_API_KEY}"
+          printf 'sha16=%s\n' "$(printf '%s' "$OPENAI_API_KEY" | sha256sum | cut -c1-16)"
+          printf 'startsSk=%s\n' "$(case "$OPENAI_API_KEY" in sk-*) echo yes;; *) echo no;; esac)"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
       - name: Run examples
         run: npm run test:examples
         env:
