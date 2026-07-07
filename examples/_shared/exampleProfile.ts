@@ -1,6 +1,6 @@
 import {
   InMemorySecretStore,
-  createLlmClientFromProfile,
+  createClientFromProfile,
   llmProfileSchema,
   llmProviderSecretRef,
   type LLMClient,
@@ -31,7 +31,7 @@ export async function getExampleLlmClient(env: NodeJS.ProcessEnv = process.env):
     return null;
   }
 
-  return createLlmClientFromProfile(profile, store);
+  return createClientFromProfile(profile, store);
 }
 
 export function createExampleLlmSecretStore(profile: LLMProfile, env: NodeJS.ProcessEnv = process.env): InMemorySecretStore | null {

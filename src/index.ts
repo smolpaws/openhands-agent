@@ -30,6 +30,7 @@ export * from './git/index.js';
 export * from './io/index.js';
 export * from './llm/index.js';
 export * from './llm/client.js';
+export * from './llm/factory.js';
 export * from './llm/anthropic.js';
 export * from './llm/gemini.js';
 export * from './llm/openai.js';
