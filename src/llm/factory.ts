@@ -5,7 +5,9 @@ import { createGeminiClientFromProfile } from './gemini.js';
 import type { LLMProfile } from './index.js';
 import { createOpenAIChatClientFromProfile, createOpenAIResponsesClientFromProfile, type CreateLlmClientOptions } from './openai.js';
 
-export type DetectedLlmProvider = 'anthropic' | 'gemini' | 'openai' | 'openrouter' | 'litellm_proxy';
+const DETECTED_LLM_PROVIDERS = ['anthropic', 'gemini', 'openai', 'openrouter', 'litellm_proxy'] as const;
+
+export type DetectedLlmProvider = (typeof DETECTED_LLM_PROVIDERS)[number];
 
 export async function createClientFromProfile(
   profile: LLMProfile,
@@ -35,13 +37,13 @@ export function resolveProviderFromProfile(profile: LLMProfile): DetectedLlmProv
 
 export function detectProviderFromBaseUrl(baseUrl?: string | null): DetectedLlmProvider {
   const normalized = (baseUrl ?? '').toLowerCase();
-  if (normalized.includes('anthropic.com')) {
+  if (normalized.includes('anthropic')) {
     return 'anthropic';
   }
-  if (normalized.includes('generativelanguage.googleapis.com') || normalized.includes('ai.google.dev')) {
+  if (normalized.includes('generativelanguage.googleapis.com') || normalized.includes('ai.google.dev') || normalized.includes('gemini')) {
     return 'gemini';
   }
-  if (normalized.includes('openrouter.ai')) {
+  if (normalized.includes('openrouter')) {
     return 'openrouter';
   }
   if (normalized.includes('litellm') || normalized.includes('llm-proxy')) {
@@ -51,5 +53,5 @@ export function detectProviderFromBaseUrl(baseUrl?: string | null): DetectedLlmP
 }
 
 function isDetectedLlmProvider(providerId: string): providerId is DetectedLlmProvider {
-  return providerId === 'anthropic' || providerId === 'gemini' || providerId === 'openai' || providerId === 'openrouter' || providerId === 'litellm_proxy';
+  return DETECTED_LLM_PROVIDERS.includes(providerId as DetectedLlmProvider);
 }

@@ -94,8 +94,11 @@ describe('createClientFromProfile', () => {
 describe('detectProviderFromBaseUrl', () => {
   it.each([
     ['https://api.anthropic.com', 'anthropic'],
+    ['https://anthropic.corp.internal', 'anthropic'],
     ['https://generativelanguage.googleapis.com/v1beta', 'gemini'],
+    ['https://gemini.local', 'gemini'],
     ['https://openrouter.ai/api/v1', 'openrouter'],
+    ['https://openrouter-proxy.example.test', 'openrouter'],
     ['https://llm-proxy.example.test', 'litellm_proxy'],
     [null, 'openai'],
   ] as const)('detects %s as %s', (baseUrl, provider) => {
