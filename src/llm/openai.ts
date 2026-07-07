@@ -103,9 +103,6 @@ export async function createOpenAIChatClientFromProfile(
   return new OpenAIChatClient(profile, apiKey, options.fetch ?? defaultFetch);
 }
 
-/** @deprecated Use createOpenAIChatClientFromProfile for OpenAI-compatible chat or createClientFromProfile for provider dispatch. */
-export const createLlmClientFromProfile = createOpenAIChatClientFromProfile;
-
 export async function createOpenAIResponsesClientFromProfile(
   profile: LLMProfile,
   store: SecretStore,
