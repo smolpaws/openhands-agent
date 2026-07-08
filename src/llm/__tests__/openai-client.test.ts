@@ -7,7 +7,7 @@ import {
   OpenAIResponsesClient,
   buildChatCompletionsBody,
   buildOpenAIResponsesBody,
-  createLlmClientFromProfile,
+  createOpenAIChatClientFromProfile,
   createOpenAIResponsesClientFromProfile,
   llmCompletionResponseSchema,
   llmProfileSchema,
@@ -23,7 +23,7 @@ describe('profile-resolved OpenAI-compatible chat client', () => {
     });
     const store = new InMemorySecretStore([[llmProviderSecretRef('litellm_proxy'), 'proxy-key']]);
 
-    const client = await createLlmClientFromProfile(profile, store, { fetch: fakeFetch({ content: 'ok' }) });
+    const client = await createOpenAIChatClientFromProfile(profile, store, { fetch: fakeFetch({ content: 'ok' }) });
 
     expect(client).toBeInstanceOf(OpenAIChatClient);
     expect(client.profile.providerId).toBe('litellm_proxy');
@@ -42,7 +42,7 @@ describe('profile-resolved OpenAI-compatible chat client', () => {
       [llmProfileSecretRef('eval-proxy'), 'profile-key'],
     ]);
     const calls: FakeFetchCall[] = [];
-    const client = await createLlmClientFromProfile(profile, store, { fetch: fakeFetch({ content: 'ok' }, calls) });
+    const client = await createOpenAIChatClientFromProfile(profile, store, { fetch: fakeFetch({ content: 'ok' }, calls) });
 
     await client.complete([{ role: 'user', content: [textContent('hello')] }]);
 
@@ -60,7 +60,7 @@ describe('profile-resolved OpenAI-compatible chat client', () => {
     });
     const store = new InMemorySecretStore([[llmProviderSecretRef('openai'), 'openai-key']]);
     const calls: FakeFetchCall[] = [];
-    const client = await createLlmClientFromProfile(profile, store, { fetch: fakeFetch({ content: 'pong' }, calls) });
+    const client = await createOpenAIChatClientFromProfile(profile, store, { fetch: fakeFetch({ content: 'pong' }, calls) });
 
     const result = await client.complete([
       { role: 'system', content: [textContent('You are terse.')] },
@@ -132,7 +132,7 @@ describe('profile-resolved OpenAI-compatible chat client', () => {
   it('requires a keyring-backed API key', async () => {
     const profile = llmProfileSchema.parse({ profileId: 'default', providerId: 'openai', model: 'gpt-5.1' });
 
-    await expect(createLlmClientFromProfile(profile, new InMemorySecretStore())).rejects.toThrow(
+    await expect(createOpenAIChatClientFromProfile(profile, new InMemorySecretStore())).rejects.toThrow(
       /Missing API key for LLM profile 'default'/u,
     );
   });

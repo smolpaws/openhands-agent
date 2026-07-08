@@ -2,10 +2,7 @@
 
 import {
   MacOSKeychainSecretStore,
-  createAnthropicClientFromProfile,
-  createGeminiClientFromProfile,
-  createLlmClientFromProfile,
-  createOpenAIResponsesClientFromProfile,
+  createClientFromProfile,
   llmProfileSchema,
   textContent,
 } from '../../dist/index.mjs';
@@ -31,20 +28,7 @@ const profile = llmProfileSchema.parse({
   useProfileKeyOverride,
 });
 const store = new MacOSKeychainSecretStore();
-const client = await createClient(profile, store);
+const client = await createClientFromProfile(profile, store);
 const result = await client.complete([{ role: 'user', content: [textContent('Reply with exactly: ok')] }]);
 
 console.log(JSON.stringify({ providerId, profileId, model, text: result.message.content, usage: result.usage }, null, 2));
-
-async function createClient(profile, store) {
-  if (profile.providerId === 'anthropic') {
-    return createAnthropicClientFromProfile(profile, store);
-  }
-  if (profile.providerId === 'gemini') {
-    return createGeminiClientFromProfile(profile, store);
-  }
-  if (profile.openAiApiMode === 'responses') {
-    return createOpenAIResponsesClientFromProfile(profile, store);
-  }
-  return createLlmClientFromProfile(profile, store);
-}

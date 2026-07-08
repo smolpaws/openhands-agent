@@ -82,7 +82,7 @@ export class OpenAIResponsesClient implements LLMClient {
 }
 
 
-export async function createLlmClientFromProfile(
+export async function createOpenAIChatClientFromProfile(
   profile: LLMProfile,
   store: SecretStore,
   options: CreateLlmClientOptions = {},
@@ -102,7 +102,6 @@ export async function createLlmClientFromProfile(
   }
   return new OpenAIChatClient(profile, apiKey, options.fetch ?? defaultFetch);
 }
-
 
 export async function createOpenAIResponsesClientFromProfile(
   profile: LLMProfile,

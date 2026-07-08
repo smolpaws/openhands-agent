@@ -111,7 +111,7 @@ Provider clients live next to the neutral model:
 - `AnthropicMessagesClient` for Anthropic Messages.
 - `GeminiClient` for Gemini.
 
-The product boundary is profile-first: `createLlmClientFromProfile(profile, secretStore)` resolves a concrete client from an `LLMProfile`. Low-level clients remain exported for advanced SDK users and tests.
+The product boundary is profile-first: `createClientFromProfile(profile, secretStore)` resolves a concrete client from an `LLMProfile`. Low-level provider clients and provider-specific factories remain exported for advanced SDK users and tests.
 
 Compatibility details intentionally covered by tests:
 

@@ -1,4 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -9,8 +10,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { RemoteWorkspace, workspace } from '../index.js';
 
 const AGENT_SERVER_BIN = process.env.OPENHANDS_AGENT_SERVER_BIN ?? resolve(process.cwd(), '../agent-sdk/.venv/bin/agent-server');
+const AGENT_SERVER_PYTHON = join(dirname(AGENT_SERVER_BIN), 'python');
+const hasAgentServer = existsSync(AGENT_SERVER_PYTHON) && existsSync(resolve(process.cwd(), '../agent-sdk'));
+const describeWithAgentServer = hasAgentServer ? describe : describe.skip;
 
-describe('RemoteWorkspace integration', () => {
+describeWithAgentServer('RemoteWorkspace integration', () => {
   let server: StartedAgentServer;
 
   beforeAll(async () => {
@@ -86,7 +90,7 @@ async function startAgentServer(): Promise<StartedAgentServer> {
     OH_PRELOAD_TOOLS: '0',
   });
 
-  const child = spawn(join(dirname(AGENT_SERVER_BIN), 'python'), ['-c', agentServerScript(), '127.0.0.1', String(port)], {
+  const child = spawn(AGENT_SERVER_PYTHON, ['-c', agentServerScript(), '127.0.0.1', String(port)], {
     cwd: resolve(process.cwd(), '../agent-sdk'),
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
