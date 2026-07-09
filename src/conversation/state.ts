@@ -6,6 +6,7 @@ import {
   type Event,
 } from '../event/index.js';
 import { messageSchema, type Message } from '../llm/index.js';
+import type { EventLog } from './event-log.js';
 
 export const conversationExecutionStatus = {
   IDLE: 'idle',
@@ -22,20 +23,44 @@ export type ConversationExecutionStatus = (typeof conversationExecutionStatus)[k
 export interface ConversationStateOptions {
   readonly events?: readonly Event[];
   readonly executionStatus?: ConversationExecutionStatus;
+  readonly eventLog?: EventLog | null;
 }
 
 export class ConversationState {
   readonly events: Event[];
+  readonly eventLog: EventLog | null;
   executionStatus: ConversationExecutionStatus;
 
   constructor(options: ConversationStateOptions = {}) {
-    this.events = [...(options.events ?? [])];
+    this.eventLog = options.eventLog ?? null;
+    this.events = this.eventLog === null ? [...(options.events ?? [])] : this.eventLog.toArray();
     this.executionStatus = options.executionStatus ?? conversationExecutionStatus.IDLE;
+
+    if (this.eventLog !== null) {
+      for (const event of options.events ?? []) {
+        this.eventLog.append(event);
+      }
+      this.syncFromDisk();
+    }
   }
 
   appendEvent(event: Event): Event {
-    this.events.push(event);
+    if (this.eventLog === null) {
+      this.events.push(event);
+      return event;
+    }
+
+    this.eventLog.append(event);
+    this.syncFromDisk();
     return event;
+  }
+
+  syncFromDisk(): void {
+    if (this.eventLog === null) {
+      return;
+    }
+    this.events.length = 0;
+    this.events.push(...this.eventLog.toArray());
   }
 
   pendingActions(): ActionEvent[] {
@@ -50,7 +75,9 @@ export class ConversationState {
         tool_call_id: action.tool_call_id,
       }),
     );
-    this.events.push(...errors);
+    for (const errorEvent of errors) {
+      this.appendEvent(errorEvent);
+    }
     return errors;
   }
 

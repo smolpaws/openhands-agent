@@ -1,9 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { toPosixPath } from '../utils/index.js';
+
+export interface FileStoreLockOptions {
+  readonly timeoutSeconds?: number;
+  readonly pollIntervalMs?: number;
+}
 
 export interface FileStore {
   write(filePath: string, contents: string | Buffer): void;
@@ -12,6 +17,7 @@ export interface FileStore {
   delete(filePath: string): void;
   exists(filePath: string): boolean;
   getAbsolutePath(filePath: string): string;
+  lock<T>(filePath: string, callback: () => T, options?: FileStoreLockOptions): T;
 }
 
 export interface MemoryLRUCacheOptions {
@@ -182,6 +188,34 @@ export class LocalFileStore implements FileStore {
     });
   }
 
+  lock<T>(filePath: string, callback: () => T, options: FileStoreLockOptions = {}): T {
+    const fullPath = this.getFullPath(filePath);
+    mkdirSync(path.dirname(fullPath), { recursive: true });
+    const deadline = Date.now() + (options.timeoutSeconds ?? 30) * 1000;
+    const pollIntervalMs = options.pollIntervalMs ?? 50;
+    let fd: number | null = null;
+
+    while (fd === null) {
+      try {
+        fd = openSync(fullPath, 'wx');
+        writeFileSync(fd, `${process.pid}\n${new Date().toISOString()}\n`, 'utf8');
+      } catch (error) {
+        if (!isExistingLockError(error) || Date.now() >= deadline) {
+          throw error;
+        }
+        sleepSync(pollIntervalMs);
+      }
+    }
+
+    try {
+      return callback();
+    } finally {
+      closeSync(fd);
+      unlinkSync(fullPath);
+      this.cache.delete(fullPath);
+    }
+  }
+
   delete(filePath: string): void {
     const fullPath = this.getFullPath(filePath);
     if (!existsSync(fullPath)) {
@@ -204,6 +238,7 @@ export class LocalFileStore implements FileStore {
 export class InMemoryFileStore implements FileStore {
   readonly files: MemoryLRUCache<string, string>;
   private readonly instanceId = randomUUID().replace(/-/gu, '');
+  private readonly locks = new Set<string>();
 
   constructor(files: Readonly<Record<string, string>> = {}, options: LocalFileStoreOptions = {}) {
     this.files = new MemoryLRUCache<string, string>({
@@ -262,6 +297,24 @@ export class InMemoryFileStore implements FileStore {
     return [...this.files.keys()].some((storedPath) => storedPath.startsWith(`${filePath}/`));
   }
 
+  lock<T>(filePath: string, callback: () => T, options: FileStoreLockOptions = {}): T {
+    const deadline = Date.now() + (options.timeoutSeconds ?? 30) * 1000;
+    const pollIntervalMs = options.pollIntervalMs ?? 50;
+    while (this.locks.has(filePath)) {
+      if (Date.now() >= deadline) {
+        throw new Error(`Timed out acquiring lock: ${filePath}`);
+      }
+      sleepSync(pollIntervalMs);
+    }
+
+    this.locks.add(filePath);
+    try {
+      return callback();
+    } finally {
+      this.locks.delete(filePath);
+    }
+  }
+
   getAbsolutePath(filePath: string): string {
     return path.join(tmpdir(), `openhands_inmemory_${this.instanceId}`, filePath);
   }
@@ -283,4 +336,14 @@ function joinStorePath(basePath: string, childName: string): string {
 
 function readdirNames(directory: string): string[] {
   return statSync(directory).isDirectory() ? readdirSync(directory).sort() : [];
+}
+
+function isExistingLockError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'EEXIST';
+}
+
+function sleepSync(milliseconds: number): void {
+  const buffer = new SharedArrayBuffer(4);
+  const view = new Int32Array(buffer);
+  Atomics.wait(view, 0, 0, milliseconds);
 }
