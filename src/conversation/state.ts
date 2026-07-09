@@ -6,7 +6,7 @@ import {
   type Event,
 } from '../event/index.js';
 import { messageSchema, type Message } from '../llm/index.js';
-import type { EventLog } from './event-log.js';
+import { DuplicateEventError, type EventLog } from './event-log.js';
 
 export const conversationExecutionStatus = {
   IDLE: 'idle',
@@ -38,7 +38,13 @@ export class ConversationState {
 
     if (this.eventLog !== null) {
       for (const event of options.events ?? []) {
-        this.eventLog.append(event);
+        try {
+          this.eventLog.append(event);
+        } catch (error) {
+          if (!(error instanceof DuplicateEventError)) {
+            throw error;
+          }
+        }
       }
       this.syncFromDisk();
     }
@@ -59,6 +65,7 @@ export class ConversationState {
     if (this.eventLog === null) {
       return;
     }
+    this.eventLog.refresh();
     this.events.length = 0;
     this.events.push(...this.eventLog.toArray());
   }

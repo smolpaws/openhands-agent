@@ -27,7 +27,7 @@ export class LocalConversation {
 
   constructor(options: LocalConversationOptions) {
     this.agent = options.agent;
-    this.conversationId = options.state === undefined && hasPersistentStore(options) ? (options.conversationId ?? randomUUID()) : null;
+    this.conversationId = options.conversationId ?? (options.state === undefined && hasPersistentStore(options) ? randomUUID() : null);
     this.state = options.state ?? createConversationState(options, this.conversationId);
     this.maxIterations = options.maxIterations ?? 500;
     this.stuckDetector = createStuckDetector(this.state, options.stuckDetection);
@@ -105,7 +105,7 @@ export class LocalConversation {
 }
 
 function hasPersistentStore(options: LocalConversationOptions): boolean {
-  return options.fileStore !== undefined || options.conversationsDir !== undefined;
+  return options.fileStore !== undefined || options.conversationsDir !== undefined || options.conversationId !== undefined;
 }
 
 function createConversationState(options: LocalConversationOptions, conversationId: string | null): ConversationState {

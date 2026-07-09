@@ -85,6 +85,21 @@ describe('LocalFileStore', () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it('recovers stale lock files whose owning process is gone', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'openhands-agent-io-'));
+    try {
+      const store = new LocalFileStore(dir);
+      store.write('locks/test.lock', '999999999\n2026-01-01T00:00:00.000Z\n');
+
+      const result = store.lock('locks/test.lock', () => 'acquired', { timeoutSeconds: 1, pollIntervalMs: 1 });
+
+      expect(result).toBe('acquired');
+      expect(store.exists('locks/test.lock')).toBe(false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('InMemoryFileStore', () => {
@@ -100,5 +115,15 @@ describe('InMemoryFileStore', () => {
 
     store.delete('events');
     expect(store.exists('events/one.json')).toBe(false);
+  });
+
+  it('rejects reentrant lock acquisition instead of blocking the event loop', () => {
+    const store = new InMemoryFileStore();
+
+    expect(() => {
+      store.lock('events/.eventlog.lock', () => {
+        store.lock('events/.eventlog.lock', () => undefined);
+      });
+    }).toThrow(/Deadlock detected/u);
   });
 });

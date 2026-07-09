@@ -198,11 +198,19 @@ export class LocalFileStore implements FileStore {
     while (fd === null) {
       try {
         fd = openSync(fullPath, 'wx');
-        writeFileSync(fd, `${process.pid}\n${new Date().toISOString()}\n`, 'utf8');
+        try {
+          writeFileSync(fd, `${process.pid}\n${new Date().toISOString()}\n`, 'utf8');
+        } catch (error) {
+          closeSync(fd);
+          fd = null;
+          removeLockFile(fullPath);
+          throw error;
+        }
       } catch (error) {
         if (!isExistingLockError(error) || Date.now() >= deadline) {
           throw error;
         }
+        removeStaleLockFile(fullPath);
         sleepSync(pollIntervalMs);
       }
     }
@@ -211,7 +219,7 @@ export class LocalFileStore implements FileStore {
       return callback();
     } finally {
       closeSync(fd);
-      unlinkSync(fullPath);
+      removeLockFile(fullPath);
       this.cache.delete(fullPath);
     }
   }
@@ -297,14 +305,9 @@ export class InMemoryFileStore implements FileStore {
     return [...this.files.keys()].some((storedPath) => storedPath.startsWith(`${filePath}/`));
   }
 
-  lock<T>(filePath: string, callback: () => T, options: FileStoreLockOptions = {}): T {
-    const deadline = Date.now() + (options.timeoutSeconds ?? 30) * 1000;
-    const pollIntervalMs = options.pollIntervalMs ?? 50;
-    while (this.locks.has(filePath)) {
-      if (Date.now() >= deadline) {
-        throw new Error(`Timed out acquiring lock: ${filePath}`);
-      }
-      sleepSync(pollIntervalMs);
+  lock<T>(filePath: string, callback: () => T, _options: FileStoreLockOptions = {}): T {
+    if (this.locks.has(filePath)) {
+      throw new Error(`Deadlock detected: lock already held for ${filePath}`);
     }
 
     this.locks.add(filePath);
@@ -346,4 +349,41 @@ function sleepSync(milliseconds: number): void {
   const buffer = new SharedArrayBuffer(4);
   const view = new Int32Array(buffer);
   Atomics.wait(view, 0, 0, milliseconds);
+}
+
+function removeStaleLockFile(lockPath: string): void {
+  let contents: string;
+  try {
+    contents = readFileSync(lockPath, 'utf8');
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT') {
+      return;
+    }
+    throw error;
+  }
+
+  const pid = Number.parseInt(contents.split(/\r?\n/u)[0] ?? '', 10);
+  if (Number.isInteger(pid) && pid > 0 && isProcessAlive(pid)) {
+    return;
+  }
+  removeLockFile(lockPath);
+}
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return typeof error === 'object' && error !== null && 'code' in error && error.code === 'EPERM';
+  }
+}
+
+function removeLockFile(lockPath: string): void {
+  try {
+    unlinkSync(lockPath);
+  } catch (error) {
+    if (typeof error !== 'object' || error === null || !('code' in error) || error.code !== 'ENOENT') {
+      throw error;
+    }
+  }
 }

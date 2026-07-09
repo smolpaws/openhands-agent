@@ -6,7 +6,7 @@ export const EVENT_FILE_PATTERN = 'event-{idx}-{event_id}.json';
 export const LOCK_FILE_NAME = '.eventlog.lock';
 export const LOCK_TIMEOUT_SECONDS = 30;
 
-const eventNamePattern = /^event-(?<idx>\d{5})-(?<event_id>[0-9a-fA-F-]{8,})\.json$/u;
+const eventNamePattern = /^event-(?<idx>\d{5,})-(?<event_id>[0-9a-fA-F-]{8,})\.json$/u;
 
 export class DuplicateEventError extends Error {
   constructor(eventId: string, index: number) {
@@ -92,6 +92,10 @@ export class EventLog {
     return [...this];
   }
 
+  refresh(): void {
+    this.syncFromDisk(this.countEventsOnDisk());
+  }
+
   append(event: Event): void {
     this.fs.lock(
       this.lockPath,
@@ -140,7 +144,11 @@ export class EventLog {
   }
 
   private countEventsOnDisk(): number {
-    return this.fs.list(this.dir).filter((filePath) => isEventFileName(posixBasename(filePath))).length;
+    try {
+      return this.fs.list(this.dir).filter((filePath) => isEventFileName(posixBasename(filePath))).length;
+    } catch {
+      return 0;
+    }
   }
 
   private syncFromDisk(diskLength: number): void {
@@ -158,8 +166,18 @@ export class EventLog {
   }
 
   private scanAndBuildIndex(): number {
+    let paths: string[];
+    try {
+      paths = this.fs.list(this.dir);
+    } catch {
+      this.idToIndex.clear();
+      this.indexToId.clear();
+      this.eventCache.clear();
+      return 0;
+    }
+
     const byIndex = new Map<number, string>();
-    for (const filePath of this.fs.list(this.dir)) {
+    for (const filePath of paths) {
       const match = eventNamePattern.exec(posixBasename(filePath));
       if (match?.groups === undefined) {
         continue;
