@@ -123,6 +123,7 @@ export interface LocalFileStoreOptions {
 export class LocalFileStore implements FileStore {
   readonly root: string;
   readonly cache: MemoryLRUCache<string, string>;
+  private readonly locks = new Set<string>();
 
   constructor(root: string, options: LocalFileStoreOptions = {}) {
     const expandedRoot = root.startsWith('~') ? path.join(process.env.HOME ?? '', root.slice(1)) : root;
@@ -189,7 +190,12 @@ export class LocalFileStore implements FileStore {
   }
 
   lock<T>(filePath: string, callback: () => T, options: FileStoreLockOptions = {}): T {
+    assertSynchronousLockCallback(callback);
     const fullPath = this.getFullPath(filePath);
+    if (this.locks.has(fullPath)) {
+      throw new Error(`Deadlock detected: lock already held for ${filePath}`);
+    }
+
     mkdirSync(path.dirname(fullPath), { recursive: true });
     const deadline = Date.now() + (options.timeoutSeconds ?? 30) * 1000;
     const pollIntervalMs = options.pollIntervalMs ?? 50;
@@ -201,7 +207,7 @@ export class LocalFileStore implements FileStore {
         try {
           writeFileSync(fd, `${process.pid}\n${new Date().toISOString()}\n`, 'utf8');
         } catch (error) {
-          closeSync(fd);
+          closeLockDescriptor(fd);
           fd = null;
           removeLockFile(fullPath);
           throw error;
@@ -215,12 +221,19 @@ export class LocalFileStore implements FileStore {
       }
     }
 
+    this.locks.add(fullPath);
     try {
-      return callback();
+      const result = callback();
+      assertSynchronousLockResult(result);
+      return result;
     } finally {
-      closeSync(fd);
-      removeLockFile(fullPath);
-      this.cache.delete(fullPath);
+      closeLockDescriptor(fd);
+      try {
+        removeLockFile(fullPath);
+      } finally {
+        this.cache.delete(fullPath);
+        this.locks.delete(fullPath);
+      }
     }
   }
 
@@ -306,13 +319,16 @@ export class InMemoryFileStore implements FileStore {
   }
 
   lock<T>(filePath: string, callback: () => T, _options: FileStoreLockOptions = {}): T {
+    assertSynchronousLockCallback(callback);
     if (this.locks.has(filePath)) {
       throw new Error(`Deadlock detected: lock already held for ${filePath}`);
     }
 
     this.locks.add(filePath);
     try {
-      return callback();
+      const result = callback();
+      assertSynchronousLockResult(result);
+      return result;
     } finally {
       this.locks.delete(filePath);
     }
@@ -337,6 +353,35 @@ function joinStorePath(basePath: string, childName: string): string {
   return `${basePath.replace(/\/+$/u, '')}/${childName}`;
 }
 
+const asyncFunctionConstructor = (async () => {
+  await Promise.resolve();
+}).constructor;
+const MALFORMED_LOCK_STALE_GRACE_MS = 5_000;
+
+function assertSynchronousLockCallback(callback: () => unknown): void {
+  if (callback.constructor === asyncFunctionConstructor) {
+    throw new Error('FileStore.lock does not support asynchronous callbacks because it is synchronous.');
+  }
+}
+
+function assertSynchronousLockResult(result: unknown): void {
+  if (isPromiseLike(result)) {
+    throw new Error('FileStore.lock does not support asynchronous callbacks because it is synchronous.');
+  }
+}
+
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return typeof value === 'object' && value !== null && 'then' in value && typeof value.then === 'function';
+}
+
+function closeLockDescriptor(fd: number): void {
+  try {
+    closeSync(fd);
+  } catch {
+    // Still attempt to unlink the lock path so a close failure does not deadlock future writers.
+  }
+}
+
 function readdirNames(directory: string): string[] {
   return statSync(directory).isDirectory() ? readdirSync(directory).sort() : [];
 }
@@ -356,14 +401,23 @@ function removeStaleLockFile(lockPath: string): void {
   try {
     contents = readFileSync(lockPath, 'utf8');
   } catch (error) {
-    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT') {
+    if (isNodeErrorCode(error, 'ENOENT')) {
       return;
     }
     throw error;
   }
 
-  const pid = Number.parseInt(contents.split(/\r?\n/u)[0] ?? '', 10);
-  if (Number.isInteger(pid) && pid > 0 && isProcessAlive(pid)) {
+  const pidLine = (contents.split(/\r?\n/u)[0] ?? '').trim();
+  if (!/^\d+$/u.test(pidLine)) {
+    if (isMalformedLockWithinGracePeriod(lockPath)) {
+      return;
+    }
+    removeLockFile(lockPath);
+    return;
+  }
+
+  const pid = Number.parseInt(pidLine, 10);
+  if (pid > 0 && isProcessAlive(pid)) {
     return;
   }
   removeLockFile(lockPath);
@@ -374,7 +428,18 @@ function isProcessAlive(pid: number): boolean {
     process.kill(pid, 0);
     return true;
   } catch (error) {
-    return typeof error === 'object' && error !== null && 'code' in error && error.code === 'EPERM';
+    return isNodeErrorCode(error, 'EPERM');
+  }
+}
+
+function isMalformedLockWithinGracePeriod(lockPath: string): boolean {
+  try {
+    return Date.now() - statSync(lockPath).mtimeMs < MALFORMED_LOCK_STALE_GRACE_MS;
+  } catch (error) {
+    if (isNodeErrorCode(error, 'ENOENT')) {
+      return true;
+    }
+    throw error;
   }
 }
 
@@ -382,8 +447,12 @@ function removeLockFile(lockPath: string): void {
   try {
     unlinkSync(lockPath);
   } catch (error) {
-    if (typeof error !== 'object' || error === null || !('code' in error) || error.code !== 'ENOENT') {
+    if (!isNodeErrorCode(error, 'ENOENT')) {
       throw error;
     }
   }
+}
+
+function isNodeErrorCode(error: unknown, code: string): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
 }

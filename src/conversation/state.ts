@@ -38,6 +38,9 @@ export class ConversationState {
 
     if (this.eventLog !== null) {
       for (const event of options.events ?? []) {
+        if (eventLogHasEvent(this.eventLog, event.id)) {
+          continue;
+        }
         try {
           this.eventLog.append(event);
         } catch (error) {
@@ -116,6 +119,17 @@ export class ConversationState {
   }
 }
 
+function eventLogHasEvent(eventLog: EventLog, eventId: string): boolean {
+  try {
+    eventLog.getIndex(eventId);
+    return true;
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('Unknown event_id:')) {
+      return false;
+    }
+    throw error;
+  }
+}
 
 export function actionEventsFromMessage(message: Message, llmResponseId: string | null = null): ActionEvent[] {
   const parsed = messageSchema.parse(message);
