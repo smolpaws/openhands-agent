@@ -246,7 +246,12 @@ export class EventLog {
 }
 
 function serializeEvent(event: Event): string {
-  return `${JSON.stringify(event, (_key, value: unknown) => (value instanceof Set ? [...value] : value))}\n`;
+  return `${JSON.stringify(event, (_key, value: unknown) => {
+    if (value instanceof Set) {
+      return [...(value as Set<unknown>)];
+    }
+    return value === null ? undefined : value;
+  })}\n`;
 }
 
 function isEventFileName(name: string): boolean {

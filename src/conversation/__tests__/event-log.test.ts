@@ -38,6 +38,26 @@ describe('EventLog', () => {
     });
   });
 
+  it('persists events without null-valued optional fields like upstream exclude_none', async () => {
+    const dir = await tempDir();
+    const store = new LocalFileStore(dir);
+    const log = new EventLog(store);
+    const event = userMessage('00000000-0000-4000-8000-000000000108', 'hello');
+
+    log.append(event);
+
+    const persisted = JSON.parse(store.read('events/event-00000-00000000-0000-4000-8000-000000000108.json')) as Record<string, unknown>;
+    expect(persisted).not.toHaveProperty('llm_response_id');
+    expect(persisted).not.toHaveProperty('sender');
+    expect(persisted).not.toHaveProperty('critic_result');
+    const message = persisted.llm_message as Record<string, unknown>;
+    expect(message).not.toHaveProperty('tool_calls');
+    expect(message).not.toHaveProperty('tool_call_id');
+    expect(message).not.toHaveProperty('name');
+    expect(message).not.toHaveProperty('reasoning_content');
+    expect(message).not.toHaveProperty('responses_reasoning_item');
+  });
+
   it('restores events from an existing event directory on open', async () => {
     const dir = await tempDir();
     const first = new EventLog(new LocalFileStore(dir));
