@@ -1,6 +1,10 @@
+import { randomUUID } from 'node:crypto';
+
 import { conversationErrorEventSchema, messageEventSchema, type Event } from '../event/index.js';
+import { LocalFileStore, type FileStore } from '../io/index.js';
 import { textContent } from '../llm/index.js';
 import type { Agent } from '../agent/index.js';
+import { EventLog, EVENTS_DIR } from './event-log.js';
 import { ConversationState, conversationExecutionStatus } from './state.js';
 import { StuckDetector, type StuckDetectionThresholds } from './stuck-detector.js';
 
@@ -9,6 +13,9 @@ export interface LocalConversationOptions {
   readonly state?: ConversationState;
   readonly maxIterations?: number;
   readonly stuckDetection?: boolean | StuckDetectionThresholds;
+  readonly conversationId?: string;
+  readonly conversationsDir?: string;
+  readonly fileStore?: FileStore;
 }
 
 export class LocalConversation {
@@ -16,10 +23,12 @@ export class LocalConversation {
   readonly state: ConversationState;
   readonly maxIterations: number;
   readonly stuckDetector: StuckDetector | null;
+  readonly conversationId: string | null;
 
   constructor(options: LocalConversationOptions) {
     this.agent = options.agent;
-    this.state = options.state ?? new ConversationState();
+    this.conversationId = options.conversationId ?? (options.state === undefined && hasPersistentStore(options) ? randomUUID() : null);
+    this.state = options.state ?? createConversationState(options, this.conversationId);
     this.maxIterations = options.maxIterations ?? 500;
     this.stuckDetector = createStuckDetector(this.state, options.stuckDetection);
   }
@@ -93,6 +102,26 @@ export class LocalConversation {
   async arun(): Promise<void> {
     await this.run();
   }
+}
+
+function hasPersistentStore(options: LocalConversationOptions): boolean {
+  return options.fileStore !== undefined || options.conversationsDir !== undefined || options.conversationId !== undefined;
+}
+
+function createConversationState(options: LocalConversationOptions, conversationId: string | null): ConversationState {
+  if (conversationId === null) {
+    return new ConversationState();
+  }
+  const store = options.fileStore ?? new LocalFileStore(options.conversationsDir ?? '.openhands/conversations');
+  return new ConversationState({ eventLog: new EventLog(store, conversationEventDir(conversationId)) });
+}
+
+function conversationEventDir(conversationId: string): string {
+  const safeConversationId = conversationId.replace(/^\/+|\/+$/gu, '');
+  if (safeConversationId.length === 0 || safeConversationId.includes('..')) {
+    throw new Error(`Invalid conversationId: ${conversationId}`);
+  }
+  return `${safeConversationId}/${EVENTS_DIR}`;
 }
 
 function createStuckDetector(state: ConversationState, option: boolean | StuckDetectionThresholds | undefined): StuckDetector | null {

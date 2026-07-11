@@ -169,6 +169,8 @@ A caller choosing a remote runtime should keep these boundaries:
 - agent-server owns process execution and remote files;
 - credentials stay in secret stores/keyrings and are passed only to the service that needs them.
 
+`FileStore.lock()` is intentionally synchronous for the current local EventLog parity slice. If lock contention occurs, its retry wait blocks the Node.js event loop; server/runtime paths that expect contention should use a future async lock API rather than this synchronous local-persistence primitive.
+
 ## Accepted deviations from Python
 
 These are deliberate for the current product direction:

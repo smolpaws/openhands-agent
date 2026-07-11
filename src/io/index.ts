@@ -1,9 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { toPosixPath } from '../utils/index.js';
+
+export interface FileStoreLockOptions {
+  readonly timeoutSeconds?: number;
+  readonly pollIntervalMs?: number;
+}
 
 export interface FileStore {
   write(filePath: string, contents: string | Buffer): void;
@@ -12,6 +17,13 @@ export interface FileStore {
   delete(filePath: string): void;
   exists(filePath: string): boolean;
   getAbsolutePath(filePath: string): string;
+  /**
+   * Acquire a synchronous lock for local persistence writes.
+   *
+   * Contention waits block the Node.js event loop; avoid using this API on hot
+   * server request paths until an async lock API is available.
+   */
+  lock<T>(filePath: string, callback: () => T, options?: FileStoreLockOptions): T;
 }
 
 export interface MemoryLRUCacheOptions {
@@ -117,6 +129,7 @@ export interface LocalFileStoreOptions {
 export class LocalFileStore implements FileStore {
   readonly root: string;
   readonly cache: MemoryLRUCache<string, string>;
+  private readonly locks = new Set<string>();
 
   constructor(root: string, options: LocalFileStoreOptions = {}) {
     const expandedRoot = root.startsWith('~') ? path.join(process.env.HOME ?? '', root.slice(1)) : root;
@@ -182,6 +195,56 @@ export class LocalFileStore implements FileStore {
     });
   }
 
+  lock<T>(filePath: string, callback: () => T, options: FileStoreLockOptions = {}): T {
+    assertSynchronousLockCallback(callback);
+    const fullPath = this.getFullPath(filePath);
+    if (this.locks.has(fullPath)) {
+      throw new Error(`Deadlock detected: lock already held for ${filePath}`);
+    }
+
+    mkdirSync(path.dirname(fullPath), { recursive: true });
+    const deadline = Date.now() + (options.timeoutSeconds ?? 30) * 1000;
+    const pollIntervalMs = options.pollIntervalMs ?? 50;
+    let acquired = false;
+
+    while (!acquired) {
+      try {
+        const fd = openSync(fullPath, 'wx');
+        try {
+          try {
+            writeFileSync(fd, `${process.pid}\n${new Date().toISOString()}\n`, 'utf8');
+            acquired = true;
+          } finally {
+            closeLockDescriptor(fd);
+          }
+        } catch (error) {
+          removeLockFile(fullPath);
+          throw error;
+        }
+      } catch (error) {
+        if (!isExistingLockError(error) || Date.now() >= deadline) {
+          throw error;
+        }
+        removeStaleLockFile(fullPath);
+        sleepSync(pollIntervalMs);
+      }
+    }
+
+    this.locks.add(fullPath);
+    try {
+      const result = callback();
+      assertSynchronousLockResult(result);
+      return result;
+    } finally {
+      try {
+        removeLockFile(fullPath);
+      } finally {
+        this.cache.delete(fullPath);
+        this.locks.delete(fullPath);
+      }
+    }
+  }
+
   delete(filePath: string): void {
     const fullPath = this.getFullPath(filePath);
     if (!existsSync(fullPath)) {
@@ -204,6 +267,7 @@ export class LocalFileStore implements FileStore {
 export class InMemoryFileStore implements FileStore {
   readonly files: MemoryLRUCache<string, string>;
   private readonly instanceId = randomUUID().replace(/-/gu, '');
+  private readonly locks = new Set<string>();
 
   constructor(files: Readonly<Record<string, string>> = {}, options: LocalFileStoreOptions = {}) {
     this.files = new MemoryLRUCache<string, string>({
@@ -262,6 +326,22 @@ export class InMemoryFileStore implements FileStore {
     return [...this.files.keys()].some((storedPath) => storedPath.startsWith(`${filePath}/`));
   }
 
+  lock<T>(filePath: string, callback: () => T, _options: FileStoreLockOptions = {}): T {
+    assertSynchronousLockCallback(callback);
+    if (this.locks.has(filePath)) {
+      throw new Error(`Deadlock detected: lock already held for ${filePath}`);
+    }
+
+    this.locks.add(filePath);
+    try {
+      const result = callback();
+      assertSynchronousLockResult(result);
+      return result;
+    } finally {
+      this.locks.delete(filePath);
+    }
+  }
+
   getAbsolutePath(filePath: string): string {
     return path.join(tmpdir(), `openhands_inmemory_${this.instanceId}`, filePath);
   }
@@ -281,6 +361,106 @@ function joinStorePath(basePath: string, childName: string): string {
   return `${basePath.replace(/\/+$/u, '')}/${childName}`;
 }
 
+const asyncFunctionConstructor = (async () => {
+  await Promise.resolve();
+}).constructor;
+const MALFORMED_LOCK_STALE_GRACE_MS = 5_000;
+
+function assertSynchronousLockCallback(callback: () => unknown): void {
+  if (callback.constructor === asyncFunctionConstructor) {
+    throw new Error('FileStore.lock does not support asynchronous callbacks because it is synchronous.');
+  }
+}
+
+function assertSynchronousLockResult(result: unknown): void {
+  if (isPromiseLike(result)) {
+    throw new Error('FileStore.lock does not support asynchronous callbacks because it is synchronous.');
+  }
+}
+
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return typeof value === 'object' && value !== null && 'then' in value && typeof value.then === 'function';
+}
+
+function closeLockDescriptor(fd: number): void {
+  try {
+    closeSync(fd);
+  } catch {
+    // Still attempt to unlink the lock path so a close failure does not deadlock future writers.
+  }
+}
+
 function readdirNames(directory: string): string[] {
   return statSync(directory).isDirectory() ? readdirSync(directory).sort() : [];
+}
+
+function isExistingLockError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'EEXIST';
+}
+
+function sleepSync(milliseconds: number): void {
+  const buffer = new SharedArrayBuffer(4);
+  const view = new Int32Array(buffer);
+  Atomics.wait(view, 0, 0, milliseconds);
+}
+
+function removeStaleLockFile(lockPath: string): void {
+  let contents: string;
+  try {
+    contents = readFileSync(lockPath, 'utf8');
+  } catch (error) {
+    if (isNodeErrorCode(error, 'ENOENT')) {
+      return;
+    }
+    throw error;
+  }
+
+  const pidLine = (contents.split(/\r?\n/u)[0] ?? '').trim();
+  if (!/^\d+$/u.test(pidLine)) {
+    if (isMalformedLockWithinGracePeriod(lockPath)) {
+      return;
+    }
+    removeLockFile(lockPath);
+    return;
+  }
+
+  const pid = Number.parseInt(pidLine, 10);
+  if (pid > 0 && isProcessAlive(pid)) {
+    return;
+  }
+  removeLockFile(lockPath);
+}
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return isNodeErrorCode(error, 'EPERM');
+  }
+}
+
+function isMalformedLockWithinGracePeriod(lockPath: string): boolean {
+  try {
+    return Date.now() - statSync(lockPath).mtimeMs < MALFORMED_LOCK_STALE_GRACE_MS;
+  } catch (error) {
+    if (isNodeErrorCode(error, 'ENOENT')) {
+      return true;
+    }
+    throw error;
+  }
+}
+
+function removeLockFile(lockPath: string): void {
+  try {
+    unlinkSync(lockPath);
+  } catch (error) {
+    if (!isNodeErrorCode(error, 'ENOENT')) {
+      throw error;
+    }
+  }
+}
+
+function isNodeErrorCode(error: unknown, code: string): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
 }

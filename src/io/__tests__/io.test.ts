@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -85,6 +85,64 @@ describe('LocalFileStore', () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it('recovers stale lock files whose owning process is gone', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'openhands-agent-io-'));
+    try {
+      const store = new LocalFileStore(dir);
+      store.write('locks/test.lock', '999999999\n2026-01-01T00:00:00.000Z\n');
+
+      const result = store.lock('locks/test.lock', () => 'acquired', { timeoutSeconds: 1, pollIntervalMs: 1 });
+
+      expect(result).toBe('acquired');
+      expect(store.exists('locks/test.lock')).toBe(false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects reentrant and asynchronous local lock callbacks', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'openhands-agent-io-'));
+    try {
+      const store = new LocalFileStore(dir);
+
+      expect(() => {
+        store.lock('locks/test.lock', () => {
+          store.lock('locks/test.lock', () => undefined);
+        });
+      }).toThrow(/Deadlock detected/u);
+      expect(store.exists('locks/test.lock')).toBe(false);
+
+      expect(() => store.lock('locks/async.lock', async () => 'value')).toThrow(/does not support asynchronous callbacks/u);
+      expect(store.exists('locks/async.lock')).toBe(false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not immediately reap fresh empty lock files but recovers old malformed locks', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'openhands-agent-io-'));
+    try {
+      const store = new LocalFileStore(dir);
+      store.write('locks/fresh.lock', '');
+
+      expect(() => store.lock('locks/fresh.lock', () => 'blocked', { timeoutSeconds: 0.01, pollIntervalMs: 1 })).toThrow();
+      expect(store.exists('locks/fresh.lock')).toBe(true);
+
+      const oldLockPath = store.getFullPath('locks/old.lock');
+      store.write('locks/old.lock', 'not-a-pid\n');
+      const oldTime = new Date(Date.now() - 10_000);
+      await utimes(oldLockPath, oldTime, oldTime);
+
+      const result = store.lock('locks/old.lock', () => 'acquired', { timeoutSeconds: 1, pollIntervalMs: 1 });
+
+      expect(result).toBe('acquired');
+      expect(store.exists('locks/old.lock')).toBe(false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
 });
 
 describe('InMemoryFileStore', () => {
@@ -100,5 +158,21 @@ describe('InMemoryFileStore', () => {
 
     store.delete('events');
     expect(store.exists('events/one.json')).toBe(false);
+  });
+
+  it('rejects reentrant lock acquisition instead of blocking the event loop', () => {
+    const store = new InMemoryFileStore();
+
+    expect(() => {
+      store.lock('events/.eventlog.lock', () => {
+        store.lock('events/.eventlog.lock', () => undefined);
+      });
+    }).toThrow(/Deadlock detected/u);
+  });
+
+  it('rejects asynchronous in-memory lock callbacks', () => {
+    const store = new InMemoryFileStore();
+
+    expect(() => store.lock('events/.eventlog.lock', async () => 'value')).toThrow(/does not support asynchronous callbacks/u);
   });
 });

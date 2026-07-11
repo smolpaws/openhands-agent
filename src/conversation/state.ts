@@ -6,6 +6,7 @@ import {
   type Event,
 } from '../event/index.js';
 import { messageSchema, type Message } from '../llm/index.js';
+import { DuplicateEventError, type EventLog } from './event-log.js';
 
 export const conversationExecutionStatus = {
   IDLE: 'idle',
@@ -22,20 +23,45 @@ export type ConversationExecutionStatus = (typeof conversationExecutionStatus)[k
 export interface ConversationStateOptions {
   readonly events?: readonly Event[];
   readonly executionStatus?: ConversationExecutionStatus;
+  readonly eventLog?: EventLog | null;
 }
 
 export class ConversationState {
   readonly events: Event[];
+  readonly eventLog: EventLog | null;
   executionStatus: ConversationExecutionStatus;
 
   constructor(options: ConversationStateOptions = {}) {
-    this.events = [...(options.events ?? [])];
+    this.eventLog = options.eventLog ?? null;
+    this.events = this.eventLog === null ? [...(options.events ?? [])] : this.eventLog.toArray();
     this.executionStatus = options.executionStatus ?? conversationExecutionStatus.IDLE;
+
+    if (this.eventLog !== null) {
+      appendMissingEvents(this.eventLog, options.events ?? []);
+      this.syncFromDisk();
+    }
   }
 
   appendEvent(event: Event): Event {
-    this.events.push(event);
+    if (this.eventLog === null) {
+      this.events.push(event);
+      return event;
+    }
+
+    this.eventLog.append(event);
+    this.syncFromDisk();
     return event;
+  }
+
+  syncFromDisk(): void {
+    if (this.eventLog === null) {
+      return;
+    }
+    this.eventLog.refresh();
+    this.events.length = 0;
+    for (const event of this.eventLog.toArray()) {
+      this.events.push(event);
+    }
   }
 
   pendingActions(): ActionEvent[] {
@@ -50,7 +76,9 @@ export class ConversationState {
         tool_call_id: action.tool_call_id,
       }),
     );
-    this.events.push(...errors);
+    for (const errorEvent of errors) {
+      this.appendEvent(errorEvent);
+    }
     return errors;
   }
 
@@ -82,6 +110,36 @@ export class ConversationState {
   }
 }
 
+function appendMissingEvents(eventLog: EventLog, events: readonly Event[]): void {
+  const missing = events.filter((event) => !eventLog.has(event.id));
+  if (missing.length === 0) {
+    return;
+  }
+
+  try {
+    eventLog.appendMultiple(missing);
+  } catch (error) {
+    if (!(error instanceof DuplicateEventError)) {
+      throw error;
+    }
+    appendMissingEventsIndividually(eventLog, missing);
+  }
+}
+
+function appendMissingEventsIndividually(eventLog: EventLog, events: readonly Event[]): void {
+  for (const event of events) {
+    if (eventLog.has(event.id)) {
+      continue;
+    }
+    try {
+      eventLog.append(event);
+    } catch (error) {
+      if (!(error instanceof DuplicateEventError)) {
+        throw error;
+      }
+    }
+  }
+}
 
 export function actionEventsFromMessage(message: Message, llmResponseId: string | null = null): ActionEvent[] {
   const parsed = messageSchema.parse(message);
