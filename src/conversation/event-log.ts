@@ -43,6 +43,10 @@ export class EventLog {
     return index;
   }
 
+  has(eventId: string): boolean {
+    return this.idToIndex.has(eventId);
+  }
+
   getId(index: number): string {
     const normalized = this.normalizeIndex(index);
     const eventId = this.indexToId.get(normalized);
@@ -97,6 +101,14 @@ export class EventLog {
   }
 
   append(event: Event): void {
+    this.appendMultiple([event]);
+  }
+
+  appendMultiple(events: readonly Event[]): void {
+    if (events.length === 0) {
+      return;
+    }
+
     this.fs.lock(
       this.lockPath,
       () => {
@@ -105,17 +117,27 @@ export class EventLog {
           this.syncFromDisk(diskLength);
         }
 
-        const existingIndex = this.idToIndex.get(event.id);
-        if (existingIndex !== undefined) {
-          throw new DuplicateEventError(event.id, existingIndex);
+        const batchIds = new Map<string, number>();
+        for (const event of events) {
+          const existingIndex = this.idToIndex.get(event.id);
+          if (existingIndex !== undefined) {
+            throw new DuplicateEventError(event.id, existingIndex);
+          }
+          const pendingIndex = batchIds.get(event.id);
+          if (pendingIndex !== undefined) {
+            throw new DuplicateEventError(event.id, pendingIndex);
+          }
+          batchIds.set(event.id, this.lengthValue + batchIds.size);
         }
 
-        const index = this.lengthValue;
-        this.fs.write(this.path(index, event.id), serializeEvent(event));
-        this.indexToId.set(index, event.id);
-        this.idToIndex.set(event.id, index);
-        this.eventCache.set(index, event);
-        this.lengthValue += 1;
+        for (const event of events) {
+          const index = this.lengthValue;
+          this.fs.write(this.path(index, event.id), serializeEvent(event));
+          this.indexToId.set(index, event.id);
+          this.idToIndex.set(event.id, index);
+          this.eventCache.set(index, event);
+          this.lengthValue += 1;
+        }
       },
       { timeoutSeconds: LOCK_TIMEOUT_SECONDS },
     );

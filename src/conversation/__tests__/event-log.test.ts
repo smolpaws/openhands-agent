@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { Agent } from '../../agent/index.js';
 import { messageEventSchema, type Event } from '../../event/index.js';
-import { LocalFileStore } from '../../io/index.js';
+import { InMemoryFileStore, LocalFileStore, type FileStoreLockOptions } from '../../io/index.js';
 import type { LLMClient, LLMCompletionResponse } from '../../llm/client.js';
 import { textContent, type LLMProfile, type Message } from '../../llm/index.js';
 import { FinishTool } from '../../tool/builtins.js';
@@ -67,6 +67,24 @@ describe('EventLog', () => {
     expect(() => staleSecondWriter.append(event)).toThrow(/already exists at index 0/u);
     expect(new EventLog(store).toArray().map((restored) => restored.id)).toEqual([event.id]);
   });
+
+  it('checks membership and appends event batches under one lock', () => {
+    const store = new CountingMemoryFileStore();
+    const log = new EventLog(store);
+    const events = [
+      userMessage('00000000-0000-4000-8000-000000000104', 'first'),
+      userMessage('00000000-0000-4000-8000-000000000105', 'second'),
+    ];
+
+    log.appendMultiple(events);
+
+    expect(store.lockCount).toBe(1);
+    expect(log.has(events[0]?.id ?? '')).toBe(true);
+    expect(log.has('missing')).toBe(false);
+    expect(log.toArray()).toEqual(events);
+    expect(() => log.appendMultiple([userMessage('dup', 'a'), userMessage('dup', 'b')])).toThrow(/already exists at index 2/u);
+  });
+
 });
 
 describe('ConversationState disk-backed events', () => {
@@ -80,6 +98,21 @@ describe('ConversationState disk-backed events', () => {
     const restored = new ConversationState({ eventLog: new EventLog(new LocalFileStore(dir)) });
     expect(restored.events).toEqual([event]);
   });
+
+  it('seeds missing constructor events with one EventLog lock', () => {
+    const store = new CountingMemoryFileStore();
+    const eventLog = new EventLog(store);
+    const alreadyPersisted = userMessage('00000000-0000-4000-8000-000000000106', 'already');
+    const missing = userMessage('00000000-0000-4000-8000-000000000107', 'missing');
+    eventLog.append(alreadyPersisted);
+    store.lockCount = 0;
+
+    const state = new ConversationState({ eventLog, events: [alreadyPersisted, missing] });
+
+    expect(store.lockCount).toBe(1);
+    expect(state.events.map((event) => event.id)).toEqual([alreadyPersisted.id, missing.id]);
+  });
+
 });
 
 describe('LocalConversation event log persistence', () => {
@@ -108,6 +141,15 @@ describe('LocalConversation event log persistence', () => {
     });
   });
 });
+
+class CountingMemoryFileStore extends InMemoryFileStore {
+  lockCount = 0;
+
+  lock<T>(filePath: string, callback: () => T, options?: FileStoreLockOptions): T {
+    this.lockCount += 1;
+    return super.lock(filePath, callback, options);
+  }
+}
 
 async function tempDir(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'openhands-event-log-'));

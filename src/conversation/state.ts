@@ -37,18 +37,7 @@ export class ConversationState {
     this.executionStatus = options.executionStatus ?? conversationExecutionStatus.IDLE;
 
     if (this.eventLog !== null) {
-      for (const event of options.events ?? []) {
-        if (eventLogHasEvent(this.eventLog, event.id)) {
-          continue;
-        }
-        try {
-          this.eventLog.append(event);
-        } catch (error) {
-          if (!(error instanceof DuplicateEventError)) {
-            throw error;
-          }
-        }
-      }
+      appendMissingEvents(this.eventLog, options.events ?? []);
       this.syncFromDisk();
     }
   }
@@ -119,15 +108,34 @@ export class ConversationState {
   }
 }
 
-function eventLogHasEvent(eventLog: EventLog, eventId: string): boolean {
+function appendMissingEvents(eventLog: EventLog, events: readonly Event[]): void {
+  const missing = events.filter((event) => !eventLog.has(event.id));
+  if (missing.length === 0) {
+    return;
+  }
+
   try {
-    eventLog.getIndex(eventId);
-    return true;
+    eventLog.appendMultiple(missing);
   } catch (error) {
-    if (error instanceof Error && error.message.startsWith('Unknown event_id:')) {
-      return false;
+    if (!(error instanceof DuplicateEventError)) {
+      throw error;
     }
-    throw error;
+    appendMissingEventsIndividually(eventLog, missing);
+  }
+}
+
+function appendMissingEventsIndividually(eventLog: EventLog, events: readonly Event[]): void {
+  for (const event of events) {
+    if (eventLog.has(event.id)) {
+      continue;
+    }
+    try {
+      eventLog.append(event);
+    } catch (error) {
+      if (!(error instanceof DuplicateEventError)) {
+        throw error;
+      }
+    }
   }
 }
 

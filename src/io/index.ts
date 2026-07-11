@@ -199,18 +199,19 @@ export class LocalFileStore implements FileStore {
     mkdirSync(path.dirname(fullPath), { recursive: true });
     const deadline = Date.now() + (options.timeoutSeconds ?? 30) * 1000;
     const pollIntervalMs = options.pollIntervalMs ?? 50;
-    let fd: number | null = null;
+    let acquired = false;
 
-    while (fd === null) {
+    while (!acquired) {
       try {
-        fd = openSync(fullPath, 'wx');
+        const fd = openSync(fullPath, 'wx');
         try {
           writeFileSync(fd, `${process.pid}\n${new Date().toISOString()}\n`, 'utf8');
+          acquired = true;
         } catch (error) {
-          closeLockDescriptor(fd);
-          fd = null;
           removeLockFile(fullPath);
           throw error;
+        } finally {
+          closeLockDescriptor(fd);
         }
       } catch (error) {
         if (!isExistingLockError(error) || Date.now() >= deadline) {
@@ -227,7 +228,6 @@ export class LocalFileStore implements FileStore {
       assertSynchronousLockResult(result);
       return result;
     } finally {
-      closeLockDescriptor(fd);
       try {
         removeLockFile(fullPath);
       } finally {
