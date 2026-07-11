@@ -59,7 +59,9 @@ export class ConversationState {
     }
     this.eventLog.refresh();
     this.events.length = 0;
-    this.events.push(...this.eventLog.toArray());
+    for (const event of this.eventLog.toArray()) {
+      this.events.push(event);
+    }
   }
 
   pendingActions(): ActionEvent[] {

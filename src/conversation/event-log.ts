@@ -173,9 +173,9 @@ export class EventLog {
     }
   }
 
-  private syncFromDisk(diskLength: number): void {
+  private syncFromDisk(_diskLength: number): void {
     const existingIndexToId = new Map(this.indexToId);
-    const scannedLength = this.scanAndBuildIndex();
+    this.scanAndBuildIndex();
     for (const [index, eventId] of existingIndexToId) {
       if (!this.indexToId.has(index)) {
         this.indexToId.set(index, eventId);
@@ -184,7 +184,7 @@ export class EventLog {
         this.idToIndex.set(eventId, index);
       }
     }
-    this.lengthValue = Math.max(scannedLength, diskLength);
+    this.lengthValue = contiguousIndexLength(this.indexToId);
   }
 
   private scanAndBuildIndex(): number {
@@ -267,6 +267,14 @@ function joinStorePath(basePath: string, childName: string): string {
     return childName;
   }
   return `${basePath.replace(/\/+$/u, '')}/${childName}`;
+}
+
+function contiguousIndexLength(indexToId: ReadonlyMap<number, string>): number {
+  let length = 0;
+  while (indexToId.has(length)) {
+    length += 1;
+  }
+  return length;
 }
 
 function posixBasename(filePath: string): string {

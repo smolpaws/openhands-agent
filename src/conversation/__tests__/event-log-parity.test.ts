@@ -111,6 +111,23 @@ describe('EventLog upstream parity edge cases', () => {
     expect(() => log2.get(3)).toThrow(RangeError);
   });
 
+  it('does not inflate length or duplicate indexes when syncing past disk gaps', () => {
+    const store = new InMemoryFileStore();
+    const zeroId = '00000000-0000-4000-8000-000000000701';
+    const gapId = '00000000-0000-4000-8000-000000000703';
+    const fillId = '00000000-0000-4000-8000-000000000702';
+    store.write(`events/event-00000-${zeroId}.json`, serialize(userMessage(zeroId, 'zero')));
+    const log = new EventLog(store);
+    store.write(`events/event-00002-${gapId}.json`, serialize(userMessage(gapId, 'two')));
+
+    log.append(userMessage(fillId, 'one'));
+
+    expect(log.length).toBe(2);
+    expect(log.toArray().map((event) => event.id)).toEqual([zeroId, fillId]);
+    expect(store.list('events').filter((filePath) => filePath.includes('event-00002-'))).toEqual([`events/event-00002-${gapId}.json`]);
+  });
+
+
   it('caches repeated deserialization and iteration results', () => {
     const log = new EventLog(new InMemoryFileStore());
     log.append(userMessage('cached-event-a', 'a'));
@@ -158,6 +175,22 @@ describe('ConversationState and LocalConversation persistence edge cases', () =>
     const state = new ConversationState({ eventLog, events: [event] });
 
     expect(state.events.map((stored) => stored.id)).toEqual([event.id]);
+  });
+
+  it('syncs very large event arrays without spreading into push arguments', () => {
+    const state = new ConversationState();
+    const event = userMessage('00000000-0000-4000-8000-000000000604', 'large');
+    const events = Array.from({ length: 150_000 }, () => event);
+    const eventLog = {
+      refresh() {},
+      toArray() {
+        return events;
+      },
+    } as EventLog;
+    (state as unknown as { eventLog: EventLog | null }).eventLog = eventLog;
+
+    expect(() => state.syncFromDisk()).not.toThrow();
+    expect(state.events).toHaveLength(events.length);
   });
 
   it('refreshes the EventLog before rebuilding in-memory events', () => {

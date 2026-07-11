@@ -17,6 +17,12 @@ export interface FileStore {
   delete(filePath: string): void;
   exists(filePath: string): boolean;
   getAbsolutePath(filePath: string): string;
+  /**
+   * Acquire a synchronous lock for local persistence writes.
+   *
+   * Contention waits block the Node.js event loop; avoid using this API on hot
+   * server request paths until an async lock API is available.
+   */
   lock<T>(filePath: string, callback: () => T, options?: FileStoreLockOptions): T;
 }
 
@@ -205,13 +211,15 @@ export class LocalFileStore implements FileStore {
       try {
         const fd = openSync(fullPath, 'wx');
         try {
-          writeFileSync(fd, `${process.pid}\n${new Date().toISOString()}\n`, 'utf8');
-          acquired = true;
+          try {
+            writeFileSync(fd, `${process.pid}\n${new Date().toISOString()}\n`, 'utf8');
+            acquired = true;
+          } finally {
+            closeLockDescriptor(fd);
+          }
         } catch (error) {
           removeLockFile(fullPath);
           throw error;
-        } finally {
-          closeLockDescriptor(fd);
         }
       } catch (error) {
         if (!isExistingLockError(error) || Date.now() >= deadline) {
