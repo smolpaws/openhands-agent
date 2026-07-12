@@ -111,7 +111,24 @@ Provider clients live next to the neutral model:
 - `AnthropicMessagesClient` for Anthropic Messages.
 - `GeminiClient` for Gemini.
 
-The product boundary is profile-first: `createClientFromProfile(profile, secretStore)` resolves a concrete client from an `LLMProfile`. Low-level provider clients and provider-specific factories remain exported for advanced SDK users and tests.
+The product boundary is profile-first: `createClientFromProfile(profile, secretStore)` resolves a concrete client from an `LLMProfile`. Product and REST callers select profiles; they do not instantiate a raw Python-style `LLM`, pass loose model/provider fields, or rely on implicit default models. Low-level provider clients and provider-specific factories remain exported only as explicit advanced SDK/test building blocks.
+
+This goes further than upstream Python intentionally. The Python SDK is the architectural source, but this TypeScript package makes the product LLM boundary stricter and cleaner:
+
+- `LLMProfile` is the supported product-facing LLM configuration object.
+- `AgentSettings` and `AgentProfile` reference profiles by ID (`llm_profile_ref`) instead of duplicating raw LLM fields.
+- `clearRawLlmFieldsWhenProfileSelected()` removes stale raw-provider settings once a profile is selected.
+- `createClientFromProfile()` dispatches by `providerId` first, then by `baseUrl` for custom/internal gateways.
+- Explicit provider factories are still available for advanced SDK tests and provider-specific code.
+
+The four provider APIs are implemented as the APIs they actually are, not hidden behind an over-broad abstraction:
+
+- OpenAI-compatible Chat Completions owns chat-completions request/response shape and compatible proxy behavior.
+- OpenAI Responses owns Responses-specific input, tool, reasoning, and replay fields.
+- Anthropic Messages owns Anthropic content blocks, prompt caching, and extended-thinking details.
+- Gemini owns GenerateContent parts, function-call parts, `thoughtSignature` round-tripping, and Gemini thinking config.
+
+`oh-tab/packages/agent-sdk` was used as inspiration for product-level profile semantics, key lookup shape, and build/test tooling expectations. It was not copied: the implementation is fresh TypeScript, and the older package remains reference-only.
 
 Compatibility details intentionally covered by tests:
 
@@ -125,12 +142,15 @@ Settings are zod-validated data structures in `src/settings/` and `src/profiles/
 
 The supported model is:
 
-- persisted settings contain profile IDs and secret references, not raw secret values;
+- host applications persist serializable `LLMProfile` records and pass selected profiles into this package;
+- persisted settings contain profile IDs (`llm_profile_ref`) and secret references, not raw secret values;
 - provider API keys default to `llm-provider:<providerId>`;
 - profile override keys use `llm-profile:<profileId>:api-key` and are only selected when enabled;
 - raw LLM fields are cleaned when a profile is selected through `clearRawLlmFieldsWhenProfileSelected()`.
 
-This intentionally replaces Python's `SecretRegistry`/Cipher/storage split with the current `SecretStore` and keyring-oriented surface.
+This package deliberately does not pick a global on-disk LLM profile database or config path. `LLMProfile` is a zod-validated data contract, not a singleton local registry. A product such as Agent Canvas or OpenHands Tab may store profile JSON wherever its settings system lives, then provide the selected profile to `createClientFromProfile()`. Examples use `InMemorySecretStore` and construct profiles in process.
+
+Raw API keys are separate from profile JSON. With `MacOSKeychainSecretStore`, values live in macOS Keychain generic-password items under service `openhands` and accounts such as `llm-provider:openai`, `llm-provider:gemini`, `llm-provider:anthropic`, or `llm-profile:<profileId>:api-key`. This intentionally replaces Python's `SecretRegistry`/Cipher/storage split with the current `SecretStore` and keyring-oriented surface.
 
 ## Tools and workspaces
 

@@ -30,7 +30,10 @@ Accepted deviations are deliberate and should not be treated as missing work unl
 
 - **Idiomatic TypeScript.** Not a literal line-by-line port. We respect the Python SDK's architectural choices and adapt them to TS conventions.
 - **Type enforcement.** Strict TypeScript everywhere; runtime validation via [zod v4](https://github.com/colinhacks/zod) (replacing pydantic), using its native `z.toJSONSchema()` for tool/settings schema generation.
-- **Fresh transpilation.** We do **not** copy existing code. The earlier TS attempt in `oh-tab` is outdated and serves only as a reference for tooling/tests.
+- **Fresh transpilation.** We do **not** copy existing code. The earlier TS attempt in `oh-tab` is outdated and serves only as a reference for product-level profile semantics, tooling, and tests.
+- **Profile-first product LLM boundary.** Product and REST callers select an `LLMProfile`; they do not pass raw Python-style `LLM` objects or loose model/provider fields. Low-level provider clients remain available as explicit advanced SDK/test building blocks.
+- **API-native provider clients.** Implement provider APIs as they actually are — OpenAI-compatible Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini GenerateContent — rather than flattening provider-specific reasoning, caching, tool-call, and replay behavior into a leaky abstraction.
+- **Host-owned profile persistence.** This package validates and consumes `LLMProfile` records but does not choose a global local profile database/path. Host products persist profile JSON in their own settings stores and pass selected profiles to the SDK.
 - **Lower-risk secret handling.** Do not port Python's plaintext/local plus encrypted-at-rest remote secret stack. Persist secret references only; store actual secret values in the OS keyring under the `openhands` service. LLM API keys are provider-scoped by default, with per-profile overrides for cases like multiple proxy profiles for the same provider.
 - **Tooling parity with `oh-tab`.** Same npm/build/test stack (tsup, vitest, eslint type-checked) unless there's a good reason to diverge.
 

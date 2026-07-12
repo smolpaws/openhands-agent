@@ -130,6 +130,11 @@ API shape and are the executable spec for each phase.
    used as ephemeral import/input, but not as persistent storage. LLM key resolution follows the
    OpenHands-Tab profile behavior: provider key as the shared default, optional per-profile
    override when a particular profile needs a different credential for the same provider.
+6. **Host-owned LLM profile persistence.** `LLMProfile` is a validated SDK data contract, not a
+   process-global registry or a fixed local file path. Host products store profile JSON in their
+   own settings layer and pass selected profiles into the SDK. The SDK stores raw API keys only via
+   `SecretStore` references such as `llm-provider:<providerId>` and
+   `llm-profile:<profileId>:api-key`.
 
 ## Intended deviations from the Python SDK
 

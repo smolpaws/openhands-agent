@@ -20,7 +20,7 @@
   - lock cleanup closes descriptors before unlinking failed lock files
   - reentrant and async callbacks are rejected for the synchronous lock API
 - Added the profile-first LLM client dispatcher:
-  - `createLlmClientFromProfile()` resolves the right provider client from an `LLMProfile`
+  - `createClientFromProfile()` resolves the right provider client from an `LLMProfile`
   - OpenAI-compatible profile aliases normalize to the OpenAI chat-completions client
   - provider/profile secret resolution remains reference-based, not raw-key based
 - Ported and hardened provider behavior:
@@ -88,4 +88,4 @@ Verification result for the release commit:
 - Local conversation persistence is now available through `EventLog`-backed state/conversation construction.
 - Persisted event JSON omits null optional fields for Python-compatible restore behavior.
 - The low-level synchronous file lock is documented as local/parity-oriented; do not use it on contended server paths without the forthcoming async lock API.
-- Legacy `createLLMClientFromProfile` spelling has been removed; use `createLlmClientFromProfile()`.
+- Legacy OpenAI-only profile factory aliases have been removed; use the generic `createClientFromProfile()` dispatcher or explicit provider factories such as `createOpenAIChatClientFromProfile()`.
