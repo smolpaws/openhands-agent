@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { mkdir, open, readFile, stat, unlink, type FileHandle } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -20,10 +21,13 @@ export interface FileStore {
   /**
    * Acquire a synchronous lock for local persistence writes.
    *
-   * Contention waits block the Node.js event loop; avoid using this API on hot
-   * server request paths until an async lock API is available.
+   * Contention waits block the Node.js event loop; prefer lockAsync on hot server paths.
    */
   lock<T>(filePath: string, callback: () => T, options?: FileStoreLockOptions): T;
+  /**
+   * Acquire a lock without blocking the Node.js event loop while waiting.
+   */
+  lockAsync<T>(filePath: string, callback: () => T | Promise<T>, options?: FileStoreLockOptions): Promise<T>;
 }
 
 export interface MemoryLRUCacheOptions {
@@ -245,6 +249,67 @@ export class LocalFileStore implements FileStore {
     }
   }
 
+  async lockAsync<T>(filePath: string, callback: () => T | Promise<T>, options: FileStoreLockOptions = {}): Promise<T> {
+    const fullPath = this.getFullPath(filePath);
+    if (this.locks.has(fullPath)) {
+      throw new Error(`Deadlock detected: lock already held for ${filePath}`);
+    }
+
+    await mkdir(path.dirname(fullPath), { recursive: true });
+    const deadline = Date.now() + (options.timeoutSeconds ?? 30) * 1000;
+    const pollIntervalMs = options.pollIntervalMs ?? 50;
+    let acquired = false;
+
+    while (!acquired) {
+      try {
+        const handle = await open(fullPath, 'wx');
+        try {
+          try {
+            await handle.writeFile(`${process.pid}\n${new Date().toISOString()}\n`, 'utf8');
+            acquired = true;
+          } finally {
+            await closeLockDescriptorAsync(handle);
+          }
+        } catch (error) {
+          await removeLockFileAsync(fullPath);
+          throw error;
+        }
+      } catch (error) {
+        if (!isExistingLockError(error) || Date.now() >= deadline) {
+          throw error;
+        }
+        await removeStaleLockFileAsync(fullPath);
+        await sleepAsync(pollIntervalMs);
+      }
+    }
+
+    this.locks.add(fullPath);
+    let result!: T;
+    let callbackFailed = false;
+    let cleanupError: unknown;
+    try {
+      result = await callback();
+    } catch (error) {
+      callbackFailed = true;
+      throw error;
+    } finally {
+      try {
+        await removeLockFileAsync(fullPath);
+      } catch (error) {
+        if (!callbackFailed) {
+          cleanupError = error;
+        }
+      } finally {
+        this.cache.delete(fullPath);
+        this.locks.delete(fullPath);
+      }
+    }
+    if (cleanupError !== undefined) {
+      throw cleanupError instanceof Error ? cleanupError : new Error('FileStore lock cleanup failed', { cause: cleanupError });
+    }
+    return result;
+  }
+
   delete(filePath: string): void {
     const fullPath = this.getFullPath(filePath);
     if (!existsSync(fullPath)) {
@@ -342,6 +407,20 @@ export class InMemoryFileStore implements FileStore {
     }
   }
 
+
+  async lockAsync<T>(filePath: string, callback: () => T | Promise<T>, _options: FileStoreLockOptions = {}): Promise<T> {
+    if (this.locks.has(filePath)) {
+      throw new Error(`Deadlock detected: lock already held for ${filePath}`);
+    }
+
+    this.locks.add(filePath);
+    try {
+      return await callback();
+    } finally {
+      this.locks.delete(filePath);
+    }
+  }
+
   getAbsolutePath(filePath: string): string {
     return path.join(tmpdir(), `openhands_inmemory_${this.instanceId}`, filePath);
   }
@@ -398,10 +477,26 @@ function isExistingLockError(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'EEXIST';
 }
 
+async function closeLockDescriptorAsync(handle: FileHandle): Promise<void> {
+  try {
+    await handle.close();
+  } catch {
+    // Still attempt to unlink the lock path so a close failure does not deadlock future writers.
+  }
+}
+
+
 function sleepSync(milliseconds: number): void {
   const buffer = new SharedArrayBuffer(4);
   const view = new Int32Array(buffer);
   Atomics.wait(view, 0, 0, milliseconds);
+}
+
+
+function sleepAsync(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
 }
 
 function removeStaleLockFile(lockPath: string): void {
@@ -461,6 +556,58 @@ function removeLockFile(lockPath: string): void {
   }
 }
 
+async function removeStaleLockFileAsync(lockPath: string): Promise<void> {
+  let contents: string;
+  try {
+    contents = await readFile(lockPath, 'utf8');
+  } catch (error) {
+    if (isNodeErrorCode(error, 'ENOENT') || isTransientLockAccessError(error)) {
+      return;
+    }
+    throw error;
+  }
+
+  const pidLine = (contents.split(/\r?\n/u)[0] ?? '').trim();
+  if (!/^\d+$/u.test(pidLine)) {
+    if (await isMalformedLockWithinGracePeriodAsync(lockPath)) {
+      return;
+    }
+    await removeLockFileAsync(lockPath);
+    return;
+  }
+
+  const pid = Number.parseInt(pidLine, 10);
+  if (pid > 0 && isProcessAlive(pid)) {
+    return;
+  }
+  await removeLockFileAsync(lockPath);
+}
+
+async function isMalformedLockWithinGracePeriodAsync(lockPath: string): Promise<boolean> {
+  try {
+    return Date.now() - (await stat(lockPath)).mtimeMs < MALFORMED_LOCK_STALE_GRACE_MS;
+  } catch (error) {
+    if (isNodeErrorCode(error, 'ENOENT') || isTransientLockAccessError(error)) {
+      return true;
+    }
+    throw error;
+  }
+}
+
+async function removeLockFileAsync(lockPath: string): Promise<void> {
+  try {
+    await unlink(lockPath);
+  } catch (error) {
+    if (!isNodeErrorCode(error, 'ENOENT')) {
+      throw error;
+    }
+  }
+}
+
 function isNodeErrorCode(error: unknown, code: string): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
+}
+
+function isTransientLockAccessError(error: unknown): boolean {
+  return isNodeErrorCode(error, 'EACCES') || isNodeErrorCode(error, 'EPERM') || isNodeErrorCode(error, 'EBUSY');
 }

@@ -169,7 +169,7 @@ A caller choosing a remote runtime should keep these boundaries:
 - agent-server owns process execution and remote files;
 - credentials stay in secret stores/keyrings and are passed only to the service that needs them.
 
-`FileStore.lock()` is intentionally synchronous for the current local EventLog parity slice. If lock contention occurs, its retry wait blocks the Node.js event loop; server/runtime paths that expect contention should use a future async lock API rather than this synchronous local-persistence primitive.
+`FileStore.lock()` remains available for synchronous local persistence parity, but its retry wait blocks the Node.js event loop when lock files are contended. `FileStore.lockAsync()` provides the non-blocking counterpart for hot server/runtime paths; `EventLog.appendAsync()`, `ConversationState.appendEventAsync()`, and `LocalConversation.sendMessageAsync()` route through it.
 
 ## Accepted deviations from Python
 
