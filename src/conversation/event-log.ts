@@ -109,38 +109,19 @@ export class EventLog {
       return;
     }
 
-    this.fs.lock(
-      this.lockPath,
-      () => {
-        const diskLength = this.countEventsOnDisk();
-        if (diskLength > this.lengthValue) {
-          this.syncFromDisk(diskLength);
-        }
+    this.fs.lock(this.lockPath, () => this.writeEventsUnderLock(events), { timeoutSeconds: LOCK_TIMEOUT_SECONDS });
+  }
 
-        const batchIds = new Map<string, number>();
-        for (const event of events) {
-          const existingIndex = this.idToIndex.get(event.id);
-          if (existingIndex !== undefined) {
-            throw new DuplicateEventError(event.id, existingIndex);
-          }
-          const pendingIndex = batchIds.get(event.id);
-          if (pendingIndex !== undefined) {
-            throw new DuplicateEventError(event.id, pendingIndex);
-          }
-          batchIds.set(event.id, this.lengthValue + batchIds.size);
-        }
+  async appendAsync(event: Event): Promise<void> {
+    await this.appendMultipleAsync([event]);
+  }
 
-        for (const event of events) {
-          const index = this.lengthValue;
-          this.fs.write(this.path(index, event.id), serializeEvent(event));
-          this.indexToId.set(index, event.id);
-          this.idToIndex.set(event.id, index);
-          this.eventCache.set(index, event);
-          this.lengthValue += 1;
-        }
-      },
-      { timeoutSeconds: LOCK_TIMEOUT_SECONDS },
-    );
+  async appendMultipleAsync(events: readonly Event[]): Promise<void> {
+    if (events.length === 0) {
+      return;
+    }
+
+    await this.fs.lockAsync(this.lockPath, () => this.writeEventsUnderLock(events), { timeoutSeconds: LOCK_TIMEOUT_SECONDS });
   }
 
   [Symbol.iterator](): Iterator<Event> {
@@ -185,6 +166,35 @@ export class EventLog {
       }
     }
     this.lengthValue = contiguousIndexLength(this.indexToId);
+  }
+
+  private writeEventsUnderLock(events: readonly Event[]): void {
+    const diskLength = this.countEventsOnDisk();
+    if (diskLength > this.lengthValue) {
+      this.syncFromDisk(diskLength);
+    }
+
+    const batchIds = new Map<string, number>();
+    for (const event of events) {
+      const existingIndex = this.idToIndex.get(event.id);
+      if (existingIndex !== undefined) {
+        throw new DuplicateEventError(event.id, existingIndex);
+      }
+      const pendingIndex = batchIds.get(event.id);
+      if (pendingIndex !== undefined) {
+        throw new DuplicateEventError(event.id, pendingIndex);
+      }
+      batchIds.set(event.id, this.lengthValue + batchIds.size);
+    }
+
+    for (const event of events) {
+      const index = this.lengthValue;
+      this.fs.write(this.path(index, event.id), serializeEvent(event));
+      this.indexToId.set(index, event.id);
+      this.idToIndex.set(event.id, index);
+      this.eventCache.set(index, event);
+      this.lengthValue += 1;
+    }
   }
 
   private scanAndBuildIndex(): number {

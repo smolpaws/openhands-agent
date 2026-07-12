@@ -34,17 +34,16 @@ export class LocalConversation {
   }
 
   sendMessage(text: string): Event {
-    const event = messageEventSchema.parse({
-      source: 'user',
-      llm_message: {
-        role: 'user',
-        content: [textContent(text)],
-      },
-    });
+    const event = this.createUserMessageEvent(text);
     this.state.appendEvent(event);
-    if (this.state.executionStatus !== conversationExecutionStatus.RUNNING) {
-      this.state.executionStatus = conversationExecutionStatus.IDLE;
-    }
+    this.resetIdleStatusAfterMessage();
+    return event;
+  }
+
+  async sendMessageAsync(text: string): Promise<Event> {
+    const event = this.createUserMessageEvent(text);
+    await this.state.appendEventAsync(event);
+    this.resetIdleStatusAfterMessage();
     return event;
   }
 
@@ -87,7 +86,7 @@ export class LocalConversation {
 
       if (iteration >= this.maxIterations) {
         this.state.executionStatus = conversationExecutionStatus.ERROR;
-        this.state.appendEvent(
+        await this.state.appendEventAsync(
           conversationErrorEventSchema.parse({
             source: 'environment',
             code: 'MaxIterationsReached',
@@ -102,6 +101,23 @@ export class LocalConversation {
   async arun(): Promise<void> {
     await this.run();
   }
+
+  private createUserMessageEvent(text: string): Event {
+    return messageEventSchema.parse({
+      source: 'user',
+      llm_message: {
+        role: 'user',
+        content: [textContent(text)],
+      },
+    });
+  }
+
+  private resetIdleStatusAfterMessage(): void {
+    if (this.state.executionStatus !== conversationExecutionStatus.RUNNING) {
+      this.state.executionStatus = conversationExecutionStatus.IDLE;
+    }
+  }
+
 }
 
 function hasPersistentStore(options: LocalConversationOptions): boolean {

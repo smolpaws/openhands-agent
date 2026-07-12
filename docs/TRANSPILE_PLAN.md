@@ -16,7 +16,7 @@ The 0.3.0 line is the event-log persistence release. It covers the implemented c
 
 The 0.2.0 parity line added compatibility/helper exports for smolpaws, profile-selected LLM field hygiene, Python-compatible message/content backward-compatibility shims, OpenAI tool-call serialization behavior, event merge guards, parallel-action guard coverage, and runnable examples for settings, conversation patterns, MCP, and remote workspace.
 
-Additional 0.3.0 work added profile-first LLM client dispatch, live-provider hardening, EventLog/FileStore persistence, restore/idempotent seeding behavior, contiguous-index recovery, and synchronous lock caveats. The remaining open Bead is the async FileStore lock follow-up for server/runtime paths that may experience lock contention.
+Additional 0.3.0 work added profile-first LLM client dispatch, live-provider hardening, EventLog/FileStore persistence, restore/idempotent seeding behavior, contiguous-index recovery, and synchronous lock caveats. The post-release async FileStore lock follow-up adds `FileStore.lockAsync()` plus async EventLog/ConversationState/LocalConversation append paths for server/runtime code that may encounter lock contention.
 
 Accepted clarification: low-level LLM client classes may remain exported from the npm package as advanced/testing/building blocks. The product/REST boundary must still be **profile-only**: REST callers select LLM profiles, never raw clients or a Python-style bare `LLM` object.
 

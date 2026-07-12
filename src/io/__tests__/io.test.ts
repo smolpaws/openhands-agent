@@ -143,6 +143,31 @@ describe('LocalFileStore', () => {
     }
   });
 
+  it('waits for contended async locks without blocking the event loop', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'openhands-agent-io-'));
+    try {
+      const store = new LocalFileStore(dir);
+      store.write('locks/async.lock', `${process.pid}\n${new Date().toISOString()}\n`);
+      let timerFired = false;
+      setTimeout(() => {
+        timerFired = true;
+      }, 0);
+      setTimeout(() => {
+        store.delete('locks/async.lock');
+      }, 20);
+
+      const result = await store.lockAsync('locks/async.lock', async () => {
+        expect(timerFired).toBe(true);
+        return 'acquired';
+      }, { timeoutSeconds: 1, pollIntervalMs: 5 });
+
+      expect(result).toBe('acquired');
+      expect(store.exists('locks/async.lock')).toBe(false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
 });
 
 describe('InMemoryFileStore', () => {
@@ -174,5 +199,20 @@ describe('InMemoryFileStore', () => {
     const store = new InMemoryFileStore();
 
     expect(() => store.lock('events/.eventlog.lock', async () => 'value')).toThrow(/does not support asynchronous callbacks/u);
+  });
+
+  it('supports asynchronous callbacks through lockAsync and releases after await', async () => {
+    const store = new InMemoryFileStore();
+    let heldDuringAwait = false;
+
+    const result = await store.lockAsync('events/.eventlog.lock', async () => {
+      await expect(store.lockAsync('events/.eventlog.lock', async () => undefined)).rejects.toThrow(/Deadlock detected/u);
+      heldDuringAwait = true;
+      return 'value';
+    });
+
+    expect(result).toBe('value');
+    expect(heldDuringAwait).toBe(true);
+    await expect(store.lockAsync('events/.eventlog.lock', async () => 'again')).resolves.toBe('again');
   });
 });

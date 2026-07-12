@@ -53,6 +53,27 @@ export class ConversationState {
     return event;
   }
 
+  async appendEventAsync(event: Event): Promise<Event> {
+    await this.appendEventsAsync([event]);
+    return event;
+  }
+
+  async appendEventsAsync(events: readonly Event[]): Promise<readonly Event[]> {
+    if (events.length === 0) {
+      return events;
+    }
+    if (this.eventLog === null) {
+      for (const event of events) {
+        this.events.push(event);
+      }
+      return events;
+    }
+
+    await this.eventLog.appendMultipleAsync(events);
+    this.syncFromDisk();
+    return events;
+  }
+
   syncFromDisk(): void {
     if (this.eventLog === null) {
       return;

@@ -105,6 +105,21 @@ describe('EventLog', () => {
     expect(() => log.appendMultiple([userMessage('dup', 'a'), userMessage('dup', 'b')])).toThrow(/already exists at index 2/u);
   });
 
+  it('appends event batches through the async FileStore lock API', async () => {
+    const store = new CountingMemoryFileStore();
+    const log = new EventLog(store);
+    const events = [
+      userMessage('00000000-0000-4000-8000-000000000109', 'first'),
+      userMessage('00000000-0000-4000-8000-000000000110', 'second'),
+    ];
+
+    await log.appendMultipleAsync(events);
+
+    expect(store.asyncLockCount).toBe(1);
+    expect(store.lockCount).toBe(0);
+    expect(log.toArray()).toEqual(events);
+  });
+
 });
 
 describe('ConversationState disk-backed events', () => {
@@ -117,6 +132,21 @@ describe('ConversationState disk-backed events', () => {
 
     const restored = new ConversationState({ eventLog: new EventLog(new LocalFileStore(dir)) });
     expect(restored.events).toEqual([event]);
+  });
+
+  it('can append batches through the EventLog async lock path', async () => {
+    const store = new CountingMemoryFileStore();
+    const events = [
+      userMessage('00000000-0000-4000-8000-000000000111', 'async persist me'),
+      userMessage('00000000-0000-4000-8000-000000000112', 'async persist me too'),
+    ];
+    const state = new ConversationState({ eventLog: new EventLog(store) });
+
+    await expect(state.appendEventsAsync(events)).resolves.toEqual(events);
+
+    expect(store.asyncLockCount).toBe(1);
+    expect(store.lockCount).toBe(0);
+    expect(state.events).toEqual(events);
   });
 
   it('seeds missing constructor events with one EventLog lock', () => {
@@ -164,10 +194,16 @@ describe('LocalConversation event log persistence', () => {
 
 class CountingMemoryFileStore extends InMemoryFileStore {
   lockCount = 0;
+  asyncLockCount = 0;
 
   lock<T>(filePath: string, callback: () => T, options?: FileStoreLockOptions): T {
     this.lockCount += 1;
     return super.lock(filePath, callback, options);
+  }
+
+  async lockAsync<T>(filePath: string, callback: () => T | Promise<T>, options?: FileStoreLockOptions): Promise<T> {
+    this.asyncLockCount += 1;
+    return super.lockAsync(filePath, callback, options);
   }
 }
 

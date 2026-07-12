@@ -48,12 +48,14 @@ export async function dispatchLlmResponse(
 
   if (classifyResponse(message) === llmResponseType.TOOL_CALLS) {
     const actions = actionEventsFromMessage(message, options.llmResponseId ?? null);
-    emitted.push(...actions.map((action) => state.appendEvent(action)));
+    for (const event of await state.appendEventsAsync(actions)) {
+      emitted.push(event);
+    }
     const executor = options.executor ?? new ParallelToolExecutor(options.maxConcurrency === undefined ? {} : { maxConcurrency: options.maxConcurrency });
     const results = await executor.executeBatch(actions, runner);
     for (const batch of results) {
-      for (const event of batch) {
-        emitted.push(state.appendEvent(event));
+      for (const event of await state.appendEventsAsync(batch)) {
+        emitted.push(event);
       }
     }
     return emitted;
@@ -61,7 +63,7 @@ export async function dispatchLlmResponse(
 
   if (classifyResponse(message) === llmResponseType.CONTENT || classifyResponse(message) === llmResponseType.REASONING_ONLY) {
     emitted.push(
-      state.appendEvent(
+      await state.appendEventAsync(
         messageEventSchema.parse({
           source: 'agent',
           llm_message: message,
