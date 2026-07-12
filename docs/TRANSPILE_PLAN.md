@@ -10,13 +10,13 @@ OpenHands Python `agent-sdk` (local source: `~/repos/agent-sdk`, upstream
 `OpenHands/software-agent-sdk`). We transpile *anew* — we do **not** copy the outdated TS
 attempt in `oh-tab/packages/agent-sdk`. That older code is reference-only (tooling, tests).
 
-## Current status after 0.3.0
+## Current status after 0.3.1
 
-The 0.3.0 line is the event-log persistence release. It covers the implemented core event/conversation/agent/tool/LLM/profile path, concrete tools, local/remote workspaces, hooks, critic, subagents, git helpers, MCP utilities, docs, examples, CI-style verification commands, and durable local conversation history.
+The 0.3.1 line is the async persistence patch release. It covers the implemented core event/conversation/agent/tool/LLM/profile path, concrete tools, local/remote workspaces, hooks, critic, subagents, git helpers, MCP utilities, docs, examples, CI-style verification commands, durable local conversation history, and non-blocking async FileStore locks for contended runtime/server paths.
 
 The 0.2.0 parity line added compatibility/helper exports for smolpaws, profile-selected LLM field hygiene, Python-compatible message/content backward-compatibility shims, OpenAI tool-call serialization behavior, event merge guards, parallel-action guard coverage, and runnable examples for settings, conversation patterns, MCP, and remote workspace.
 
-Additional 0.3.0 work added profile-first LLM client dispatch, live-provider hardening, EventLog/FileStore persistence, restore/idempotent seeding behavior, contiguous-index recovery, and synchronous lock caveats. The post-release async FileStore lock follow-up adds `FileStore.lockAsync()` plus async EventLog/ConversationState/LocalConversation append paths for server/runtime code that may encounter lock contention.
+Additional 0.3.x work added profile-first LLM client dispatch, live-provider hardening, EventLog/FileStore persistence, restore/idempotent seeding behavior, contiguous-index recovery, synchronous lock caveats, and the `FileStore.lockAsync()` follow-up with async EventLog/ConversationState/LocalConversation append paths for server/runtime code that may encounter lock contention.
 
 Accepted clarification: low-level LLM client classes may remain exported from the npm package as advanced/testing/building blocks. The product/REST boundary must still be **profile-only**: REST callers select LLM profiles, never raw clients or a Python-style bare `LLM` object.
 
