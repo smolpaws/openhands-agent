@@ -6,7 +6,8 @@ This directory captures the working documentation for `@smolpaws/openhands-agent
 
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — main component architecture and data flow.
 - [`TRANSPILE_PLAN.md`](TRANSPILE_PLAN.md) — upstream target, parity principles, accepted deviations, and remaining roadmap.
-- [`RELEASE_0.2.0.md`](RELEASE_0.2.0.md) — current 0.2.0 release notes.
+- [`RELEASE_0.3.0.md`](RELEASE_0.3.0.md) — current 0.3.0 release notes.
+- [`RELEASE_0.2.0.md`](RELEASE_0.2.0.md) — 0.2.0 parity release notes.
 - [`RELEASE_0.1.0.md`](RELEASE_0.1.0.md) — first local release candidate notes.
 
 ## Repository entry points
