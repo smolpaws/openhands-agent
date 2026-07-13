@@ -271,12 +271,20 @@ describe('OpenAI chat message serialization parity', () => {
       llmProfileSchema.parse({ profileId: 'subscription', providerId: 'openai', model: 'gpt-5.6-codex', baseUrl: 'https://chatgpt.com/backend-api/codex', openAiApiMode: 'responses', promptCacheRetention: '24h', promptCacheKey: 'ignored-key' }),
       [{ role: 'user', content: [textContent('cache me')] }],
     );
+    const openAINamedProxy = buildChatCompletionsBody(
+      llmProfileSchema.parse({ profileId: 'openai-proxy', providerId: 'openai', model: 'gpt-5.6', baseUrl: 'https://openai-proxy.example.test/v1', promptCacheRetention: '24h', promptCacheKey: 'ignored-key' }),
+      [{ role: 'user', content: [textContent('cache me')] }],
+    );
+    const futureSimilarModel = buildChatCompletionsBody(
+      llmProfileSchema.parse({ profileId: 'future', providerId: 'openai', model: 'gpt-5.60', promptCacheRetention: '24h', promptCacheKey: 'ignored-key' }),
+      [{ role: 'user', content: [textContent('cache me')] }],
+    );
     const disabled = buildOpenAIResponsesBody(
       llmProfileSchema.parse({ profileId: 'disabled', providerId: 'openai', model: 'gpt-5.6', openAiApiMode: 'responses', promptCacheRetention: 'disabled' }),
       [{ role: 'user', content: [textContent('cache me')] }],
     );
 
-    for (const body of [gpt51, litellmAlias, subscriptionEndpoint, disabled]) {
+    for (const body of [gpt51, litellmAlias, subscriptionEndpoint, openAINamedProxy, futureSimilarModel, disabled]) {
       expect(body).not.toHaveProperty('prompt_cache_retention');
       expect(body).not.toHaveProperty('prompt_cache_key');
     }

@@ -26,7 +26,7 @@ export function isGpt5Model(model: string | null | undefined): boolean {
 
 export function isGpt56Model(model: string | null | undefined): boolean {
   const normalized = model?.trim().toLowerCase().replace(/^openai\//u, '') ?? '';
-  return normalized.startsWith('gpt-5.6');
+  return /^gpt-5\.6(?:[-.]|$)/u.test(normalized);
 }
 
 export function isOpenAISubscriptionEndpoint(profile: LLMProfile): boolean {

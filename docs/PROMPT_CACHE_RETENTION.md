@@ -10,10 +10,10 @@ For direct OpenAI GPT-5.6 profiles, the TypeScript SDK sends `prompt_cache_reten
 The SDK only applies this to known-safe direct OpenAI GPT-5.6 routes:
 
 - `providerId: "openai"`
-- model IDs beginning with `gpt-5.6` or `openai/gpt-5.6`
+- model IDs exactly `gpt-5.6` / `openai/gpt-5.6` or bounded variants such as `gpt-5.6-*` / `gpt-5.6.*`
 - default OpenAI API base URL or `https://api.openai.com/...`
 
-It deliberately omits the field for LiteLLM/OpenRouter aliases and ChatGPT subscription/Codex endpoints until those routes have direct evidence. `promptCacheKey` is persisted on profiles and sent only on the same known-safe routes.
+It deliberately omits the field for LiteLLM/OpenRouter aliases, provider-branded custom/internal proxy URLs, and ChatGPT subscription/Codex endpoints until those routes have direct evidence. `promptCacheKey` is persisted on profiles and sent only on the same known-safe routes.
 
 ## Official documentation snapshot
 
