@@ -6,6 +6,7 @@ This directory captures the working documentation for `@smolpaws/openhands-agent
 
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — main component architecture and data flow.
 - [`TRANSPILE_PLAN.md`](TRANSPILE_PLAN.md) — upstream target, parity principles, accepted deviations, and remaining roadmap.
+- [`REASONING_CAPABILITIES.md`](REASONING_CAPABILITIES.md) — provider/model-specific reasoning and thinking controls investigation plus proposed API shape.
 - [`RELEASE_0.3.1.md`](RELEASE_0.3.1.md) — current 0.3.1 release notes.
 - [`RELEASE_0.3.0.md`](RELEASE_0.3.0.md) — 0.3.0 event-log persistence release notes.
 - [`RELEASE_0.2.0.md`](RELEASE_0.2.0.md) — 0.2.0 parity release notes.
