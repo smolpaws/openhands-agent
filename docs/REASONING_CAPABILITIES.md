@@ -205,13 +205,13 @@ Anthropic and LiteLLM credentials/base URLs were not available in this environme
 
 | Upstream API/family | Reasoning/thinking control | Values/config shape to expose | Current migration risk |
 | --- | --- | --- | --- |
-| OpenAI Responses / GPT-5.6 | `reasoning.effort`, `reasoning.summary` | effort: `none | low | medium | high | xhigh | max` for GPT-5.6 Responses based on live probe; summary: `auto | concise | detailed` | Current `reasoningEffort` omits `none`, `xhigh`, `max`; includes no model-specific validation. |
-| OpenAI Chat Completions / GPT-5.6 | `reasoning_effort` | `none | low | medium | high | xhigh` for GPT-5.6 Chat based on live probe | Current code omits `none` and `xhigh`; must not send Responses-only `max` to Chat. |
-| Anthropic modern adaptive models | `output_config.effort` and `thinking: { type: "adaptive" }` where applicable | `low | medium | high | xhigh | max`, with model restrictions: `xhigh` only on Fable 5, Mythos 5, Opus 4.8, Opus 4.7, Sonnet 5 per docs; `max` availability differs by model | Current code converts legacy `reasoningEffort` to manual `budget_tokens`, which is wrong for Fable 5, Opus 4.8, Sonnet 5, and deprecated for Sonnet/Opus 4.6. |
-| Anthropic manual thinking models | `thinking: { type: "enabled", budget_tokens, display? }` | explicit token budget less than `max_tokens`; display: `summarized | omitted` where supported | Current code invents budget from legacy effort. Replace with explicit budget config. |
+| OpenAI Responses / GPT-5.6 | `reasoning.mode`, `reasoning.effort`, `reasoning.summary` | mode values include `standard`, `pro` where supported; effort values for GPT-5.6 Responses are `none`, `low`, `medium`, `high`, `xhigh`, `max` based on live probe; summary values are `auto`, `concise`, `detailed` | Current `reasoningEffort` omits `none`, `xhigh`, `max`; includes no model-specific validation and cannot represent Responses `mode`. |
+| OpenAI Chat Completions / GPT-5.6 | `reasoning_effort` | GPT-5.6 Chat accepts `none`, `low`, `medium`, `high`, `xhigh` based on live probe | Current code omits `none` and `xhigh`; must not send Responses-only `max` to Chat. |
+| Anthropic modern adaptive models | `output_config.effort` and `thinking: { type: "adaptive" }` where applicable | effort values include `low`, `medium`, `high`, `xhigh`, `max`, with model restrictions: `xhigh` only on Fable 5, Mythos 5, Opus 4.8, Opus 4.7, Sonnet 5 per docs; `max` availability differs by model | Current code converts legacy `reasoningEffort` to manual `budget_tokens`, which is wrong for Fable 5, Opus 4.8, Sonnet 5, and deprecated for Sonnet/Opus 4.6. |
+| Anthropic manual thinking models | `thinking: { type: "enabled", budget_tokens, display? }` | explicit token budget less than `max_tokens`; display values include `summarized`, `omitted` where supported | Current code invents budget from legacy effort. Replace with explicit budget config. |
 | Anthropic task budgets beta | `output_config.task_budget` plus beta header | `{ type: "tokens", total, remaining? }` and opt-in beta header | Useful for future agent loops; should not be folded into a simple effort enum. |
-| Gemini Interactions | `generation_config.thinking_level`, `generation_config.thinking_summaries` | lower-case model-specific values such as `minimal | low | medium | high`; exact set depends on model | Not implemented. Should be target for Gemini reasoning continuity. |
-| Gemini GenerateContent | `generationConfig.thinkingConfig` | enum values `MINIMAL | LOW | MEDIUM | HIGH`, optional `thinkingBudget`, optional `includeThoughts` | Current code maps OpenAI low/medium/high to upper-case; misses `MINIMAL` and model-specific validation. |
+| Gemini Interactions | `generation_config.thinking_level`, `generation_config.thinking_summaries` | lower-case model-specific values such as `minimal`, `low`, `medium`, `high`; exact set depends on model | Not implemented. It should be the target for Gemini reasoning continuity. |
+| Gemini GenerateContent | `generationConfig.thinkingConfig` | mutually exclusive level or budget branches: level values `MINIMAL`, `LOW`, `MEDIUM`, `HIGH`, or a numeric `thinkingBudget`; `includeThoughts` may accompany either branch | Current code maps OpenAI low/medium/high to upper-case; misses `MINIMAL` and model-specific validation. |
 | LiteLLM proxy / OpenAI-compatible transport | transport remains OpenAI-compatible, but upstream model family comes from proxy alias/prefix/config | Resolve capabilities from upstream namespace: `anthropic/...`, `gemini/...`, `openai/...`, known `claude`/`gemini`/`gpt` aliases, or explicit profile metadata | Current factory treats `litellm_proxy` as generic OpenAI-compatible Chat, so it cannot expose native Anthropic/Gemini semantics. |
 
 
@@ -263,9 +263,10 @@ export function reasoningOptionsForProfile(profile: LLMProfile): ReasoningCapabi
 export type ReasoningCapabilities =
   | {
       readonly api: 'openai_responses';
+      readonly mode: CapabilityEnum<OpenAIResponsesReasoningMode>;
       readonly effort: CapabilityEnum<OpenAIResponsesReasoningEffort>;
       readonly summary: CapabilityEnum<OpenAIReasoningSummary>;
-      readonly wire: { readonly effort: 'reasoning.effort'; readonly summary: 'reasoning.summary' };
+      readonly wire: { readonly mode: 'reasoning.mode'; readonly effort: 'reasoning.effort'; readonly summary: 'reasoning.summary' };
     }
   | {
       readonly api: 'openai_chat_completions';
@@ -288,9 +289,9 @@ export type ReasoningCapabilities =
     }
   | {
       readonly api: 'gemini_generate_content';
-      readonly thinkingLevel: CapabilityEnum<GeminiGenerateContentThinkingLevel>;
-      readonly thinkingBudget?: CapabilityIntegerRange;
-      readonly includeThoughts: boolean;
+      readonly thinking:
+        | { readonly type: 'level'; readonly thinkingLevel: CapabilityEnum<GeminiGenerateContentThinkingLevel>; readonly includeThoughts: boolean }
+        | { readonly type: 'budget'; readonly thinkingBudget: CapabilityIntegerRange; readonly includeThoughts: boolean };
       readonly wire: { readonly thinkingConfig: 'generationConfig.thinkingConfig' };
     }
   | {
@@ -320,7 +321,7 @@ Replace the cross-provider `reasoningEffort` / `reasoningSummary` fields with a 
 
 ```ts
 export type LLMReasoningConfig =
-  | { readonly api: 'openai_responses'; readonly effort?: OpenAIResponsesReasoningEffort; readonly summary?: OpenAIReasoningSummary }
+  | { readonly api: 'openai_responses'; readonly mode?: OpenAIResponsesReasoningMode; readonly effort?: OpenAIResponsesReasoningEffort; readonly summary?: OpenAIReasoningSummary }
   | { readonly api: 'openai_chat_completions'; readonly effort?: OpenAIChatReasoningEffort }
   | {
       readonly api: 'anthropic_messages';
@@ -330,13 +331,20 @@ export type LLMReasoningConfig =
       readonly taskBudget?: { readonly type: 'tokens'; readonly total: number; readonly remaining?: number };
     }
   | { readonly api: 'gemini_interactions'; readonly thinkingLevel?: GeminiInteractionThinkingLevel; readonly thinkingSummaries?: 'auto' }
-  | { readonly api: 'gemini_generate_content'; readonly thinkingLevel?: GeminiGenerateContentThinkingLevel; readonly thinkingBudget?: number; readonly includeThoughts?: boolean };
+  | {
+      readonly api: 'gemini_generate_content';
+      readonly thinking?:
+        | { readonly type: 'level'; readonly thinkingLevel?: GeminiGenerateContentThinkingLevel; readonly includeThoughts?: boolean }
+        | { readonly type: 'budget'; readonly thinkingBudget: number; readonly includeThoughts?: boolean };
+    };
 ```
 
 Initial type aliases from current evidence:
 
 ```ts
 export type OpenAIResponsesReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+export type OpenAIResponsesReasoningMode = 'standard' | 'pro';
+
 export type OpenAIChatReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh';
 export type OpenAIReasoningSummary = 'auto' | 'concise' | 'detailed';
 export type AnthropicEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
@@ -347,6 +355,7 @@ export type GeminiGenerateContentThinkingLevel = 'MINIMAL' | 'LOW' | 'MEDIUM' | 
 
 The Anthropic capability and serializable config shapes intentionally use the same `thinking.type` discriminator (`adaptive` or `enabled`) so validation can map capability records to profile config without a translation table.
 
+Gemini GenerateContent models `thinkingLevel` and `thinkingBudget` as mutually exclusive branches because they are different native control modes and should be rejected together during deserialization/runtime validation.
 
 Model-specific capability records then narrow these unions. Example: GPT-5.6 Chat removes `max`; GPT-5.6 Responses removes `minimal`; Gemini 3.1 Pro removes `minimal`; Anthropic Sonnet 4.6 removes `xhigh` but keeps `max` per docs.
 
@@ -392,7 +401,7 @@ Invalid reasoning config for gpt-5.6 via openai_chat_completions: reasoning.effo
 2. Add `reasoning` as the preferred field.
 3. For OpenAI profiles only, migrate legacy fields losslessly where possible:
    - Chat: `low | medium | high` -> `reasoning: { api: 'openai_chat_completions', effort }`.
-   - Responses: `low | medium | high` plus summary -> `reasoning: { api: 'openai_responses', effort, summary }`.
+   - Responses: `low | medium | high` plus summary -> `reasoning: { api: 'openai_responses', effort, summary }`; leave `mode` unset unless the user explicitly configured a Responses mode.
 4. For Anthropic and Gemini, do not silently migrate legacy `reasoningEffort`. Return a warning/error requiring provider-native config because the current mapping invented budgets/levels and can be wrong by model.
 5. Update builders to read only `profile.reasoning` after migration; legacy fields should pass through a migration helper at parse/load boundaries, not inside transport code.
 6. Add table-driven unit tests for every matrix row above, then live probes behind manual scripts for OpenAI/Gemini and, once credentials are available, Anthropic/LiteLLM.
