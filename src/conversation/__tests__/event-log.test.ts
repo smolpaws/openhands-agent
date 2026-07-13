@@ -243,6 +243,8 @@ class FakeLLM implements LLMClient {
     timeoutSeconds: null,
     reasoningEffort: null,
     reasoningSummary: null,
+    promptCacheRetention: null,
+    promptCacheKey: null,
     headers: {},
     useProfileKeyOverride: false,
   };

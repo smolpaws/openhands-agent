@@ -19,6 +19,8 @@ export const RAW_LLM_FIELDS_IGNORED_WHEN_PROFILE_SELECTED = [
   'maxOutputTokens',
   'reasoningEffort',
   'reasoningSummary',
+  'promptCacheRetention',
+  'promptCacheKey',
   'inputCostPerToken',
   'outputCostPerToken',
 ] as const;
@@ -111,6 +113,8 @@ export function clearRawLlmFieldsWhenProfileSelected<T extends ProfileSelectedLl
     maxOutputTokens: undefined,
     reasoningEffort: undefined,
     reasoningSummary: undefined,
+    promptCacheRetention: undefined,
+    promptCacheKey: undefined,
     inputCostPerToken: undefined,
     outputCostPerToken: undefined,
   };
