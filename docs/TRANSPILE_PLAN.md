@@ -65,6 +65,7 @@ Follow-up scope after 0.2.0:
 - **Golden wire compatibility.** Add more Python/TS golden JSON fixtures for conversation restore, events, settings, and remote runtime payloads.
 - **Examples parity expansion.** Continue adding relevant TypeScript examples for persistence, async/send-message-while-running, condenser workflows, observability wiring, and testing helpers where the TS surface supports them.
 - **Remote runtime hardening.** Keep `RemoteConversation`/`RemoteWorkspace` aligned with the agent-server API used by smolpaws and add integration coverage when the local dev stack exposes stable endpoints.
+- **Provider-native reasoning controls.** Replace the cross-provider `reasoningEffort` abstraction with provider/model-specific capability discovery and serializable reasoning config. See [`REASONING_CAPABILITIES.md`](REASONING_CAPABILITIES.md) for official-doc evidence, OpenAI/Gemini live probes, the proposed TypeScript API shape, and remaining Anthropic/LiteLLM live-test gaps.
 - **Observability depth.** The current wrapper is intentionally small; add real OpenTelemetry/Laminar integration only when a downstream product needs it.
 - **Extensions metadata.** Keep source-resolution and installation metadata useful without reviving plugin/marketplace runtime behavior.
 - **Plugin** and **marketplace** remain intentionally skipped. Do not create beads for them unless explicitly requested.
