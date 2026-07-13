@@ -274,9 +274,9 @@ export type ReasoningCapabilities =
     }
   | {
       readonly api: 'anthropic_messages';
-      readonly mode:
-        | { readonly kind: 'adaptive'; readonly effort: CapabilityEnum<AnthropicEffort>; readonly display?: CapabilityEnum<AnthropicThinkingDisplay> }
-        | { readonly kind: 'manual_budget'; readonly budgetTokens: CapabilityIntegerRange; readonly display?: CapabilityEnum<AnthropicThinkingDisplay> };
+      readonly thinking:
+        | { readonly type: 'adaptive'; readonly effort: CapabilityEnum<AnthropicEffort>; readonly display?: CapabilityEnum<AnthropicThinkingDisplay> }
+        | { readonly type: 'enabled'; readonly budgetTokens: CapabilityIntegerRange; readonly display?: CapabilityEnum<AnthropicThinkingDisplay> };
       readonly taskBudget?: CapabilityIntegerRange;
       readonly wire: { readonly thinking: 'thinking'; readonly outputConfig: 'output_config' };
     }
@@ -344,6 +344,9 @@ export type AnthropicThinkingDisplay = 'summarized' | 'omitted';
 export type GeminiInteractionThinkingLevel = 'minimal' | 'low' | 'medium' | 'high';
 export type GeminiGenerateContentThinkingLevel = 'MINIMAL' | 'LOW' | 'MEDIUM' | 'HIGH';
 ```
+
+The Anthropic capability and serializable config shapes intentionally use the same `thinking.type` discriminator (`adaptive` or `enabled`) so validation can map capability records to profile config without a translation table.
+
 
 Model-specific capability records then narrow these unions. Example: GPT-5.6 Chat removes `max`; GPT-5.6 Responses removes `minimal`; Gemini 3.1 Pro removes `minimal`; Anthropic Sonnet 4.6 removes `xhigh` but keeps `max` per docs.
 
