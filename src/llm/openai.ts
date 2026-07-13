@@ -11,7 +11,7 @@ import {
   type Message,
   type MessageToolCall,
 } from './index.js';
-import { normalizeGenerationParamsForModel } from './provider-quirks.js';
+import { normalizeGenerationParamsForModel, resolveOpenAIPromptCacheKey, resolveOpenAIPromptCacheRetention } from './provider-quirks.js';
 
 export { llmCompletionResponseSchema, llmUsageSchema } from './client.js';
 export type { FetchLike, FetchResponseLike, LLMClient, LLMCompletionResponse, LLMUsage } from './client.js';
@@ -124,6 +124,18 @@ export async function createOpenAIResponsesClientFromProfile(
   return new OpenAIResponsesClient(profile, apiKey, options.fetch ?? defaultFetch);
 }
 
+function applyOpenAIPromptCacheOptions(body: Record<string, unknown>, profile: LLMProfile): void {
+  const retention = resolveOpenAIPromptCacheRetention(profile);
+  if (retention !== undefined) {
+    body.prompt_cache_retention = retention;
+  }
+
+  const cacheKey = resolveOpenAIPromptCacheKey(profile);
+  if (cacheKey !== undefined) {
+    body.prompt_cache_key = cacheKey;
+  }
+}
+
 export function buildChatCompletionsBody(profile: LLMProfile, messages: readonly Message[]): Record<string, unknown> {
   const normalizedProfile = normalizeGenerationParamsForModel(profile);
   const body: Record<string, unknown> = {
@@ -145,6 +157,7 @@ export function buildChatCompletionsBody(profile: LLMProfile, messages: readonly
   if (normalizedProfile.reasoningEffort !== null) {
     body.reasoning_effort = normalizedProfile.reasoningEffort;
   }
+  applyOpenAIPromptCacheOptions(body, normalizedProfile);
   return body;
 }
 
@@ -176,6 +189,7 @@ export function buildOpenAIResponsesBody(profile: LLMProfile, messages: readonly
       ...(normalizedProfile.reasoningSummary === null ? {} : { summary: normalizedProfile.reasoningSummary }),
     };
   }
+  applyOpenAIPromptCacheOptions(body, normalizedProfile);
   return body;
 }
 

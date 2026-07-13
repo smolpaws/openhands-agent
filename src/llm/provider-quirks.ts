@@ -1,4 +1,4 @@
-import type { LLMProfile, ReasoningEffort } from './index.js';
+import type { LLMProfile, PromptCacheRetention, ReasoningEffort } from './index.js';
 
 export const ANTHROPIC_THINKING_MIN_BUDGET = 1024;
 export const ANTHROPIC_THINKING_MAX_BUDGET = 128000;
@@ -23,6 +23,39 @@ const PROMPT_CACHE_MODELS = [
 export function isGpt5Model(model: string | null | undefined): boolean {
   return model?.trim().toLowerCase().includes('gpt-5') === true;
 }
+
+export function isGpt56Model(model: string | null | undefined): boolean {
+  const normalized = model?.trim().toLowerCase().replace(/^openai\//u, '') ?? '';
+  return normalized.startsWith('gpt-5.6');
+}
+
+export function isOpenAISubscriptionEndpoint(profile: LLMProfile): boolean {
+  const baseUrl = profile.baseUrl?.trim().toLowerCase() ?? '';
+  return baseUrl.includes('chatgpt.com/backend-api/codex');
+}
+
+export function supportsOpenAIPromptCacheRetention(profile: LLMProfile): boolean {
+  if (profile.providerId !== 'openai' || isOpenAISubscriptionEndpoint(profile) || !isGpt56Model(profile.model)) {
+    return false;
+  }
+  const baseUrl = profile.baseUrl?.trim().toLowerCase();
+  return baseUrl === undefined || baseUrl === '' || baseUrl.startsWith('https://api.openai.com/');
+}
+
+export function resolveOpenAIPromptCacheRetention(profile: LLMProfile): PromptCacheRetention | undefined {
+  if (!supportsOpenAIPromptCacheRetention(profile) || profile.promptCacheRetention === 'disabled') {
+    return undefined;
+  }
+  return profile.promptCacheRetention ?? '24h';
+}
+
+export function resolveOpenAIPromptCacheKey(profile: LLMProfile): string | undefined {
+  if (!supportsOpenAIPromptCacheRetention(profile)) {
+    return undefined;
+  }
+  return profile.promptCacheKey ?? undefined;
+}
+
 
 export function hasExtendedThinking(profile: LLMProfile): boolean {
   return profile.reasoningEffort !== null;

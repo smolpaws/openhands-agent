@@ -74,7 +74,7 @@ describe('LocalConversation', () => {
 });
 
 class FakeLLM implements LLMClient {
-  readonly profile: LLMProfile = { profileId: 'fake', providerId: 'fake', model: 'fake', baseUrl: null, openAiApiMode: 'chat_completions', temperature: null, topP: null, topK: null, maxInputTokens: null, maxOutputTokens: null, timeoutSeconds: null, reasoningEffort: null, reasoningSummary: null, headers: {}, useProfileKeyOverride: false };
+  readonly profile: LLMProfile = { profileId: 'fake', providerId: 'fake', model: 'fake', baseUrl: null, openAiApiMode: 'chat_completions', temperature: null, topP: null, topK: null, maxInputTokens: null, maxOutputTokens: null, timeoutSeconds: null, reasoningEffort: null, reasoningSummary: null, promptCacheRetention: null, promptCacheKey: null, headers: {}, useProfileKeyOverride: false };
 
 
   readonly requests: readonly Message[][] = [];

@@ -101,6 +101,8 @@ describe('AgentSettings', () => {
       maxOutputTokens: 2000,
       reasoningEffort: 'high',
       reasoningSummary: 'auto',
+      promptCacheRetention: '24h',
+      promptCacheKey: 'conversation-cache-key',
       inputCostPerToken: 0.1,
       outputCostPerToken: 0.2,
       encrypted_reasoning: 'kept',
@@ -120,6 +122,8 @@ describe('AgentSettings', () => {
       'maxOutputTokens',
       'reasoningEffort',
       'reasoningSummary',
+      'promptCacheRetention',
+      'promptCacheKey',
       'inputCostPerToken',
       'outputCostPerToken',
     ]);

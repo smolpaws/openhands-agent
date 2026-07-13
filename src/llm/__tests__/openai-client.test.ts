@@ -211,6 +211,77 @@ describe('OpenAI chat message serialization parity', () => {
     expect(body).toMatchObject({ reasoning: { effort: 'low' } });
   });
 
+  it('persists prompt-cache profile options through the LLM profile schema', () => {
+    const profile = llmProfileSchema.parse({
+      profileId: 'cache-profile',
+      providerId: 'openai',
+      model: 'gpt-5.6',
+      promptCacheRetention: '24h',
+      promptCacheKey: 'stable-prefix-v1',
+    });
+
+    expect(profile.promptCacheRetention).toBe('24h');
+    expect(profile.promptCacheKey).toBe('stable-prefix-v1');
+    expect(() => llmProfileSchema.parse({ profileId: 'bad', providerId: 'openai', model: 'gpt-5.6', promptCacheRetention: '30m' })).toThrow();
+  });
+
+  it('adds default 24h prompt-cache retention for direct OpenAI GPT-5.6 Responses requests', () => {
+    const profile = llmProfileSchema.parse({
+      profileId: 'responses-cache',
+      providerId: 'openai',
+      model: 'gpt-5.6',
+      openAiApiMode: 'responses',
+      promptCacheKey: 'conversation-cache-key',
+    });
+
+    const body = buildOpenAIResponsesBody(profile, [{ role: 'user', content: [textContent('cache me')] }]);
+
+    expect(body).toMatchObject({
+      prompt_cache_retention: '24h',
+      prompt_cache_key: 'conversation-cache-key',
+    });
+  });
+
+  it('adds default 24h prompt-cache retention for direct OpenAI GPT-5.6 Chat requests', () => {
+    const profile = llmProfileSchema.parse({
+      profileId: 'chat-cache',
+      providerId: 'openai',
+      model: 'gpt-5.6',
+      promptCacheKey: 'conversation-cache-key',
+    });
+
+    const body = buildChatCompletionsBody(profile, [{ role: 'user', content: [textContent('cache me')] }]);
+
+    expect(body).toMatchObject({
+      prompt_cache_retention: '24h',
+      prompt_cache_key: 'conversation-cache-key',
+    });
+  });
+
+  it('omits prompt-cache retention for unsupported routes and explicit disablement', () => {
+    const gpt51 = buildOpenAIResponsesBody(
+      llmProfileSchema.parse({ profileId: 'gpt51', providerId: 'openai', model: 'gpt-5.1', openAiApiMode: 'responses', promptCacheRetention: '24h', promptCacheKey: 'ignored-key' }),
+      [{ role: 'user', content: [textContent('cache me')] }],
+    );
+    const litellmAlias = buildChatCompletionsBody(
+      llmProfileSchema.parse({ profileId: 'proxy', providerId: 'litellm_proxy', model: 'openai/gpt-5.6', baseUrl: 'https://llm-proxy.example.test', promptCacheRetention: '24h', promptCacheKey: 'ignored-key' }),
+      [{ role: 'user', content: [textContent('cache me')] }],
+    );
+    const subscriptionEndpoint = buildOpenAIResponsesBody(
+      llmProfileSchema.parse({ profileId: 'subscription', providerId: 'openai', model: 'gpt-5.6-codex', baseUrl: 'https://chatgpt.com/backend-api/codex', openAiApiMode: 'responses', promptCacheRetention: '24h', promptCacheKey: 'ignored-key' }),
+      [{ role: 'user', content: [textContent('cache me')] }],
+    );
+    const disabled = buildOpenAIResponsesBody(
+      llmProfileSchema.parse({ profileId: 'disabled', providerId: 'openai', model: 'gpt-5.6', openAiApiMode: 'responses', promptCacheRetention: 'disabled' }),
+      [{ role: 'user', content: [textContent('cache me')] }],
+    );
+
+    for (const body of [gpt51, litellmAlias, subscriptionEndpoint, disabled]) {
+      expect(body).not.toHaveProperty('prompt_cache_retention');
+      expect(body).not.toHaveProperty('prompt_cache_key');
+    }
+  });
+
   it('replays Responses reasoning items with encrypted content in stateless mode', () => {
     const profile = llmProfileSchema.parse({
       profileId: 'responses',
