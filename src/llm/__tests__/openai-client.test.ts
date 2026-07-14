@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
 import { InMemorySecretStore, llmProviderSecretRef, llmProfileSecretRef } from '../../secrets/index.js';
+import { ToolDefinition } from '../../tool/index.js';
 import { textContent } from '../index.js';
 import {
   OpenAIChatClient,
@@ -139,6 +141,66 @@ describe('profile-resolved OpenAI-compatible chat client', () => {
 
   it('validates normalized completion responses', () => {
     expect(() => llmCompletionResponseSchema.parse({ message: { role: 'assistant', content: 'ok' } })).not.toThrow();
+  });
+});
+
+describe('OpenAI native tool serialization', () => {
+  const tool = new ToolDefinition({
+    name: 'read_file',
+    description: 'Read a UTF-8 text file.',
+    inputSchema: z.object({ path: z.string().describe('Absolute file path') }).strict(),
+  });
+  const message = { role: 'user' as const, content: [textContent('Read the file.')] };
+
+  it('sends Chat Completions function tools in provider-native shape', async () => {
+    const profile = llmProfileSchema.parse({ profileId: 'chat-tools', providerId: 'openai', model: 'gpt-4.1' });
+    const calls: FakeFetchCall[] = [];
+    const client = new OpenAIChatClient(profile, 'test-key', fakeFetch({ content: 'ok' }, calls));
+
+    await client.complete([message], [tool]);
+
+    expect(calls[0]?.body.tools).toEqual([
+      {
+        type: 'function',
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.toResponsesTool().parameters,
+          strict: false,
+        },
+      },
+    ]);
+  });
+
+  it('sends Responses function tools using ToolDefinition.toResponsesTool()', async () => {
+    const profile = llmProfileSchema.parse({ profileId: 'responses-tools', providerId: 'openai', model: 'gpt-5-nano', openAiApiMode: 'responses' });
+    const calls: FakeFetchCall[] = [];
+    const client = new OpenAIResponsesClient(profile, 'test-key', fakeResponsesFetch({ content: 'ok' }, calls));
+
+    await client.complete([message], [tool]);
+
+    expect(calls[0]?.body.tools).toEqual([tool.toResponsesTool()]);
+  });
+
+  it('omits tools for no-tools requests instead of sending an empty field', async () => {
+    const chatCalls: FakeFetchCall[] = [];
+    const responsesCalls: FakeFetchCall[] = [];
+    const chat = new OpenAIChatClient(
+      llmProfileSchema.parse({ profileId: 'chat-no-tools', providerId: 'openai', model: 'gpt-4.1' }),
+      'test-key',
+      fakeFetch({ content: 'ok' }, chatCalls),
+    );
+    const responses = new OpenAIResponsesClient(
+      llmProfileSchema.parse({ profileId: 'responses-no-tools', providerId: 'openai', model: 'gpt-5-nano', openAiApiMode: 'responses' }),
+      'test-key',
+      fakeResponsesFetch({ content: 'ok' }, responsesCalls),
+    );
+
+    await chat.complete([message]);
+    await responses.complete([message], []);
+
+    expect(chatCalls[0]?.body).not.toHaveProperty('tools');
+    expect(responsesCalls[0]?.body).not.toHaveProperty('tools');
   });
 });
 

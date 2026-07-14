@@ -18,6 +18,8 @@ The 0.2.0 parity line added compatibility/helper exports for smolpaws, profile-s
 
 Additional 0.3.x work added profile-first LLM client dispatch, live-provider hardening, EventLog/FileStore persistence, restore/idempotent seeding behavior, contiguous-index recovery, synchronous lock caveats, and the `FileStore.lockAsync()` follow-up with async EventLog/ConversationState/LocalConversation append paths for server/runtime code that may encounter lock contention.
 
+The Agent → LLM tool-flow gap is closed: `Agent.step()` passes usable `ToolDefinition`s through the thin `LLMClient.complete()` boundary, and provider clients own native schema serialization. OpenAI Chat Completions and Responses coverage plus a live read/edit/finish example guard this pinned-Python behavior. Tool passing is parity work, not an accepted deviation.
+
 Accepted clarification: low-level LLM client classes may remain exported from the npm package as advanced/testing/building blocks. The product/REST boundary must still be **profile-only**: REST callers select LLM profiles, never raw clients or a Python-style bare `LLM` object.
 
 

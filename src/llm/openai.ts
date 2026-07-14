@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { getLlmApiKey } from '../secrets/index.js';
 import type { SecretStore } from '../secrets/index.js';
+import type { ToolDefinition } from '../tool/index.js';
 import { llmCompletionResponseSchema, type FetchLike, type FetchResponseLike, type LLMClient, type LLMCompletionResponse } from './client.js';
 import {
   contentToString,
@@ -36,8 +37,8 @@ export class OpenAIChatClient implements LLMClient {
     this.fetchImpl = fetchImpl;
   }
 
-  async complete(messages: readonly Message[]): Promise<LLMCompletionResponse> {
-    const body = buildChatCompletionsBody(this.profile, messages);
+  async complete(messages: readonly Message[], tools?: readonly ToolDefinition[]): Promise<LLMCompletionResponse> {
+    const body = buildChatCompletionsBody(this.profile, messages, tools);
     const response = await this.fetchImpl(`${resolveBaseUrl(this.profile)}/chat/completions`, {
       method: 'POST',
       headers: buildHeaders(this.profile, this.apiKey),
@@ -65,11 +66,11 @@ export class OpenAIResponsesClient implements LLMClient {
     this.fetchImpl = fetchImpl;
   }
 
-  async complete(messages: readonly Message[]): Promise<LLMCompletionResponse> {
+  async complete(messages: readonly Message[], tools?: readonly ToolDefinition[]): Promise<LLMCompletionResponse> {
     const response = await this.fetchImpl(`${resolveBaseUrl(this.profile)}/responses`, {
       method: 'POST',
       headers: buildHeaders(this.profile, this.apiKey),
-      body: JSON.stringify(buildOpenAIResponsesBody(this.profile, messages)),
+      body: JSON.stringify(buildOpenAIResponsesBody(this.profile, messages, tools)),
     });
 
     if (!response.ok) {
@@ -136,12 +137,19 @@ function applyOpenAIPromptCacheOptions(body: Record<string, unknown>, profile: L
   }
 }
 
-export function buildChatCompletionsBody(profile: LLMProfile, messages: readonly Message[]): Record<string, unknown> {
+export function buildChatCompletionsBody(
+  profile: LLMProfile,
+  messages: readonly Message[],
+  tools: readonly ToolDefinition[] = [],
+): Record<string, unknown> {
   const normalizedProfile = normalizeGenerationParamsForModel(profile);
   const body: Record<string, unknown> = {
     model: normalizedProfile.model,
     messages: messages.map((message) => toOpenAIChatMessage(messageSchema.parse(message))),
   };
+  if (tools.length > 0) {
+    body.tools = tools.map(toOpenAIChatTool);
+  }
   if (normalizedProfile.temperature !== null) {
     body.temperature = normalizedProfile.temperature;
   }
@@ -161,7 +169,11 @@ export function buildChatCompletionsBody(profile: LLMProfile, messages: readonly
   return body;
 }
 
-export function buildOpenAIResponsesBody(profile: LLMProfile, messages: readonly Message[]): Record<string, unknown> {
+export function buildOpenAIResponsesBody(
+  profile: LLMProfile,
+  messages: readonly Message[],
+  tools: readonly ToolDefinition[] = [],
+): Record<string, unknown> {
   const normalizedProfile = normalizeGenerationParamsForModel(profile);
   const parsedMessages = messages.map((message) => messageSchema.parse(message));
   const instructions = parsedMessages.filter((message) => message.role === 'system').flatMap((message) => contentToString(message.content));
@@ -173,6 +185,9 @@ export function buildOpenAIResponsesBody(profile: LLMProfile, messages: readonly
   };
   if (instructions.length > 0) {
     body.instructions = instructions.join('\n');
+  }
+  if (tools.length > 0) {
+    body.tools = tools.map((tool) => tool.toResponsesTool());
   }
   if (normalizedProfile.maxOutputTokens !== null) {
     body.max_output_tokens = normalizedProfile.maxOutputTokens;
@@ -257,6 +272,19 @@ function toOpenAIResponsesFunctionCallInputItem(toolCall: MessageToolCall): Reco
 
 function normalizeResponsesCallId(value: string): string {
   return value.startsWith('call_') ? value : `call_${value.replace(/[^a-zA-Z0-9_-]/gu, '_')}`;
+}
+
+function toOpenAIChatTool(tool: ToolDefinition): Record<string, unknown> {
+  const responsesTool = tool.toResponsesTool();
+  return {
+    type: 'function',
+    function: {
+      name: responsesTool.name,
+      description: responsesTool.description,
+      parameters: responsesTool.parameters,
+      strict: responsesTool.strict,
+    },
+  };
 }
 
 function toOpenAIChatMessage(message: Message): Record<string, unknown> {
