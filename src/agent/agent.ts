@@ -45,7 +45,7 @@ export class Agent {
     if (messages === null) {
       return [state.events.at(-1)].filter((event): event is Event => event !== undefined);
     }
-    const response = await this.llm.complete(messages);
+    const response = await this.llm.complete(messages, this.tools.filter((tool) => tool.usable));
     return dispatchLlmResponse(response, state, (action) => this.runTool(action), {
       maxConcurrency: this.toolConcurrencyLimit,
     });

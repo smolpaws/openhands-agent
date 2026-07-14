@@ -25,6 +25,7 @@
     "build:types": "tsc -p tsconfig.json",
     "lint": "eslint ./src",
     "live:llm": "npm run build && node scripts/live/llm-smoke.mjs",
+    "live:openai-tools": "npm run build && tsx examples/native-openai-tools.ts",
     "live:openai-responses-reasoning": "npm run build && tsx scripts/live/openai-responses-reasoning.ts",
     "live:anthropic-cache-smoke": "npm run build && tsx scripts/live/anthropic-cache-smoke.ts",
     "live:provider-smokes": "npm run live:openai-responses-reasoning && npm run live:anthropic-cache-smoke",
