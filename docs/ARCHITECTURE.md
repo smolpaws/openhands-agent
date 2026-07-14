@@ -26,8 +26,8 @@ View + optional Condenser        │
   ↓                              │
 eventsToMessages                 │
   ↓                              │
-LLMClient.complete               │
-  ↓                              │
+LLMClient.complete(messages, usable tools)
+  ↓ provider client serializes ToolDefinition schemas
 dispatchLlmResponse              │
   ├─ content/reasoning → MessageEvent
   └─ tool_calls → ActionEvent(s) → ToolDefinition.execute → ObservationEvent(s)
@@ -86,12 +86,14 @@ A step performs:
 1. build a `View` from `ConversationState.events`;
 2. optionally condense the view;
 3. render context/system prompt suffixes;
-4. call `LLMClient.complete(messages)`;
+4. call `LLMClient.complete(messages, tools)` with the agent's usable `ToolDefinition`s;
 5. dispatch the result with `dispatchLlmResponse()`.
+
+This matches the pinned Python Agent, which passes its resolved `tools_map` values through `make_llm_completion()`. The TypeScript `LLMClient` remains a thin transport boundary: it receives executable tool definitions but does not reshape them. Provider clients that support native tools own their wire format and derive schemas from `ToolDefinition` helpers; Agent and server code must not construct provider-specific tool DTOs.
 
 `LocalConversation` owns the local run loop around an `Agent` and `ConversationState`. `RemoteConversation` mirrors the public shape for an agent-server-backed runtime. `ConversationState` is the append-only event log plus execution status.
 
-`ParallelToolExecutor` runs batches of tool actions with a configurable concurrency limit. This is distinct from Python's confirmation gates: pending/parallel actions are core execution machinery and are retained; confirmation/security policy execution is deliberately not ported.
+`dispatchLlmResponse()` preserves every returned tool call as an `ActionEvent`. `ParallelToolExecutor` then runs pending batches with a configurable concurrency limit, so adding tool definitions to completion does not collapse or bypass multi-tool dispatch. This is distinct from Python's confirmation gates: pending/parallel actions are core execution machinery and are retained; confirmation/security policy execution is deliberately not ported.
 
 `StuckDetector` scans recent events for repeated action/observation loops, repeated action/error loops, or agent monologues after the last user turn.
 
@@ -127,6 +129,8 @@ The four provider APIs are implemented as the APIs they actually are, not hidden
 - OpenAI Responses owns Responses-specific input, tool, reasoning, and replay fields.
 - Anthropic Messages owns Anthropic content blocks, prompt caching, and extended-thinking details.
 - Gemini owns GenerateContent parts, function-call parts, `thoughtSignature` round-tripping, and Gemini thinking config.
+
+For OpenAI, Chat Completions wraps the schema produced from `ToolDefinition.toResponsesTool()` in its nested function-tool shape, while Responses uses the helper's native top-level shape. Both omit the wire-level `tools` field when the supplied list is empty. These are provider-client concerns; the shared completion interface carries `ToolDefinition`s without a parallel DTO layer.
 
 `oh-tab/packages/agent-sdk` was used as inspiration for product-level profile semantics, key lookup shape, and build/test tooling expectations. It was not copied: the implementation is fresh TypeScript, and the older package remains reference-only.
 

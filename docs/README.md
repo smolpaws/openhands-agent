@@ -4,8 +4,8 @@ This directory captures the working documentation for `@smolpaws/openhands-agent
 
 ## Current docs
 
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — main component architecture and data flow.
-- [`TRANSPILE_PLAN.md`](TRANSPILE_PLAN.md) — upstream target, parity principles, accepted deviations, and remaining roadmap.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — main component architecture and data flow, including the Agent → LLM `ToolDefinition` contract and provider serialization ownership.
+- [`TRANSPILE_PLAN.md`](TRANSPILE_PLAN.md) — upstream target, parity principles, accepted deviations, closed Agent tool-flow gap, and remaining roadmap.
 - [`REASONING_CAPABILITIES.md`](REASONING_CAPABILITIES.md) — provider/model-specific reasoning and thinking controls investigation plus proposed API shape.
 - [`PROMPT_CACHE_RETENTION.md`](PROMPT_CACHE_RETENTION.md) — GPT-5.6 prompt-cache retention evidence, live probes, and TypeScript SDK implementation decision.
 - [`RELEASE_0.3.2.md`](RELEASE_0.3.2.md) — current 0.3.2 provider-native reasoning docs and GPT-5.6 prompt-cache retention release notes.

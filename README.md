@@ -18,7 +18,7 @@ Intentional deviations from Python remain: no ACP runtime, security analyzers, r
 
 This package is tracking the Python `agent-sdk` architecture while staying idiomatic TypeScript. The implemented surfaces currently include focused parity coverage for:
 
-- LLM message/content serialization, OpenAI chat completions/Responses, Anthropic, and Gemini request/response mapping
+- LLM message/content serialization, Agent-to-LLM `ToolDefinition` propagation, and provider-owned OpenAI chat completions/Responses, Anthropic, and Gemini request/response mapping
 - event schemas and `eventsToMessages` conversion, including parallel tool-call batching behavior
 - conversation state, local/remote conversations, pause/resume, restore, parallel execution, and stuck detection
 - settings/profiles, profile-selected LLM field hygiene, provider/profile-scoped API key references, and keyring-backed secret storage
@@ -117,6 +117,7 @@ Runnable TypeScript examples live in [`examples/`](examples/) and are checked by
 | Example | Covers |
 |---------|--------|
 | [`hello-world.ts`](examples/hello-world.ts) | Real OpenAI profile completion through the shared env-backed example profile helper |
+| [`native-openai-tools.ts`](examples/native-openai-tools.ts) | Real OpenAI Responses read/edit/finish function calls through Agent tool dispatch |
 | [`tools.ts`](examples/tools.ts) | Concrete terminal, file editor, glob, grep, and task tracker tools |
 | [`profiles-and-secrets.ts`](examples/profiles-and-secrets.ts) | Provider/profile-scoped LLM API key references and secret store usage |
 | [`agent-settings.ts`](examples/agent-settings.ts) | Agent settings/profile validation and profile-selected raw LLM field cleanup |
