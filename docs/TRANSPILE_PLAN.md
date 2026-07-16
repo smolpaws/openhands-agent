@@ -10,9 +10,9 @@ OpenHands Python `agent-sdk` (local source: `~/repos/agent-sdk`, upstream
 `OpenHands/software-agent-sdk`). We transpile *anew* — we do **not** copy the outdated TS
 attempt in `oh-tab/packages/agent-sdk`. That older code is reference-only (tooling, tests).
 
-## Current status after 0.3.1
+## Current status after 0.3.3
 
-The 0.3.1 line is the async persistence patch release. It covers the implemented core event/conversation/agent/tool/LLM/profile path, concrete tools, local/remote workspaces, hooks, critic, subagents, git helpers, MCP utilities, docs, examples, CI-style verification commands, durable local conversation history, and non-blocking async FileStore locks for contended runtime/server paths.
+The 0.3.3 line is the native OpenAI tool-completion parity release. It covers the implemented core event/conversation/agent/tool/LLM/profile path, concrete tools, local/remote workspaces, hooks, critic, subagents, git helpers, MCP utilities, docs, examples, CI-style verification commands, durable local conversation history, non-blocking async FileStore locks for contended runtime/server paths, and Agent-to-LLM usable `ToolDefinition` propagation for OpenAI Chat Completions and Responses.
 
 The 0.2.0 parity line added compatibility/helper exports for smolpaws, profile-selected LLM field hygiene, Python-compatible message/content backward-compatibility shims, OpenAI tool-call serialization behavior, event merge guards, parallel-action guard coverage, and runnable examples for settings, conversation patterns, MCP, and remote workspace.
 

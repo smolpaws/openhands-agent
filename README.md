@@ -4,7 +4,7 @@ Idiomatic TypeScript transpilation of the [OpenHands](https://github.com/OpenHan
 
 ## Status
 
-`0.3.1` is the async persistence patch release of the fresh TypeScript transpilation. It covers the core SDK surfaces needed to build and run agent loops locally, adds durable local conversation history with non-blocking async FileStore locks for contended runtime paths, and documents the main architecture in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md):
+`0.3.3` is the native OpenAI tool-completion parity release of the fresh TypeScript transpilation. It covers the core SDK surfaces needed to build and run agent loops locally, passes usable Agent tools through OpenAI Chat Completions and Responses, and documents the main architecture in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md):
 
 - zod-backed event, tool, settings, profile, and serialization models
 - profile-first LLM clients for OpenAI chat completions, OpenAI Responses, Anthropic, Gemini, and OpenAI-compatible profiles
