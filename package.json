@@ -1,6 +1,6 @@
 {
   "name": "@smolpaws/openhands-agent",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Idiomatic TypeScript transpilation of the OpenHands Python agent-sdk.",
   "license": "MIT",
   "type": "module",
