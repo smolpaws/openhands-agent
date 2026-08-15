@@ -2,7 +2,7 @@
 
 Idiomatic TypeScript transpilation of the OpenHands Python `agent-sdk`.
 
-The durable maintenance rules live in [`docs/TRANSPILE_CONTRACT.md`](docs/TRANSPILE_CONTRACT.md). The current target architecture lives in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). The planned generated drift/oracle system is specified in [`docs/DRIFT_TOOLING.md`](docs/DRIFT_TOOLING.md). Release notes under `docs/RELEASE_*.md` contain historical status and verification evidence.
+The durable maintenance rules live in [`docs/TRANSPILE_CONTRACT.md`](docs/TRANSPILE_CONTRACT.md). The current target architecture lives in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). The generated drift/review system is documented in [`docs/DRIFT_TOOLING.md`](docs/DRIFT_TOOLING.md). Release notes under `docs/RELEASE_*.md` contain historical status and verification evidence.
 
 ## Compatibility
 
@@ -10,7 +10,7 @@ The package preserves the observable OpenHands SDK contract while using TypeScri
 
 Intentional policy differences are small and explicit in the transpilation contract. In particular, the current product direction does not reproduce security analyzers/risk scoring, confirmation gates, ACP runtime execution, Python's secret-persistence model, plugin runtime, or marketplace runtime. Product/REST LLM configuration is profile-first and persistent secrets are references resolved through `SecretStore`.
 
-The SDK and TypeScript agent-server advance against the same pinned upstream commit in bounded `OLD_PIN..NEW_PIN` batches. Upstream changes are classified before coding and compatibility work remains tests-first/red-green.
+The SDK and TypeScript agent-server advance against the same pinned upstream commit in bounded `OLD_PIN..NEW_PIN` batches. Upstream changes are generated into review units before coding and compatibility work remains tests-first/red-green.
 
 ## Main surfaces
 
@@ -34,7 +34,9 @@ npm install @smolpaws/openhands-agent
 ```sh
 npm install
 npm test
+npm run test:drift
 npm run typecheck
+npm run typecheck:drift
 npm run lint
 npm run build
 npm run typecheck:examples
@@ -42,6 +44,20 @@ npm run test:examples
 ```
 
 Provider live smokes are opt-in. They prove that a provider API still accepts our requests; they are not Python/TypeScript parity tests.
+
+## Upstream drift
+
+With a local checkout of `OpenHands/software-agent-sdk`:
+
+```sh
+npm run drift:scan -- \
+  --upstream ../software-agent-sdk \
+  --to HEAD \
+  --json .drift/inventory.json \
+  --markdown .drift/report.md
+```
+
+See [`docs/DRIFT_TOOLING.md`](docs/DRIFT_TOOLING.md) for preparing and validating a finite pin-advance review.
 
 ## Quick start
 
@@ -95,7 +111,7 @@ console.log(state.executionStatus);
 
 - [`docs/TRANSPILE_CONTRACT.md`](docs/TRANSPILE_CONTRACT.md) — scope, compatibility policy, deviations, and upstream update procedure
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — current TypeScript architecture
-- [`docs/DRIFT_TOOLING.md`](docs/DRIFT_TOOLING.md) — generated drift reports, pin provenance, and differential-oracle design
+- [`docs/DRIFT_TOOLING.md`](docs/DRIFT_TOOLING.md) — canonical manifest, generated interval reviews, weekly watcher, and differential-oracle design
 - [`docs/`](docs/) — provider research and release evidence
 
 ## Work tracking

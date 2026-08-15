@@ -1,374 +1,276 @@
-# Upstream Drift Tooling Design
+# Upstream Drift Tooling
 
-> Status: design complete; implementation pending.
+> Status: control plane and weekly watcher implemented; differential oracles remain follow-up work.
 
-This document specifies the smallest durable system for noticing, reviewing, and closing upstream drift between `OpenHands/software-agent-sdk` and the two TypeScript transpiles:
+This document describes the machinery that keeps the two TypeScript transpiles in a deliberate relationship with `OpenHands/software-agent-sdk`:
 
-- `enyst/openhands-agent` for the SDK-side packages;
+- `enyst/openhands-agent` for `openhands-sdk`, `openhands-tools`, and `openhands-workspace`;
 - `enyst/smolpaws/packages/openhands-agent-server` for the Python agent-server package.
 
-The goal is not to build a second project-management system. The goal is to make every bounded upstream interval mechanically visible, semantically reviewed, and backed by executable evidence before the pin moves.
+The drift system answers:
 
-## Design principles
+> What changed upstream since our canonical pin, and has every relevant change received an explicit disposition?
 
-1. **One owner and one weekly clock.** `enyst/openhands-agent` owns the source manifest, drift CLI, and scheduled workflow. The server repo consumes its pin/provenance and parity artifacts; it does not run a second independent drift watcher.
-2. **Bounded intervals only.** Every review is `OLD_PIN..NEW_PIN`. Moving upstream `HEAD` may be a candidate ref, never the unit of work.
-3. **Generate discovery; hand-review policy.** Commits, changed files, tests, examples, and OpenAPI operations are generated. Humans/agents assign semantic dispositions and write reasons.
-4. **No global mutable parity ledger.** Permanent policy stays small. Each actual pin advance gets one finite review record, then freezes.
-5. **Watch is not reconcile.** A weekly report says what changed since the pin. It does not authorize a pin bump or claim compatibility.
-6. **Tests remain the proof.** Drift tooling establishes completeness of review. Differential/golden tests establish behavioral compatibility.
-7. **Unknown means visible.** Unmapped paths, missing policy IDs, or unreviewed change units fail closure rather than disappearing into an “other” bucket.
+It does **not** claim behavioral parity. Python/TypeScript OpenAPI comparisons, wire goldens, and scenario differentials provide that evidence.
 
-## Non-goals
+## Principles
 
-The first implementation will not:
+1. **One pin and one weekly clock.** `enyst/openhands-agent` owns the canonical manifest, drift CLI, and scheduled workflow. The server consumes the packaged/vendored manifest.
+2. **Finite intervals only.** Reconciliation happens over `OLD_PIN..NEW_PIN`. A moving upstream branch may be observed by the watcher, but it is never the unit of implementation work.
+3. **Generate facts; review semantics.** Git history, changed paths, tests, examples, target ownership, and policy hints are generated. Humans or agents assign dispositions and reasons.
+4. **No mutable global parity ledger.** Each chosen pin advance gets one finite review file that freezes as historical evidence.
+5. **Unknown stays visible.** Unmapped paths, missing policy IDs, incomplete annotations, and stale review files fail validation.
+6. **Tests remain the proof.** Drift tooling proves review completeness. Differential/golden tests prove compatibility.
 
-- auto-port Python changes;
-- infer semantic dispositions from commit messages;
-- create one Bead/issue per changed module;
-- compare nondeterministic live LLM output;
-- move the upstream pin automatically;
-- treat provider live smokes as parity evidence;
-- duplicate source/pin state independently in both repos.
-
-## Architecture
+## Implemented files
 
 ```text
-OpenHands/software-agent-sdk
-            │
-            │ git OLD_PIN..NEW_PIN
-            ▼
-enyst/openhands-agent
-  transpile/upstream.json       canonical source + pin + path map
-  scripts/drift/                standalone deterministic CLI
-  .github/workflows/
-    upstream-drift.yml          the only weekly clock
-  transpile/updates/            finite reviewed pin-advance records
-            │
-            ├──────── weekly scan → Actions summary/artifact + one current issue
-            │
-            └──────── candidate interval → review record + test work
-                                         │
-                                         ▼
-enyst/smolpaws
-  vendor/openhands-agent/
-    transpile/upstream.json      propagated SDK provenance
-  packages/openhands-agent-server/
-    transpile/openapi-policy.json
-    transpile/python-openapi.json
-    scripts/check-openapi-parity.ts
+transpile/upstream.json           canonical repository, pin, scope and policy hints
+scripts/drift/cli.ts              scan / prepare / check entry point
+scripts/drift/git.ts              local git adapter
+scripts/drift/inventory.ts        deterministic change inventory
+scripts/drift/manifest.ts         manifest validation
+scripts/drift/review.ts           review template + phase validation
+scripts/drift/render.ts           generated Markdown view
+scripts/drift/drift.node-test.ts  synthetic-repository tests
+tsconfig.drift.json               strict tooling typecheck
+.github/workflows/upstream-drift.yml
 ```
 
-The SDK fork is the control plane because both transpiles share one upstream repository and pin. This does **not** make the server implementation an SDK responsibility; it only gives the relationship one clock and one provenance owner.
+The CLI has no network code. It receives a local upstream checkout, which keeps the core deterministic and testable without GitHub.
 
 ## Canonical source manifest
 
-The first implementation adds `transpile/upstream.json` to `enyst/openhands-agent` and includes that exact file in the npm package.
+`transpile/upstream.json` is the only authored upstream pin.
 
-It contains:
+It records:
 
-```json
-{
-  "schemaVersion": 1,
-  "repository": "OpenHands/software-agent-sdk",
-  "commit": "FULL_SHA",
-  "targets": {
-    "sdk": {
-      "sourcePrefixes": [
-        "openhands-sdk/",
-        "openhands-tools/",
-        "openhands-workspace/"
-      ],
-      "testPrefixes": [
-        "tests/sdk/",
-        "tests/tools/",
-        "tests/workspace/",
-        "tests/integration/"
-      ],
-      "examplePrefixes": [
-        "examples/01_standalone_sdk/"
-      ]
-    },
-    "server": {
-      "sourcePrefixes": [
-        "openhands-agent-server/"
-      ],
-      "testPrefixes": [
-        "tests/agent_server/",
-        "tests/cross/"
-      ],
-      "examplePrefixes": [
-        "examples/02_remote_agent_server/"
-      ]
-    }
-  },
-  "policyHints": [
-    {
-      "prefix": "openhands-sdk/openhands/sdk/plugin/",
-      "target": "sdk",
-      "policy": "EXC-SDK-001"
-    }
-  ]
-}
+- upstream repository and full commit SHA;
+- source, test, and example prefixes for both targets;
+- explicitly shared root/test-infrastructure paths;
+- repository-only paths that are intentionally ignored;
+- the small `DEV-*`, `EXC-*`, and `EXT-*` policy registry plus path hints.
+
+The manifest is included in the npm package. SmolPaws vendoring preserves the exact file under:
+
+```text
+packages/openhands-agent-server/vendor/openhands-agent/transpile/upstream.json
 ```
 
-The real manifest will enumerate all established `DEV-*`/`EXC-*` path hints, but hints are not automatic dispositions. A commit touching a deviation path still appears for review, especially when it also touches shared code.
+Contracts and scripts should read the manifest rather than copying its SHA into prose or code.
 
-After this exists:
+Path hints do not automatically decide a disposition. A commit touching a security path still appears for review, and a mixed plugin/core commit cannot be blanket-excluded.
 
-- contracts and scripts stop carrying independent literal pins;
-- the SDK package publishes the manifest;
-- SmolPaws vendoring preserves it;
-- server CI reads the vendored manifest;
-- the current downstream-only `_smolpawsProvenance.upstreamOpenHandsCommit` field is generated from the manifest or removed as duplicate state.
+## Commands
 
-## Drift CLI
-
-The CLI lives under `scripts/drift/`, uses Node.js plus `git`, and has no network logic in its core. Callers provide an upstream checkout; GitHub Actions is responsible for fetching it.
-
-Suggested commands:
+### Scan current drift
 
 ```sh
 npm run drift:scan -- \
   --upstream ../software-agent-sdk \
-  --to origin/main \
-  --out .drift
+  --to HEAD \
+  --json .drift/inventory.json \
+  --markdown .drift/report.md
+```
 
+`scan` resolves both refs to full SHAs and emits deterministic JSON plus Markdown containing:
+
+- pin and candidate SHAs/dates;
+- total and first-parent commit counts;
+- first-parent commits in order;
+- added, modified, deleted, copied, and renamed paths;
+- SDK/server target buckets;
+- subsystem/module summaries;
+- changed tests and examples;
+- policy hints;
+- explicitly ignored repository paths;
+- unmapped paths requiring explanation or a manifest change.
+
+`scan` is factual. It never assigns `PORT`, `NO_TARGET_CHANGE`, `DEVIATION`, `EXCLUDED`, or `DEFERRED`.
+
+### Prepare a bounded review
+
+```sh
 npm run drift:prepare -- \
   --upstream ../software-agent-sdk \
-  --to <candidate-sha> \
+  --to <full-candidate-sha> \
   --out transpile/updates/9663409..abcdef0.json
+```
+
+`prepare` requires a full immutable SHA and writes three sibling files:
+
+```text
+<name>.json            editable semantic review
+<name>.inventory.json  generated factual inventory
+<name>.md              generated human-readable report
+```
+
+The normal review unit is **first-parent commit × target**. A commit touching both SDK and server creates two items.
+
+A review item contains only decisions/evidence:
+
+```json
+{
+  "disposition": "PORT",
+  "reason": "Conversation error propagation changed.",
+  "policy": null,
+  "tracking": ["openhands-agent-..."],
+  "evidence": ["src/conversation/__tests__/..."],
+  "compatibilityConsequence": null,
+  "revisitTrigger": null,
+  "docsImpact": "update",
+  "docs": ["enyst.github.io/arch/..."]
+}
+```
+
+The review stores a SHA-256 of its generated inventory so later validation catches a stale or hand-edited factual basis.
+
+### Validate review or closure
+
+```sh
+npm run drift:check -- \
+  --upstream ../software-agent-sdk \
+  --review transpile/updates/9663409..abcdef0.json \
+  --phase review
 
 npm run drift:check -- \
   --upstream ../software-agent-sdk \
-  --review transpile/updates/9663409..abcdef0.json
+  --review transpile/updates/9663409..abcdef0.json \
+  --phase close
 ```
 
-### `scan`
+Both phases regenerate the interval from git and verify that:
 
-Produces deterministic JSON plus a Markdown view containing:
-
-- resolved old/new full SHAs and commit dates;
-- total and first-parent commit counts;
-- first-parent commit units in order;
-- changed/added/deleted/renamed files;
-- target and subsystem buckets;
-- changed tests and examples;
-- known policy hints;
-- unmapped paths;
-- newly added or deleted source/test files.
-
-`scan` is factual only. It does not assign `PORT`, `NO_TARGET_CHANGE`, `DEVIATION`, `EXCLUDED`, or `DEFERRED`.
-
-### `prepare`
-
-Builds a review template for one chosen immutable candidate SHA.
-
-The generated unit is normally **first-parent commit × target**. A commit that touches both SDK and server creates separate review items. Each item carries its source/test/example paths and policy hints.
-
-The editable portion contains only semantic annotations:
-
-```json
-{
-  "from": "FULL_OLD_SHA",
-  "to": "FULL_NEW_SHA",
-  "items": {
-    "FULL_COMMIT_SHA:sdk": {
-      "disposition": "PORT",
-      "reason": "Conversation error propagation changed.",
-      "policy": null,
-      "tracking": ["openhands-agent-..."],
-      "evidence": [
-        "src/conversation/__tests__/..."
-      ]
-    }
-  }
-}
-```
-
-The file does not copy a permanent global module matrix. It describes one interval and freezes when the pin advances.
-
-### `check`
-
-Regenerates the interval inventory and verifies:
-
-- `from` equals the current manifest pin;
+- `from` equals the canonical manifest pin;
 - `to` resolves to the recorded full SHA and descends from `from`;
-- every target-relevant generated unit has an annotation;
-- no annotation refers to a vanished/unknown unit;
+- the inventory hash is current;
+- every generated unit has exactly one annotation;
+- no stale/unknown annotation remains;
+- every unmapped path has an explanation;
 - `NO_TARGET_CHANGE` has a concrete reason;
-- `DEVIATION` and `EXCLUDED` reference a known policy ID;
-- `DEFERRED` includes tracking, compatibility consequence, and revisit trigger;
-- `PORT` records its target evidence before closure;
-- no unmapped changed path remains unexplained.
+- `DEVIATION` and `EXCLUDED` use a known policy for the correct target;
+- `EXCLUDED` covers every changed file in that unit, preventing mixed commits from being filtered wholesale;
+- `DEFERRED` has tracking, a compatibility consequence, and a revisit trigger;
+- documentation impact is explicitly classified;
+- `PORT` has target evidence before the `close` phase succeeds.
 
-The checker does not decide whether the human reasoning is good. It makes omissions and stale bookkeeping impossible to miss.
+The checker cannot judge whether a reason is wise. It makes omissions and stale bookkeeping difficult to hide.
+
+## Dispositions and policies
+
+Review dispositions respond to upstream changes:
+
+- `PORT`
+- `NO_TARGET_CHANGE`
+- `DEVIATION`
+- `EXCLUDED`
+- `DEFERRED`
+
+Stable policy IDs describe human decisions:
+
+- `DEV-*` intentional alternative behavior that must still be reviewed when upstream moves;
+- `EXC-*` whole subsystems outside scope;
+- `EXT-*` target-only additive behavior, used by later differential allowlists rather than as an upstream-change disposition.
+
+An exclusion is broader than a deviation operationally. `EXCLUDED` changes can be filtered only when the entire review unit lies within that exclusion. `DEVIATION` changes remain review-relevant because they may affect the alternative implementation or shared contracts.
+
+## Tests
+
+The first slice uses Node's built-in test runner with real temporary git repositories:
+
+```sh
+npm run test:drift
+npm run typecheck:drift
+```
+
+Coverage includes:
+
+- source/test/example target mapping;
+- policy hints;
+- ignored and unmapped paths;
+- review versus closure validation;
+- mandatory `PORT` evidence;
+- exclusion boundaries for mixed commits;
+- stale inventory hashes.
+
+CI runs these checks alongside the existing SDK suite, typecheck, lint, and build.
 
 ## Weekly watcher
 
-Only `enyst/openhands-agent` gets a scheduled workflow.
+`.github/workflows/upstream-drift.yml` runs every Monday and via manual dispatch.
 
-The workflow:
+It:
 
-1. checks out the SDK fork;
-2. checks out/fetches `OpenHands/software-agent-sdk`;
-3. resolves the manifest pin and upstream default-branch head;
-4. runs `drift:scan`;
-5. writes the Markdown report to the Actions job summary;
-6. uploads JSON/Markdown artifacts;
-7. creates or updates **one** current GitHub issue identified by a hidden marker.
+1. checks out this repo and the full upstream repository;
+2. installs the SDK repo dependencies;
+3. runs `drift:scan` from the canonical pin to the observed upstream checkout;
+4. writes the report into the Actions job summary;
+5. uploads JSON and Markdown artifacts;
+6. creates or updates one current drift issue when Issues are enabled.
 
-The current issue is an alarm panel, not historical evidence. It should show:
+Forks may have Issues disabled. In that case the workflow deliberately falls back to the Actions summary and artifact rather than failing. When the same workflow lands in a repository with Issues enabled, the single issue becomes an alarm panel, not historical evidence.
 
-- pin and candidate head;
-- age/ahead counts;
-- affected SDK/server subsystems;
-- changed tests/examples;
-- policy-hinted and unmapped changes;
-- workflow/artifact link.
+The watcher never creates one issue or Bead per changed module. Work items are created only after a concrete candidate interval is selected and reviewed.
 
-It must not create one issue or Bead per module automatically. Semantic work items are created only after a person/agent reviews a bounded candidate interval. Otherwise ordinary refactors would manufacture a noisy false backlog.
+## Server consumption
 
-When the pin catches up, the issue may close automatically. Historical pin advances live in the reviewed interval records and commits, not in weekly issue-body archaeology.
+The server repo does not own another pin or schedule.
 
-## Server consumption and OpenAPI oracle
+Its vendored SDK contains `transpile/upstream.json`, and server scripts read that file for the current pin. Server CI verifies the vendored manifest exists and is internally valid. Later parity artifacts, beginning with the Python OpenAPI oracle, must identify the same commit.
 
-The server repo does not own a schedule or duplicate pin.
+The existing hand-written route inventory is transitional. It now reads its displayed pin from the vendored manifest, but it remains circular until the generated Python OpenAPI comparison replaces it.
 
-Its CI reads the vendored SDK manifest and checks that all server parity artifacts identify the same upstream SHA.
+## Remaining differential work
 
-### Python oracle
+### Python agent-server OpenAPI oracle
 
-At the pinned source, upstream already exposes a deterministic generator:
+Generate `api.openapi()` from the pinned Python checkout, canonicalize it, and compare it with TypeScript OpenAPI using a small policy/extension allowlist.
 
-```py
-from openhands.agent_server.api import api
-schema = api.openapi()
-```
+Land this in two slices:
 
-The tooling runs the pinned Python `openhands/agent_server/openapi.py`, canonicalizes the JSON, and records source metadata beside the artifact.
+1. operation parity: paths, methods, parameters/media types, status codes, stale/unknown exceptions;
+2. schema parity: canonical request/response semantics with equivalent JSON Schema encodings normalized.
 
-### TypeScript comparison
-
-Replace the hand-written `upstreamSnapshot` route list with generated comparison against the Python oracle.
-
-The exception file contains only policy:
-
-```json
-{
-  "operations": {
-    "POST /api/conversations/{conversation_id}/switch_acp_model": {
-      "disposition": "DEVIATION",
-      "policy": "DEV-SERVER-001"
-    }
-  },
-  "differences": {
-    "POST /api/conversations/{conversation_id}/events request.event_id": {
-      "disposition": "EXTENSION",
-      "policy": "EXT-SERVER-001"
-    }
-  }
-}
-```
-
-It is acceptable to hand-maintain exceptions because they are deliberate policy/debt. It is not acceptable to hand-maintain the upstream operation inventory.
-
-OpenAPI comparison lands in two slices:
-
-1. **Operation parity:** paths, methods, status codes, content types, stale/unknown exception detection.
-2. **Schema parity:** dereference local component refs and compare a canonical semantic projection of parameters, request bodies, responses, required fields, types, formats, enums, constraints, defaults, and nullability. Ignore presentation-only titles/descriptions and normalize equivalent JSON Schema encodings.
-
-A committed Python oracle keeps ordinary server CI fast. A regeneration check, required when the pin changes and available manually, proves the artifact came from the pinned Python source.
-
-## Evidence beyond drift discovery
-
-The drift CLI is necessary but insufficient. It answers “did we review everything?”, not “does the target behave the same?”
-
-Follow-on evidence:
+Then delete the hand-typed upstream route list.
 
 ### SDK wire goldens
 
-Run Python and TypeScript over shared deterministic fixtures for:
+Run Python and TypeScript over language-neutral deterministic fixtures for:
 
 - event JSON;
 - `eventsToMessages` projections;
-- tool JSON Schema;
+- tool schemas;
 - settings/profile serialization;
 - conversation restore;
-- remote request/response payloads;
+- remote protocol payloads;
 - deterministic condenser/view transformations.
 
 ### Server scenario differential
 
-Run pinned Python and TypeScript servers with deterministic fake/TestLLM behavior and replay language-neutral cases. Normalize IDs, timestamps, and environment metadata, then compare response meaning, event kinds/content, execution transitions, and error classes.
+Run pinned Python and TypeScript servers with deterministic fake/TestLLM behavior, normalize IDs/timestamps/environment metadata, and compare response meaning, events, execution transitions, and error classes.
 
-### Live provider smokes
-
-Keep these separate. They answer “does the provider still accept our request?” and are valuable, but they do not establish Python parity.
-
-## Failure behavior
-
-The tooling fails closed when:
-
-- the manifest pin is absent from the upstream checkout;
-- the candidate is not a descendant of the pin;
-- a changed path maps nowhere;
-- a generated review unit lacks a disposition;
-- a policy ID is unknown;
-- an OpenAPI exception no longer matches either oracle;
-- the server oracle and vendored SDK pin disagree.
-
-Repository-only upstream CI/docs changes may appear in an informational bucket, but source/tests/examples in declared target scopes can never be silently ignored.
+Provider live smokes stay separate. They prove external API viability, not Python parity.
 
 ## Cross-repo pin advance
 
-“Lockstep” means one reviewed interval and the same final upstream SHA, not an impossible atomic merge across two repositories.
+“Lockstep” means one reviewed interval and the same final upstream SHA, not an impossible atomic commit across repositories.
 
-A normal update batch is:
+A normal batch is:
 
-1. choose `NEW_PIN`;
-2. generate and classify the interval in the SDK fork;
-3. port SDK `PORT` items tests-first;
-4. regenerate SDK goldens;
-5. build/release or vendor the SDK with the new manifest;
+1. select `NEW_PIN`;
+2. prepare/classify the interval in the SDK repo;
+3. port SDK `PORT` items tests-first and regenerate SDK evidence;
+4. update/package the canonical manifest;
+5. vendor that SDK state into SmolPaws;
 6. port server `PORT` items tests-first;
-7. regenerate Python OpenAPI and run server differentials;
-8. verify server vendor/oracle pin alignment;
-9. close the interval record and move both targets to the same SHA.
+7. regenerate Python OpenAPI and run server evidence;
+8. verify all provenance/oracle pins agree;
+9. pass `drift:check --phase close` and freeze the interval record.
 
-During coordinated work the repos may temporarily differ, but the server must not claim a new pin until its vendored SDK provenance and Python oracle match.
-
-## Implementation order
-
-### Slice 1 — control plane
-
-- add `transpile/upstream.json`;
-- implement/test `scan`, `prepare`, and `check` against synthetic local git repositories;
-- package the manifest with the SDK;
-- teach server CI to read and verify the vendored manifest.
-
-### Slice 2 — stop blind drift
-
-- add the weekly SDK workflow;
-- publish job summary/artifacts;
-- maintain one current drift issue.
-
-### Slice 3 — kill the circular route check
-
-- generate Python OpenAPI from the pin;
-- replace the hand-typed route inventory with operation parity;
-- move current route exceptions into a policy file.
-
-### Slice 4 — deepen the oracles
-
-- add normalized OpenAPI schema comparison;
-- add SDK wire goldens;
-- add deterministic cross-server scenarios.
-
-### Slice 5 — reconcile the backlog
-
-Feed the current pinned interval through the machinery in dependency-ordered batches. Move the pin only when every generated unit is dispositioned and required evidence is green.
+During coordinated work the repos may temporarily differ, but the server must not claim a new pin until its vendored SDK and parity artifacts match.
 
 ## Documentation rule
 
-The contracts remain the policy source. This file describes tooling architecture. Weekly reports are generated operational state. Pin-advance review files are immutable historical evidence. Public `enyst.github.io` architecture pages are explanatory snapshots and should carry “historical/superseded” notices when they stop describing current code; they must not become another live parity ledger.
+The contracts are policy. This file describes tooling. Weekly reports are generated operational state. Reviewed interval files are immutable historical evidence.
+
+Public `enyst.github.io` architecture pages are explanatory snapshots. When implementation passes them, add a historical/superseded banner or update their status, and link back to current contracts/designs. Do not copy weekly counts or mutable parity totals into the public site.

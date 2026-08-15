@@ -8,11 +8,7 @@ This file is **policy, not status**. Release notes record history. Beads/issues 
 
 Upstream: `OpenHands/software-agent-sdk`
 
-Current pinned commit:
-
-```text
-966340979be26c2162e9ab8805557b715e1f1a78
-```
+The canonical repository, current full commit SHA, source/test/example ownership, and policy path hints live in [`../transpile/upstream.json`](../transpile/upstream.json). Do not duplicate the literal pin in contracts or scripts.
 
 This package covers the SDK-side Python packages:
 
@@ -52,11 +48,15 @@ Every meaningful in-scope upstream change reviewed during a pin advance gets exa
 | `EXCLUDED` | The upstream subsystem is outside this transpilation's declared scope. Reference an `EXC-*` policy ID. |
 | `DEFERRED` | In scope, but intentionally not implemented yet. Record the compatibility consequence and tracking item. |
 
-`DEVIATION` and `EXCLUDED` are both departures from upstream in ordinary language. We distinguish them because maintenance differs: upstream changes under a `DEVIATION` must still be reviewed against our alternative behavior; changes under an `EXCLUDED` subsystem do not create port work unless scope changes.
+`DEVIATION` and `EXCLUDED` are both departures from upstream in ordinary language. We distinguish them because maintenance differs: upstream changes under a `DEVIATION` must still be reviewed against our alternative behavior; changes wholly within an `EXCLUDED` subsystem do not create port work unless scope changes.
+
+A mixed change cannot be blanket-excluded. Every changed file in an `EXCLUDED` review unit must fall under the named exclusion.
 
 Do not add an `ADAPTED` disposition. Target-language implementation choices that preserve behavior are `PORT`/parity work, not policy exceptions.
 
 ## Intentional deviations and exclusions
+
+The stable policy IDs below are also registered in the canonical manifest so tooling can validate review records. The prose here remains the policy authority.
 
 ### DEV-SDK-001 — no security analyzers or risk scoring
 
@@ -109,15 +109,15 @@ If upstream changes observable behavior without adding a test, write the missing
 
 ## Pin-advance procedure
 
-Every update is `OLD_PIN..NEW_PIN`.
+Every update is `OLD_PIN..NEW_PIN` and uses the tooling described in [`DRIFT_TOOLING.md`](DRIFT_TOOLING.md).
 
 ### 1. Discover mechanically
 
-Collect commits/PRs, changed/added/deleted in-scope files, changed tests, changed examples, and cross-package protocol/persistence changes. Prefer generated inventories over hand-maintained lists.
+Generate commits/PRs, changed/added/deleted in-scope files, changed tests, changed examples, policy hints, and cross-package protocol/persistence changes. Generated inventories replace hand-maintained parity lists.
 
 ### 2. Classify before coding
 
-Assign each meaningful in-scope change one disposition above. `NO_TARGET_CHANGE` needs a concrete reason. `DEVIATION`/`EXCLUDED` reference stable policy IDs. `DEFERRED` records the upstream change, affected contract, reason, tracking item, compatibility consequence, and revisit trigger.
+Assign each generated review unit one disposition above. `NO_TARGET_CHANGE` needs a concrete reason. `DEVIATION`/`EXCLUDED` reference stable policy IDs. `DEFERRED` records the upstream change, affected contract, reason, tracking item, compatibility consequence, and revisit trigger. Documentation impact must also be classified.
 
 ### 3. Port red/green
 
@@ -129,7 +129,9 @@ At minimum:
 
 ```sh
 npm test
+npm run test:drift
 npm run typecheck
+npm run typecheck:drift
 npm run lint
 npm run build
 npm run typecheck:examples
@@ -140,22 +142,24 @@ Run affected wire/golden suites as they exist. Credential-gated provider smokes 
 
 ### 5. Close the interval
 
-Do not move the pin while an in-scope upstream change is unclassified. A pin advance records `OLD_PIN -> NEW_PIN`, counts/by-item dispositions, and evidence run. SDK and server must end the batch on the same upstream commit.
+Do not move the pin while an in-scope upstream change is unclassified. `npm run drift:check -- --phase close` must pass, including required target evidence for `PORT` work. SDK and server must end the batch on the same upstream commit.
 
 ## Evidence model
 
 A green TypeScript suite proves implemented behavior; it does not prove that every upstream change was noticed. Therefore:
 
-- discovery inventories should be generated;
-- Python/TypeScript differential or golden tests should be preferred for deterministic wire/state behavior;
-- server OpenAPI inventory should be generated from the pinned Python source rather than hand-copied;
-- update records should be generated from an interval, reviewed/annotated, then frozen as historical evidence rather than continuously maintained.
+- discovery inventories are generated from git;
+- review files are bound to their inventory hash;
+- Python/TypeScript differential or golden tests are preferred for deterministic wire/state behavior;
+- server OpenAPI inventory must be generated from pinned Python rather than hand-copied;
+- update records are reviewed for one interval and then frozen as historical evidence.
 
 Do not build a hand-maintained global parity ledger unless generated evidence proves insufficient.
 
 ## Documentation ownership
 
 - `TRANSPILE_CONTRACT.md`: durable policy, scope, deviations, update procedure.
+- `DRIFT_TOOLING.md`: canonical pin, generated review machinery, and differential-oracle architecture.
 - `ARCHITECTURE.md`: current target architecture and implementation boundaries.
 - `RELEASE_*.md`: historical release evidence.
 - `README.md`: package usage and concise compatibility statement.

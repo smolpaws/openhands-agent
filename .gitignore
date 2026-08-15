@@ -9,6 +9,9 @@ dist/
 coverage/
 scripts/fixtures/
 
+# Generated upstream drift reports
+.drift/
+
 # Env
 .env
 .env.local

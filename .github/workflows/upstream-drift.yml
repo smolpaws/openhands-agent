@@ -1,0 +1,104 @@
+name: Upstream drift
+
+on:
+  schedule:
+    - cron: '17 8 * * 1'
+  workflow_dispatch:
+    inputs:
+      to:
+        description: Optional upstream ref; defaults to current upstream HEAD
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: upstream-drift
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: Scan OpenHands upstream drift
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout transpile
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          path: transpile
+
+      - name: Checkout OpenHands upstream
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: OpenHands/software-agent-sdk
+          fetch-depth: 0
+          path: upstream
+          ref: ${{ inputs.to || '' }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: transpile/package-lock.json
+
+      - name: Install dependencies
+        working-directory: transpile
+        run: npm ci
+
+      - name: Generate drift report
+        working-directory: transpile
+        run: |
+          mkdir -p .drift
+          npm run drift:scan -- \
+            --upstream ../upstream \
+            --to HEAD \
+            --json .drift/inventory.json \
+            --markdown .drift/report.md
+          cat .drift/report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload drift report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: upstream-drift
+          path: |
+            transpile/.drift/inventory.json
+            transpile/.drift/report.md
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Update current drift issue when Issues are enabled
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$(gh api "repos/$REPOSITORY" --jq .has_issues)" != "true" ]; then
+            echo "Repository Issues are disabled; Actions summary and artifact are the drift alarm panel."
+            exit 0
+          fi
+
+          title='Upstream drift: OpenHands software-agent-sdk'
+          number="$(gh issue list --repo "$REPOSITORY" --state open --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)"
+          count="$(node -e "const x=require('./transpile/.drift/inventory.json'); console.log(x.totalCommits)")"
+
+          if [ "$count" = "0" ]; then
+            if [ -n "$number" ]; then
+              gh issue close "$number" --repo "$REPOSITORY" --comment "The canonical pin now matches the observed upstream commit."
+            fi
+            exit 0
+          fi
+
+          {
+            echo '<!-- openhands-upstream-drift -->'
+            sed -n '1,45p' transpile/.drift/report.md
+            echo
+            echo "Full report: $RUN_URL"
+          } > transpile/.drift/issue.md
+
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --repo "$REPOSITORY" --body-file transpile/.drift/issue.md
+          else
+            gh issue create --repo "$REPOSITORY" --title "$title" --body-file transpile/.drift/issue.md
+          fi

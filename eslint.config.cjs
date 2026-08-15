@@ -4,9 +4,20 @@ const tseslint = require('@typescript-eslint/eslint-plugin');
 const tsparser = require('@typescript-eslint/parser');
 const globals = require('globals');
 
+const typedRules = {
+  ...eslint.configs.recommended.rules,
+  ...tseslint.configs['recommended-type-checked'].rules,
+  '@typescript-eslint/no-explicit-any': 'error',
+  '@typescript-eslint/explicit-function-return-type': 'off',
+  '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+  'no-tabs': 'error',
+  'prefer-const': 'error',
+  eqeqeq: ['error', 'always'],
+};
+
 module.exports = [
   {
-    ignores: ['dist/**', 'coverage/**'],
+    ignores: ['dist/**', 'coverage/**', '.drift/**'],
   },
   {
     files: ['src/**/*.ts'],
@@ -24,19 +35,33 @@ module.exports = [
     plugins: {
       '@typescript-eslint': tseslint,
     },
-    rules: {
-      ...eslint.configs.recommended.rules,
-      ...tseslint.configs['recommended-type-checked'].rules,
-      '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      'no-tabs': 'error',
-      'prefer-const': 'error',
-      eqeqeq: ['error', 'always'],
-    },
+    rules: typedRules,
   },
   {
-    files: ['src/**/__tests__/**/*.ts', 'src/**/*.test.ts', 'src/**/*.spec.ts'],
+    files: ['scripts/drift/**/*.ts'],
+    ignores: ['scripts/drift/**/*.node-test.ts'],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: 'module',
+        project: ['./tsconfig.drift.json'],
+        tsconfigRootDir: __dirname,
+      },
+      globals: globals.node,
+    },
+    plugins: {
+      '@typescript-eslint': tseslint,
+    },
+    rules: typedRules,
+  },
+  {
+    files: [
+      'src/**/__tests__/**/*.ts',
+      'src/**/*.test.ts',
+      'src/**/*.spec.ts',
+      'scripts/drift/**/*.node-test.ts',
+    ],
     languageOptions: {
       parser: tsparser,
       parserOptions: {

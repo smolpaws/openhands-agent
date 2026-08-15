@@ -29,10 +29,16 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+      - name: Run drift-tool tests
+        run: npm run test:drift
+
       - name: Type-check sources
         run: npm run typecheck
 
-      - name: Lint sources
+      - name: Type-check drift tooling
+        run: npm run typecheck:drift
+
+      - name: Lint sources and tooling
         run: npm run lint
 
       - name: Build package
