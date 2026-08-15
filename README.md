@@ -1,58 +1,27 @@
 # @smolpaws/openhands-agent
 
-Idiomatic TypeScript transpilation of the [OpenHands](https://github.com/OpenHands/software-agent-sdk) Python `agent-sdk`.
+Idiomatic TypeScript transpilation of the OpenHands Python `agent-sdk`.
 
-## Status
+The durable maintenance rules live in [`docs/TRANSPILE_CONTRACT.md`](docs/TRANSPILE_CONTRACT.md). The current target architecture lives in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Release notes under `docs/RELEASE_*.md` contain historical status and verification evidence.
 
-`0.3.3` established native OpenAI tool-completion parity. The current development line extends the same `ToolDefinition` flow through Anthropic Messages, Gemini Interactions, OpenRouter, LiteLLM-compatible endpoints, and custom OpenAI-compatible gateways. The main architecture is documented in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md):
+## Compatibility
 
-- zod-backed event, tool, settings, profile, and serialization models
-- profile-first LLM clients for OpenAI chat completions, OpenAI Responses, Anthropic, Gemini, and OpenAI-compatible profiles
-- local/remote conversation state, disk-backed event logs, agent loop, pending tool-call queue, parallel execution, restore, and stuck detection
-- context, condensers, skills, hooks, critics, file-based subagents, git helpers, MCP wrappers
-- concrete tools: terminal, file editor, glob, grep, task tracker, and injectable browser adapter
+The package preserves the observable OpenHands SDK contract while using TypeScript-native implementation choices such as strict types, zod schemas, discriminated unions, and provider-native LLM clients.
 
-Intentional deviations from Python remain: no ACP runtime, security analyzers, risk scoring, confirmation gates, Python Cipher, or Python secret-storage split. The Python `SecretRegistry` surface maps to the current TypeScript `SecretStore`/keyring model.
+Intentional policy differences are small and explicit in the transpilation contract. In particular, the current product direction does not reproduce security analyzers/risk scoring, confirmation gates, ACP runtime execution, Python's secret-persistence model, plugin runtime, or marketplace runtime. Product/REST LLM configuration is profile-first and persistent secrets are references resolved through `SecretStore`.
 
-## Python SDK parity
+The SDK and TypeScript agent-server advance against the same pinned upstream commit in bounded `OLD_PIN..NEW_PIN` batches. Upstream changes are classified before coding and compatibility work remains tests-first/red-green.
 
-This package is tracking the Python `agent-sdk` architecture while staying idiomatic TypeScript. The implemented surfaces currently include focused parity coverage for:
+## Main surfaces
 
-- LLM message/content serialization, Agent-to-LLM `ToolDefinition` propagation, and provider-owned OpenAI chat completions/Responses, Anthropic Messages, and Gemini Interactions request/response mapping
-- event schemas and `eventsToMessages` conversion, including parallel tool-call batching behavior
-- conversation state, local/remote conversations, pause/resume, restore, parallel execution, and stuck detection
-- settings/profiles, profile-selected LLM field hygiene, provider/profile-scoped API key references, and keyring-backed secret storage
-- tools, workspace abstractions, git helpers, hooks, skills/context, MCP wrappers, critics, and file-based subagents
-
-Accepted deviations are deliberate and should not be treated as missing work unless the product needs them later: ACP runtime execution, security/confirmation policy execution, and Python's older `SecretRegistry` API.
-
-## Goals
-
-- **Idiomatic TypeScript.** Not a literal line-by-line port. We respect the Python SDK's architectural choices and adapt them to TS conventions.
-- **Type enforcement.** Strict TypeScript everywhere; runtime validation via [zod v4](https://github.com/colinhacks/zod) (replacing pydantic), using its native `z.toJSONSchema()` for tool/settings schema generation.
-- **Fresh transpilation.** We do **not** copy existing code. The earlier TS attempt in `oh-tab` is outdated and serves only as a reference for product-level profile semantics, tooling, and tests.
-- **Profile-first product LLM boundary.** Product and REST callers select an `LLMProfile`; they do not pass raw Python-style `LLM` objects or loose model/provider fields. Low-level provider clients remain available as explicit advanced SDK/test building blocks.
-- **API-native provider clients.** Implement provider APIs as they actually are — OpenAI-compatible Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Interactions — rather than flattening provider-specific reasoning, caching, tool-call, and replay behavior into a leaky abstraction.
-- **Host-owned profile persistence.** This package validates and consumes `LLMProfile` records but does not choose a global local profile database/path. Host products persist profile JSON in their own settings stores and pass selected profiles to the SDK.
-- **Lower-risk secret handling.** Do not port Python's plaintext/local plus encrypted-at-rest remote secret stack. Persist secret references only; store actual secret values in the OS keyring under the `openhands` service. LLM API keys are provider-scoped by default, with per-profile overrides for cases like multiple proxy profiles for the same provider.
-- **Tooling parity with `oh-tab`.** Same npm/build/test stack (tsup, vitest, eslint type-checked) unless there's a good reason to diverge.
-
-## OpenAI-compatible native tools
-
-`providerId: 'openrouter'`, `providerId: 'litellm_proxy'`, and custom OpenAI-compatible `baseUrl` profiles use `OpenAIChatClient`. Native tools are sent with the standard Chat Completions function shape, and tool calls/results use assistant `tool_calls` plus `role: 'tool'` messages. OpenRouter's standard endpoint and configurable LiteLLM-compatible/custom base URLs are covered by transport tests.
-
-Compatibility here means the endpoint accepts the OpenAI Chat Completions dialect at `<baseUrl>/chat/completions` with bearer authentication. The SDK does not translate tools into an upstream provider's native Anthropic or Gemini dialect when that provider sits behind a proxy, and it does not guess nonstandard proxy payloads. Configure such gateways to expose the Chat Completions function-tool contract or provide a provider-specific adapter.
-
-
-## Tooling
-
-| Concern | Choice |
-|---------|--------|
-| Language | TypeScript 5.9, `strict` + extra safety flags |
-| Runtime validation | zod v4 (pydantic equivalent; native JSON Schema) |
-| Bundler | tsup (ESM + CJS) |
-| Tests | vitest |
-| Lint | eslint with `recommended-type-checked` |
+- zod-backed events, messages, tools, settings, profiles, and serialization
+- local/remote conversation state, durable event logs, restore, pause/resume, and stuck detection
+- agent loop with pending/parallel tool actions and cancellation
+- OpenAI-compatible Chat Completions, OpenAI Responses, Anthropic Messages, and Gemini Interactions clients
+- profile-based client construction and secret references
+- contexts, condensers, skills, hooks, critics, subagents, git, MCP, and observability helpers
+- local/remote workspaces
+- concrete terminal, file-editor, glob, grep, task-tracker, finish, and browser-adapter tools
 
 ## Install
 
@@ -60,16 +29,19 @@ Compatibility here means the endpoint accepts the OpenAI Chat Completions dialec
 npm install @smolpaws/openhands-agent
 ```
 
-For local development in this repo:
+## Development
 
 ```sh
 npm install
+npm test
 npm run typecheck
 npm run lint
-npm test
 npm run build
+npm run typecheck:examples
 npm run test:examples
 ```
+
+Provider live smokes are opt-in. They prove that a provider API still accepts our requests; they are not Python/TypeScript parity tests.
 
 ## Quick start
 
@@ -85,20 +57,22 @@ import {
 } from '@smolpaws/openhands-agent';
 
 const llm: LLMClient = {
-  profile: llmProfileSchema.parse({ profileId: 'example', providerId: 'mock', model: 'mock' }),
+  profile: llmProfileSchema.parse({
+    profileId: 'example',
+    providerId: 'mock',
+    model: 'mock',
+  }),
   async complete() {
     return {
       message: messageSchema.parse({
         role: 'assistant',
         content: null,
-        tool_calls: [
-          {
-            id: 'finish-1',
-            name: 'finish',
-            arguments: JSON.stringify({ message: 'Hello from TypeScript OpenHands.' }),
-            origin: 'completion',
-          },
-        ],
+        tool_calls: [{
+          id: 'finish-1',
+          name: 'finish',
+          arguments: JSON.stringify({ message: 'Hello from TypeScript OpenHands.' }),
+          origin: 'completion',
+        }],
       }),
       usage: null,
       raw: {},
@@ -117,33 +91,15 @@ await conversation.run();
 console.log(state.executionStatus);
 ```
 
-## Examples
+## Documentation
 
-Runnable TypeScript examples live in [`examples/`](examples/) and are checked by `npm run test:examples`. Real-LLM examples use [`examples/_shared/exampleProfile.ts`](examples/_shared/exampleProfile.ts): by default set `OPENAI_API_KEY` to run them against an OpenAI LLM profile, or set `LLM_PROVIDER_ID`/`LLM_PROVIDER` and the matching `<PROVIDER>_API_KEY` env var to exercise another provider. The helper stores keys under `llmProviderSecretRef(profile.providerId)`, optionally overrides the model with `OPENAI_MODEL` or `LLM_MODEL`, and skips gracefully when no provider key is present. `npm run live:gemini-tools` is the opt-in Gemini native-tool smoke; Anthropic tool coverage is recorded-shape/unit-only and makes no live request by default.
+- [`docs/TRANSPILE_CONTRACT.md`](docs/TRANSPILE_CONTRACT.md) — scope, compatibility policy, deviations, and upstream update procedure
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — current TypeScript architecture
+- [`docs/`](docs/) — provider research and release evidence
 
-| Example | Covers |
-|---------|--------|
-| [`hello-world.ts`](examples/hello-world.ts) | Real OpenAI profile completion through the shared env-backed example profile helper |
-| [`native-openai-tools.ts`](examples/native-openai-tools.ts) | Real OpenAI Responses read/edit/finish function calls through Agent tool dispatch |
-| [`native-gemini-tools.ts`](examples/native-gemini-tools.ts) | Credential-gated Gemini Interactions tool dispatch; defaults to `gemini-3.5-flash-lite` |
-| [`native-tool-serialization.ts`](examples/native-tool-serialization.ts) | Keyless comparison of one `ToolDefinition` across all four provider wire formats |
-| [`tools.ts`](examples/tools.ts) | Concrete terminal, file editor, glob, grep, and task tracker tools |
-| [`profiles-and-secrets.ts`](examples/profiles-and-secrets.ts) | Provider/profile-scoped LLM API key references and secret store usage |
-| [`agent-settings.ts`](examples/agent-settings.ts) | Agent settings/profile validation and profile-selected raw LLM field cleanup |
-| [`conversation-patterns.ts`](examples/conversation-patterns.ts) | Real profile completion, pause/resume status, parallel tool execution, manual observation parsing, and stuck detection |
-| [`skills-and-context.ts`](examples/skills-and-context.ts) | Agent context, static skills, and keyword-triggered skill suffixes |
-| [`hooks.ts`](examples/hooks.ts) | Hook config and pre-tool-use hook execution |
-| [`mcp.ts`](examples/mcp.ts) | MCP tool definitions, action argument sanitization, and observations |
-| [`remote-workspace.ts`](examples/remote-workspace.ts) | Guarded remote workspace usage against an agent-server |
+## Work tracking
 
-## Issue tracking
-
-Work is tracked with [Beads](https://github.com/steveyegge/beads) (`bd`). The source of truth is `.beads/issues.jsonl`.
-
-```sh
-bd list --status open
-bd show openhands-agent-1
-```
+Beads/issues track implementation work. They are not the compatibility contract or source of truth for what parity means.
 
 ## License
 

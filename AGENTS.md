@@ -1,8 +1,16 @@
-# OpenHands Agent Notes
+# Agent instructions
 
-- Work is tracked in Beads (`bd`). Check open Beads before starting follow-up work.
-- The examples GitHub Environment now provides `OPENAI_API_KEY`, `GEMINI_API_KEY`, and `ANTHROPIC_API_KEY` to `.github/workflows/examples.yml`.
-- Use `createClientFromProfile(profile, store)` for generic LLM profile dispatch. It routes `providerId`/detected provider to Anthropic, Gemini, OpenAI Responses, or OpenAI-compatible chat. Product/REST callers should select `LLMProfile` records; use explicit provider factories such as `createOpenAIChatClientFromProfile` only for advanced SDK tests or provider-specific code.
-- `Agent.step()` passes only usable `ToolDefinition` instances to `LLMClient.complete`; provider clients serialize native declarations and omit the request field when none are present. Anthropic uses `tool_use`/`tool_result`; Gemini uses stateless `/v1beta/interactions` step replay; OpenAI-compatible routes use the Chat Completions function dialect.
-- `npm run live:openai-tools` proves real read/edit/finish dispatch with `gpt-5-nano`. `npm run live:gemini-tools` proves real `lookup_value`/finish dispatch and was verified with `gemini-3.5-flash-lite`. Anthropic tool tests use recorded shapes only because the key has no credit.
-- Gemini signed thought round-trip now uses Interactions `thought` steps with lower-case `generation_config.thinking_level`; the previous GenerateContent `thinkingConfig` path is no longer used by `GeminiClient`.
+Before changing transpilation behavior:
+
+1. Read `docs/TRANSPILE_CONTRACT.md`.
+2. Read the current code and tests before trusting status notes or old architecture prose.
+3. Work against a finite upstream interval `OLD_PIN..NEW_PIN`; never treat moving `HEAD` as the unit of work.
+4. Classify upstream changes before coding: `PORT`, `NO_TARGET_CHANGE`, `DEVIATION`, `EXCLUDED`, or `DEFERRED`.
+5. For `PORT`, port/adapt the relevant upstream test first and demonstrate red before implementation.
+6. Do not introduce or widen an intentional difference without updating a stable `DEV-*` or `EXC-*` policy entry in the contract.
+7. Prefer generated drift/source inventories and differential/golden evidence over hand-maintained parity lists.
+8. Provider live smokes prove external API viability, not Python/TypeScript parity.
+9. Do not move the upstream pin while an in-scope change is unclassified.
+10. Beads/issues are work tracking only; they do not define compatibility.
+
+Keep provider-specific behavior in provider clients. Keep the shared LLM boundary thin. Product/REST LLM configuration stays profile-first, and raw persistent secrets stay out of settings/profiles/events/logs.
