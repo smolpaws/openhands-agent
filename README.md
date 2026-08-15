@@ -2,7 +2,7 @@
 
 Idiomatic TypeScript transpilation of the OpenHands Python `agent-sdk`.
 
-The durable maintenance rules live in [`docs/TRANSPILE_CONTRACT.md`](docs/TRANSPILE_CONTRACT.md). The current target architecture lives in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Release notes under `docs/RELEASE_*.md` contain historical status and verification evidence.
+The durable maintenance rules live in [`docs/TRANSPILE_CONTRACT.md`](docs/TRANSPILE_CONTRACT.md). The current target architecture lives in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). The planned generated drift/oracle system is specified in [`docs/DRIFT_TOOLING.md`](docs/DRIFT_TOOLING.md). Release notes under `docs/RELEASE_*.md` contain historical status and verification evidence.
 
 ## Compatibility
 
@@ -95,6 +95,7 @@ console.log(state.executionStatus);
 
 - [`docs/TRANSPILE_CONTRACT.md`](docs/TRANSPILE_CONTRACT.md) — scope, compatibility policy, deviations, and upstream update procedure
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — current TypeScript architecture
+- [`docs/DRIFT_TOOLING.md`](docs/DRIFT_TOOLING.md) — generated drift reports, pin provenance, and differential-oracle design
 - [`docs/`](docs/) — provider research and release evidence
 
 ## Work tracking
