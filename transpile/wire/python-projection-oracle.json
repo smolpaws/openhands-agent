@@ -1,0 +1,152 @@
+{
+  "inputs": {
+    "projection-single-user-message": [
+      {
+        "activated_skills": [],
+        "critic_result": null,
+        "extended_content": [],
+        "id": "00000000-0000-0000-0000-000000000001",
+        "kind": "MessageEvent",
+        "llm_message": {
+          "content": [
+            {
+              "cache_prompt": false,
+              "text": "single projected user message",
+              "type": "text"
+            }
+          ],
+          "name": null,
+          "reasoning_content": null,
+          "responses_reasoning_item": null,
+          "role": "user",
+          "thinking_blocks": [],
+          "tool_call_id": null,
+          "tool_calls": null
+        },
+        "llm_response_id": null,
+        "sender": null,
+        "source": "user",
+        "timestamp": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "projection-user-then-assistant": [
+      {
+        "activated_skills": [],
+        "critic_result": null,
+        "extended_content": [],
+        "id": "00000000-0000-0000-0000-000000000001",
+        "kind": "MessageEvent",
+        "llm_message": {
+          "content": [
+            {
+              "cache_prompt": false,
+              "text": "projected question",
+              "type": "text"
+            }
+          ],
+          "name": null,
+          "reasoning_content": null,
+          "responses_reasoning_item": null,
+          "role": "user",
+          "thinking_blocks": [],
+          "tool_call_id": null,
+          "tool_calls": null
+        },
+        "llm_response_id": null,
+        "sender": null,
+        "source": "user",
+        "timestamp": "2026-01-01T00:00:00Z"
+      },
+      {
+        "activated_skills": [],
+        "critic_result": null,
+        "extended_content": [],
+        "id": "00000000-0000-0000-0000-000000000002",
+        "kind": "MessageEvent",
+        "llm_message": {
+          "content": [
+            {
+              "cache_prompt": false,
+              "text": "projected answer",
+              "type": "text"
+            }
+          ],
+          "name": null,
+          "reasoning_content": null,
+          "responses_reasoning_item": null,
+          "role": "assistant",
+          "thinking_blocks": [],
+          "tool_call_id": null,
+          "tool_calls": null
+        },
+        "llm_response_id": null,
+        "sender": null,
+        "source": "agent",
+        "timestamp": "2026-01-01T00:00:01Z"
+      }
+    ]
+  },
+  "projection": {
+    "module": "openhands.sdk.event.base",
+    "name": "events_to_messages"
+  },
+  "results": {
+    "projection-single-user-message": [
+      {
+        "content": [
+          {
+            "cache_prompt": false,
+            "text": "single projected user message",
+            "type": "text"
+          }
+        ],
+        "name": null,
+        "reasoning_content": null,
+        "responses_reasoning_item": null,
+        "role": "user",
+        "thinking_blocks": [],
+        "tool_call_id": null,
+        "tool_calls": null
+      }
+    ],
+    "projection-user-then-assistant": [
+      {
+        "content": [
+          {
+            "cache_prompt": false,
+            "text": "projected question",
+            "type": "text"
+          }
+        ],
+        "name": null,
+        "reasoning_content": null,
+        "responses_reasoning_item": null,
+        "role": "user",
+        "thinking_blocks": [],
+        "tool_call_id": null,
+        "tool_calls": null
+      },
+      {
+        "content": [
+          {
+            "cache_prompt": false,
+            "text": "projected answer",
+            "type": "text"
+          }
+        ],
+        "name": null,
+        "reasoning_content": null,
+        "responses_reasoning_item": null,
+        "role": "assistant",
+        "thinking_blocks": [],
+        "tool_call_id": null,
+        "tool_calls": null
+      }
+    ]
+  },
+  "schemaVersion": 1,
+  "source": {
+    "commit": "966340979be26c2162e9ab8805557b715e1f1a78",
+    "repository": "OpenHands/software-agent-sdk"
+  }
+}

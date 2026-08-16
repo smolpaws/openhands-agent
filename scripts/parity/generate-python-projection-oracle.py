@@ -55,6 +55,17 @@ def resolve_projection(modules: list[Any]) -> Callable[..., Any]:
             if callable(value):
                 return value
 
+    # Upstream exposes the projection as a static method on LLMConvertibleEvent
+    # rather than as a module-level function.
+    for module in modules:
+        owner = getattr(module, "LLMConvertibleEvent", None)
+        if owner is None:
+            continue
+        for name in preferred:
+            value = getattr(owner, name, None)
+            if callable(value):
+                return value
+
     discovered: list[Callable[..., Any]] = []
     for module in modules:
         for name in dir(module):
@@ -199,6 +210,8 @@ def main() -> None:
     projection = resolve_projection(modules)
     message_adapter: TypeAdapter[Any] = TypeAdapter(message_type)
     messages_adapter: TypeAdapter[Any] = TypeAdapter(list[message_type])
+    events_adapter: TypeAdapter[Any] = TypeAdapter(list[message_event_type])
+    inputs: dict[str, Any] = {}
     results: dict[str, Any] = {}
 
     for raw_case in document["cases"]:
@@ -217,6 +230,16 @@ def main() -> None:
             build_event(message_event_type, message_adapter, recipe, index)
             for index, recipe in enumerate(recipes)
         ]
+        inputs[case_id] = canonicalize(
+            events_adapter.dump_python(
+                events,
+                mode="json",
+                by_alias=True,
+                exclude_none=False,
+                exclude_unset=False,
+                exclude_defaults=False,
+            )
+        )
         messages = invoke_projection(projection, events)
         dumped = messages_adapter.dump_python(
             messages,
@@ -242,6 +265,7 @@ def main() -> None:
             "module": projection.__module__,
             "name": getattr(projection, "__name__", type(projection).__name__),
         },
+        "inputs": inputs,
         "results": results,
     }
     output_path = Path(args.output)
