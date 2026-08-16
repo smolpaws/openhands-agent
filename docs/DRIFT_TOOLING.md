@@ -4,8 +4,8 @@
 
 This document describes the machinery that keeps the two TypeScript transpiles in a deliberate relationship with `OpenHands/software-agent-sdk`:
 
-- `enyst/openhands-agent` for `openhands-sdk`, `openhands-tools`, and `openhands-workspace`;
-- `enyst/smolpaws/packages/openhands-agent-server` for the Python agent-server package.
+- `smolpaws/openhands-agent` for `openhands-sdk`, `openhands-tools`, and `openhands-workspace`;
+- `smolpaws/smolpaws/packages/openhands-agent-server` for the Python agent-server package.
 
 The drift system answers:
 
@@ -15,7 +15,7 @@ It does **not** claim behavioral parity. Python/TypeScript OpenAPI comparisons, 
 
 ## Principles
 
-1. **One pin and one weekly clock.** `enyst/openhands-agent` owns the canonical manifest, drift CLI, and scheduled workflow. The server consumes the packaged/vendored manifest.
+1. **One pin and one weekly clock.** `smolpaws/openhands-agent` owns the canonical manifest, drift CLI, and scheduled workflow. The server consumes the packaged/vendored manifest.
 2. **Finite intervals only.** Reconciliation happens over `OLD_PIN..NEW_PIN`. A moving upstream branch may be observed by the watcher, but it is never the unit of implementation work.
 3. **Generate facts; review semantics.** Git history, changed paths, tests, examples, target ownership, and policy hints are generated. Humans or agents assign dispositions and reasons.
 4. **No mutable global parity ledger.** Each chosen pin advance gets one finite review file that freezes as historical evidence.
