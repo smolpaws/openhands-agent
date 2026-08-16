@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "tool-definition-single-string-argument",
+      "kind": "tool-definition",
+      "name": "lookup_value",
+      "description": "Look up a deterministic value by key.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The key to look up."
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "tool-definition-enum-and-optional-integer",
+      "kind": "tool-definition",
+      "name": "search_records",
+      "description": "Search records with a mode and optional limit.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "fast",
+              "thorough"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
