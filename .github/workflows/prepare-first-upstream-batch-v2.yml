@@ -1,0 +1,115 @@
+name: Prepare first bounded upstream batch v2
+
+on:
+  push:
+    paths:
+      - .github/workflows/prepare-first-upstream-batch-v2.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prepare-first-upstream-batch
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout transpile
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: transpile
+
+      - name: Checkout OpenHands upstream
+        uses: actions/checkout@v4
+        with:
+          repository: OpenHands/software-agent-sdk
+          fetch-depth: 0
+          path: upstream
+          ref: 23ee276f1c68f08123349d103754380f627d20c8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: transpile/package-lock.json
+
+      - name: Install dependencies
+        working-directory: transpile
+        run: npm ci
+
+      - name: Generate stable first-batch review shell
+        working-directory: transpile
+        env:
+          CANDIDATE: 23ee276f1c68f08123349d103754380f627d20c8
+        run: |
+          pin="$(node -p "require('./transpile/upstream.json').commit")"
+          git -C ../upstream merge-base --is-ancestor "$pin" "$CANDIDATE"
+          batch_to="$(git -C ../upstream rev-list --first-parent --reverse "$pin..$CANDIDATE" | sed -n '20p')"
+          if [ -z "$batch_to" ]; then
+            batch_to="$CANDIDATE"
+          fi
+
+          mkdir -p transpile/updates
+          review=transpile/updates/first-batch.json
+          rm -f "$review"
+          if ! npm run drift:prepare -- \
+            --upstream ../upstream \
+            --to "$batch_to" \
+            --out "$review"; then
+            npm run drift:prepare -- \
+              --upstream ../upstream \
+              --to "$batch_to" \
+              --output "$review"
+          fi
+          test -s "$review"
+
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = 'transpile/updates/first-batch.json';
+          const document = JSON.parse(fs.readFileSync(path, 'utf8'));
+          if (typeof document.from !== 'string' || typeof document.to !== 'string') {
+            throw new Error('Generated review shell lacks full from/to SHAs');
+          }
+          fs.writeFileSync(
+            'transpile/updates/first-batch.meta.json',
+            JSON.stringify({
+              schemaVersion: 1,
+              from: document.from,
+              to: document.to,
+              purpose: 'First bounded reconciliation slice toward 23ee276f1c68f08123349d103754380f627d20c8',
+              status: 'awaiting semantic classification',
+            }, null, 2) + '\n',
+          );
+          NODE
+
+          cat > transpile/updates/README.md <<EOF
+          # Upstream reconciliation intervals
+
+          `first-batch.json` is the generated review shell for the first bounded catch-up slice. It contains at most twenty first-parent commits after the canonical pin and ends at the full SHA recorded in `first-batch.meta.json`.
+
+          Generated source facts are not hand-edited. Review annotations classify each target-relevant unit before tests/code change. The pin does not move until the interval passes `drift:check` and all required evidence is green.
+          EOF
+
+      - name: Remove bootstrap workflows and commit
+        working-directory: transpile
+        run: |
+          rm -f \
+            .github/workflows/prepare-first-upstream-batch.yml \
+            .github/workflows/prepare-first-upstream-batch-v2.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/workflows transpile/updates
+          if git diff --cached --quiet; then
+            echo "First bounded upstream batch is already prepared."
+            exit 0
+          fi
+          git commit -m "chore: prepare deterministic first upstream review batch"
+          git pull --rebase origin main
+          git push
