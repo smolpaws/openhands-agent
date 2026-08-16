@@ -1,0 +1,79 @@
+name: Prepare first bounded upstream batch
+
+on:
+  push:
+    paths:
+      - .github/workflows/prepare-first-upstream-batch.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout transpile
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: transpile
+
+      - name: Checkout OpenHands upstream
+        uses: actions/checkout@v4
+        with:
+          repository: OpenHands/software-agent-sdk
+          fetch-depth: 0
+          path: upstream
+          ref: 23ee276f1c68f08123349d103754380f627d20c8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: transpile/package-lock.json
+
+      - name: Install dependencies
+        working-directory: transpile
+        run: npm ci
+
+      - name: Select and prepare first twenty first-parent commits
+        working-directory: transpile
+        env:
+          CANDIDATE: 23ee276f1c68f08123349d103754380f627d20c8
+        run: |
+          pin="$(node -p "require('./transpile/upstream.json').commit")"
+          git -C ../upstream merge-base --is-ancestor "$pin" "$CANDIDATE"
+          batch_to="$(git -C ../upstream rev-list --first-parent --reverse "$pin..$CANDIDATE" | sed -n '20p')"
+          if [ -z "$batch_to" ]; then
+            batch_to="$CANDIDATE"
+          fi
+
+          mkdir -p transpile/updates
+          review="transpile/updates/${pin:0:7}..${batch_to:0:7}.json"
+          npm run drift:prepare -- \
+            --upstream ../upstream \
+            --to "$batch_to" \
+            --out "$review"
+
+          cat > transpile/updates/README.md <<EOF
+          # Upstream reconciliation intervals
+
+          Each JSON file is a finite generated review shell for one canonical `OLD_PIN..NEW_PIN` interval. Generated facts are not hand-edited; semantic annotations are completed before code changes and the pin moves only after the interval closes.
+
+          The first batch ends at `${batch_to}` and contains at most twenty first-parent upstream commits. It is the first slice of the larger bounded catch-up toward `${CANDIDATE}`.
+          EOF
+
+      - name: Remove one-shot workflow and commit
+        working-directory: transpile
+        run: |
+          rm .github/workflows/prepare-first-upstream-batch.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/workflows/prepare-first-upstream-batch.yml transpile/updates
+          git commit -m "chore: prepare first bounded upstream review interval"
+          git pull --rebase origin main
+          git push
