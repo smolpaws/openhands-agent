@@ -1,0 +1,88 @@
+name: Document verified SDK wire oracle
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/document-wire-oracle.yml
+      - transpile/wire/python-oracle.json
+      - transpile/wire/cases.json
+      - scripts/parity/check-wire-parity.ts
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  document:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify pinned wire oracle
+        run: |
+          test -f transpile/wire/python-oracle.json
+          npx tsc -p tsconfig.parity.json
+          npx tsx scripts/parity/check-wire-parity.ts
+
+      - name: Add durable documentation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          marker = '<!-- SDK-WIRE-ORACLE -->'
+          section = '''
+          <!-- SDK-WIRE-ORACLE -->
+          ## Pinned Python wire oracle
+
+          Deterministic SDK wire cases live under `transpile/wire/`. The same language-neutral inputs are validated and serialized by the exact pinned Python SDK and by the TypeScript schemas, then compared as canonical JSON.
+
+          The initial message cases are intentionally small. New event, tool-schema, settings/profile, restore, and projection cases should be added incrementally, with the Python output regenerated from the canonical manifest pin. Live provider calls are not part of this oracle.
+          '''
+
+          readme = Path('README.md')
+          text = readme.read_text()
+          if marker not in text:
+              anchor = '## Documentation\n'
+              if anchor not in text:
+                  raise SystemExit('README documentation anchor not found')
+              text = text.replace(anchor, section + '\n' + anchor, 1)
+              readme.write_text(text)
+
+          design = Path('docs/DRIFT_TOOLING.md')
+          text = design.read_text()
+          old = '> Status: design complete; implementation pending.'
+          if old in text:
+              text = text.replace(
+                  old,
+                  '> Status: drift control plane and initial SDK wire oracle implemented; deeper differential suites remain incremental work.',
+                  1,
+              )
+          if marker not in text:
+              text += '\n' + section + '\n'
+              design.write_text(text)
+          PY
+
+      - name: Remove one-shot workflow and commit
+        run: |
+          rm .github/workflows/document-wire-oracle.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/workflows/document-wire-oracle.yml README.md docs/DRIFT_TOOLING.md
+          if git diff --cached --quiet; then
+            echo "Verified wire-oracle documentation is already current."
+            exit 0
+          fi
+          git commit -m "docs: record pinned SDK wire oracle"
+          git pull --rebase origin main
+          git push
