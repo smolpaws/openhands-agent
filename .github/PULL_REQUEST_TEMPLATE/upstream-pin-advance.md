@@ -43,7 +43,7 @@ For each `PORT` unit:
 
 ## Agent-server evidence
 
-Link the coordinated `enyst/smolpaws` change:
+Link the coordinated `smolpaws/smolpaws` change:
 
 - [ ] Vendored SDK manifest identifies `FULL_NEW_SHA`.
 - [ ] Generated Python OpenAPI operation oracle identifies `FULL_NEW_SHA`.
