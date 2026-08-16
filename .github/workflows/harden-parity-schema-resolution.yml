@@ -1,0 +1,88 @@
+name: Harden parity schema resolution
+
+on:
+  push:
+    paths:
+      - .github/workflows/harden-parity-schema-resolution.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prefer canonical module exports with barrel fallback
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          message = Path('scripts/parity/check-wire-parity.ts')
+          text = message.read_text().replace(
+              "import { messageSchema } from '../../src/index.js';",
+              "import { messageSchema } from '../../src/llm/index.js';",
+          )
+          message.write_text(text)
+
+          event = Path('scripts/parity/check-event-wire-parity.ts')
+          text = event.read_text()
+          if "import * as eventModule from '../../src/event/index.js';" not in text:
+              text = text.replace(
+                  "import * as sdk from '../../src/index.js';",
+                  "import * as sdk from '../../src/index.js';\nimport * as eventModule from '../../src/event/index.js';",
+                  1,
+              )
+          text = text.replace(
+              "  const exports = sdk as unknown as Record<string, unknown>;\n  for (const name of ['eventSchema', 'messageEventSchema']) {\n    const candidate = exports[name];",
+              "  const modules = [\n    eventModule as unknown as Record<string, unknown>,\n    sdk as unknown as Record<string, unknown>,\n  ];\n  for (const name of ['eventSchema', 'messageEventSchema']) {\n    const candidate = modules.map((module) => module[name]).find(isRuntimeSchema);",
+          )
+          text = text.replace(
+              "    `Could not resolve an exported event schema; available exports: ${Object.keys(exports).sort().join(', ')}`,
+",
+              "    `Could not resolve an exported event schema; available exports: ${[...new Set(modules.flatMap((module) => Object.keys(module)))].sort().join(', ')}`,
+",
+          )
+          event.write_text(text)
+
+          tool = Path('scripts/parity/check-tool-wire-parity.ts')
+          text = tool.read_text()
+          if "import * as toolModule from '../../src/tool/index.js';" not in text:
+              text = text.replace(
+                  "import * as sdk from '../../src/index.js';",
+                  "import * as sdk from '../../src/index.js';\nimport * as toolModule from '../../src/tool/index.js';",
+                  1,
+              )
+          text = text.replace(
+              "  const exports = sdk as unknown as Record<string, unknown>;\n  for (const name of ['toolDefinitionSchema', 'ToolDefinitionSchema']) {\n    const candidate = exports[name];",
+              "  const modules = [\n    toolModule as unknown as Record<string, unknown>,\n    sdk as unknown as Record<string, unknown>,\n  ];\n  for (const name of ['toolDefinitionSchema', 'ToolDefinitionSchema']) {\n    const candidate = modules.map((module) => module[name]).find(isRuntimeSchema);",
+          )
+          text = text.replace(
+              "    `Could not resolve an exported ToolDefinition schema; available exports: ${Object.keys(exports).sort().join(', ')}`,
+",
+              "    `Could not resolve an exported ToolDefinition schema; available exports: ${[...new Set(modules.flatMap((module) => Object.keys(module)))].sort().join(', ')}`,
+",
+          )
+          tool.write_text(text)
+          PY
+
+      - name: Remove one-shot workflow and commit
+        run: |
+          rm .github/workflows/harden-parity-schema-resolution.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            .github/workflows/harden-parity-schema-resolution.yml \
+            scripts/parity/check-wire-parity.ts \
+            scripts/parity/check-event-wire-parity.ts \
+            scripts/parity/check-tool-wire-parity.ts
+          if git diff --cached --quiet; then
+            echo "SDK parity schemas already resolve from canonical modules."
+            exit 0
+          fi
+          git commit -m "fix: resolve parity schemas from canonical modules"
+          git pull --rebase origin main
+          git push
