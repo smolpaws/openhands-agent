@@ -1,0 +1,288 @@
+name: Install atomic SDK wire parity suite
+
+on:
+  push:
+    paths:
+      - .github/workflows/install-sdk-wire-suite.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write steady-state wire workflows
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          refresh = '''name: Refresh pinned Python SDK wire oracles
+
+          on:
+            workflow_dispatch:
+            push:
+              branches: [main]
+              paths:
+                - .github/workflows/refresh-sdk-wire-oracles.yml
+                - scripts/parity/generate-python-wire-oracle.py
+                - scripts/parity/generate-python-event-oracle.py
+                - scripts/parity/check-wire-parity.ts
+                - scripts/parity/check-event-wire-parity.ts
+                - transpile/upstream.json
+                - transpile/wire/cases.json
+                - transpile/wire/event-cases.json
+                - tsconfig.parity.json
+
+          permissions:
+            contents: write
+
+          concurrency:
+            group: sdk-wire-oracles
+            cancel-in-progress: true
+
+          jobs:
+            refresh:
+              runs-on: ubuntu-latest
+              timeout-minutes: 30
+
+              steps:
+                - name: Checkout TypeScript transpile
+                  uses: actions/checkout@v4
+                  with:
+                    path: transpile
+
+                - name: Read canonical upstream pin
+                  id: pin
+                  working-directory: transpile
+                  run: |
+                    pin="$(node -p "require('./transpile/upstream.json').commit")"
+                    if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+                      echo "Invalid canonical upstream pin: $pin" >&2
+                      exit 1
+                    fi
+                    echo "sha=$pin" >> "$GITHUB_OUTPUT"
+
+                - name: Checkout pinned OpenHands source
+                  uses: actions/checkout@v4
+                  with:
+                    repository: OpenHands/software-agent-sdk
+                    ref: @@ steps.pin.outputs.sha }}
+                    fetch-depth: 1
+                    path: upstream
+
+                - name: Setup Python
+                  uses: actions/setup-python@v5
+                  with:
+                    python-version: '3.12'
+
+                - name: Setup Node.js
+                  uses: actions/setup-node@v4
+                  with:
+                    node-version: 22
+                    cache: npm
+                    cache-dependency-path: transpile/package-lock.json
+
+                - name: Install uv and TypeScript dependencies
+                  run: |
+                    python -m pip install --disable-pip-version-check uv
+                    npm ci --prefix transpile
+
+                - name: Generate pinned Python wire oracles
+                  working-directory: upstream
+                  env:
+                    OPENHANDS_UPSTREAM_COMMIT: @@ steps.pin.outputs.sha }}
+                  run: |
+                    uv run --package openhands-sdk python \
+                      "$GITHUB_WORKSPACE/transpile/scripts/parity/generate-python-wire-oracle.py" \
+                      --cases "$GITHUB_WORKSPACE/transpile/transpile/wire/cases.json" \
+                      --output "$GITHUB_WORKSPACE/transpile/transpile/wire/python-oracle.json"
+                    uv run --package openhands-sdk python \
+                      "$GITHUB_WORKSPACE/transpile/scripts/parity/generate-python-event-oracle.py" \
+                      --cases "$GITHUB_WORKSPACE/transpile/transpile/wire/event-cases.json" \
+                      --output "$GITHUB_WORKSPACE/transpile/transpile/wire/python-event-oracle.json"
+
+                - name: Typecheck parity tooling
+                  working-directory: transpile
+                  run: npx tsc -p tsconfig.parity.json
+
+                - name: Compare message wire JSON
+                  id: message
+                  continue-on-error: true
+                  working-directory: transpile
+                  run: |
+                    mkdir -p .wire
+                    npx tsx scripts/parity/check-wire-parity.ts --report .wire/messages.json
+
+                - name: Compare event wire JSON
+                  id: event
+                  continue-on-error: true
+                  working-directory: transpile
+                  run: npx tsx scripts/parity/check-event-wire-parity.ts --report .wire/events.json
+
+                - name: Publish parity reports
+                  if: always()
+                  working-directory: transpile
+                  run: |
+                    echo '## SDK wire parity' >> "$GITHUB_STEP_SUMMARY"
+                    for report in .wire/messages.json .wire/events.json; do
+                      if [ -f "$report" ]; then
+                        echo "### $(basename "$report" .json)" >> "$GITHUB_STEP_SUMMARY"
+                        echo '```json' >> "$GITHUB_STEP_SUMMARY"
+                        cat "$report" >> "$GITHUB_STEP_SUMMARY"
+                        echo '```' >> "$GITHUB_STEP_SUMMARY"
+                      fi
+                    done
+
+                - name: Upload parity reports
+                  if: always()
+                  uses: actions/upload-artifact@v4
+                  with:
+                    name: generated-sdk-wire-parity
+                    path: transpile/.wire/*.json
+                    if-no-files-found: warn
+                    retention-days: 30
+
+                - name: Reject mismatching oracles
+                  if: steps.message.outcome != 'success' || steps.event.outcome != 'success'
+                  run: exit 1
+
+                - name: Commit changed oracles atomically
+                  working-directory: transpile
+                  run: |
+                    oracles=(
+                      transpile/wire/python-oracle.json
+                      transpile/wire/python-event-oracle.json
+                    )
+                    git add "${oracles[@]}"
+                    if git diff --cached --quiet; then
+                      echo "Pinned Python wire oracles are already current."
+                      exit 0
+                    fi
+                    git config user.name github-actions[bot]
+                    git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+                    git commit -m "chore: refresh pinned Python SDK wire oracles"
+                    git pull --rebase origin main
+                    git push
+          '''
+
+          check = '''name: SDK wire parity
+
+          on:
+            pull_request:
+              branches: [main]
+              paths:
+                - .github/workflows/sdk-wire-parity.yml
+                - scripts/parity/**
+                - src/event/**
+                - src/llm/**
+                - src/index.ts
+                - transpile/upstream.json
+                - transpile/wire/**
+                - tsconfig.parity.json
+            push:
+              branches: [main]
+              paths:
+                - .github/workflows/sdk-wire-parity.yml
+                - scripts/parity/**
+                - src/event/**
+                - src/llm/**
+                - src/index.ts
+                - transpile/upstream.json
+                - transpile/wire/**
+                - tsconfig.parity.json
+
+          jobs:
+            parity:
+              runs-on: ubuntu-latest
+              timeout-minutes: 10
+
+              steps:
+                - uses: actions/checkout@v4
+
+                - uses: actions/setup-node@v4
+                  with:
+                    node-version: 22
+                    cache: npm
+
+                - name: Install dependencies
+                  run: npm ci
+
+                - name: Require pinned Python oracles
+                  run: |
+                    test -f transpile/wire/python-oracle.json
+                    test -f transpile/wire/python-event-oracle.json
+
+                - name: Typecheck parity tooling
+                  run: npx tsc -p tsconfig.parity.json
+
+                - name: Compare message wire JSON
+                  id: message
+                  continue-on-error: true
+                  run: |
+                    mkdir -p .wire
+                    npx tsx scripts/parity/check-wire-parity.ts --report .wire/messages.json
+
+                - name: Compare event wire JSON
+                  id: event
+                  continue-on-error: true
+                  run: npx tsx scripts/parity/check-event-wire-parity.ts --report .wire/events.json
+
+                - name: Publish parity reports
+                  if: always()
+                  run: |
+                    echo '## SDK wire parity' >> "$GITHUB_STEP_SUMMARY"
+                    for report in .wire/messages.json .wire/events.json; do
+                      if [ -f "$report" ]; then
+                        echo "### $(basename "$report" .json)" >> "$GITHUB_STEP_SUMMARY"
+                        echo '```json' >> "$GITHUB_STEP_SUMMARY"
+                        cat "$report" >> "$GITHUB_STEP_SUMMARY"
+                        echo '```' >> "$GITHUB_STEP_SUMMARY"
+                      fi
+                    done
+
+                - name: Upload parity reports
+                  if: always()
+                  uses: actions/upload-artifact@v4
+                  with:
+                    name: sdk-wire-parity
+                    path: .wire/*.json
+                    if-no-files-found: warn
+                    retention-days: 30
+
+                - name: Fail on mismatch
+                  if: steps.message.outcome != 'success' || steps.event.outcome != 'success'
+                  run: exit 1
+          '''
+
+          def write(path: str, template: str) -> None:
+              content = template.replace('@@', '${{')
+              lines = content.splitlines()
+              indent = min(len(line) - len(line.lstrip()) for line in lines if line.strip())
+              Path(path).write_text('\n'.join(line[indent:] if line.strip() else '' for line in lines) + '\n')
+
+          write('.github/workflows/refresh-sdk-wire-oracles.yml', refresh)
+          write('.github/workflows/sdk-wire-parity.yml', check)
+          PY
+
+          rm -f \
+            .github/workflows/refresh-python-wire-oracle.yml \
+            .github/workflows/harden-sdk-wire-workflows.yml \
+            .github/workflows/install-sdk-wire-suite.yml
+
+      - name: Commit workflow migration
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/workflows
+          if git diff --cached --quiet; then
+            echo "Atomic SDK wire suite is already installed."
+            exit 0
+          fi
+          git commit -m "ci: install atomic SDK wire parity suite"
+          git pull --rebase origin main
+          git push
