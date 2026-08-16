@@ -1,0 +1,67 @@
+name: Install drift review renderer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/install-drift-review-renderer.yml
+      - transpile/updates/first-batch.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Add package command and render current packet
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = 'package.json';
+          const document = JSON.parse(fs.readFileSync(path, 'utf8'));
+          document.scripts['drift:render'] = 'tsx scripts/drift/render-review.ts';
+          fs.writeFileSync(path, JSON.stringify(document, null, 2) + '\n');
+          NODE
+
+          if [ -s transpile/updates/first-batch.json ]; then
+            npm run drift:render -- \
+              --review transpile/updates/first-batch.json \
+              --output transpile/updates/first-batch.md
+          fi
+
+      - name: Verify drift tooling
+        run: |
+          npm run test:drift
+          npm run typecheck:drift
+
+      - name: Remove one-shot workflow and commit
+        run: |
+          rm .github/workflows/install-drift-review-renderer.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            .github/workflows/install-drift-review-renderer.yml \
+            package.json \
+            scripts/drift/render-review.ts \
+            scripts/drift/render-review.test.ts \
+            transpile/updates/first-batch.md
+          if git diff --cached --quiet; then
+            echo "Drift review renderer is already installed."
+            exit 0
+          fi
+          git commit -m "feat: expose deterministic drift review rendering"
+          git pull --rebase origin main
+          git push
