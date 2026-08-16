@@ -28,7 +28,7 @@
     "drift:scan": "tsx scripts/drift/cli.ts scan",
     "drift:prepare": "tsx scripts/drift/cli.ts prepare",
     "drift:check": "tsx scripts/drift/cli.ts check",
-    "lint": "eslint ./src ./scripts/drift",
+    "lint": "eslint ./src ./scripts/parity",
     "live:llm": "npm run build && node scripts/live/llm-smoke.mjs",
     "live:openai-tools": "npm run build && tsx examples/native-openai-tools.ts",
     "live:gemini-tools": "npm run build && tsx examples/native-gemini-tools.ts",

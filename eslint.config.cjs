@@ -82,4 +82,30 @@ module.exports = [
       'no-tabs': 'error',
     },
   },
+  {
+  files: ['scripts/parity/**/*.ts'],
+  languageOptions: {
+    parser: tsparser,
+    parserOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      project: ['./tsconfig.parity.json'],
+      tsconfigRootDir: __dirname,
+    },
+    globals: globals.node,
+  },
+  plugins: {
+    '@typescript-eslint': tseslint,
+  },
+  rules: {
+    ...eslint.configs.recommended.rules,
+    ...tseslint.configs['recommended-type-checked'].rules,
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    'no-tabs': 'error',
+    'prefer-const': 'error',
+    eqeqeq: ['error', 'always'],
+  },
+},
 ];
