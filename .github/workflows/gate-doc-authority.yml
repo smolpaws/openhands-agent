@@ -1,0 +1,100 @@
+name: Gate durable documentation authority
+
+on:
+  push:
+    paths:
+      - .github/workflows/gate-doc-authority.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Normalize durable docs around canonical manifest
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          contract = Path('docs/TRANSPILE_CONTRACT.md')
+          text = contract.read_text()
+          text = re.sub(
+              r'Current pinned commit:\s*```text\s*[0-9a-f]{40}\s*```',
+              'The canonical upstream pin is `transpile/upstream.json`. It is packaged with the SDK and consumed by the server transpile. Do not copy the SHA into this contract.',
+              text,
+              count=1,
+              flags=re.S,
+          )
+          if 'transpile/upstream.json' not in text:
+              marker = 'Upstream: `OpenHands/software-agent-sdk`'
+              if marker not in text:
+                  raise SystemExit('SDK contract upstream marker not found')
+              text = text.replace(
+                  marker,
+                  marker + '\n\nThe canonical upstream pin is `transpile/upstream.json`. It is packaged with the SDK and consumed by the server transpile. Do not copy the SHA into this contract.',
+                  1,
+              )
+          contract.write_text(text)
+
+          for relative in ['README.md', 'AGENTS.md', 'docs/README.md', 'docs/DRIFT_TOOLING.md']:
+              path = Path(relative)
+              content = path.read_text().replace('TRANSPILE_PLAN.md', 'TRANSPILE_CONTRACT.md')
+              path.write_text(content)
+          PY
+
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = 'package.json';
+          const document = JSON.parse(fs.readFileSync(path, 'utf8'));
+          document.scripts['test:doc-authority'] = 'tsx scripts/drift/check-doc-authority.ts';
+          fs.writeFileSync(path, JSON.stringify(document, null, 2) + '\n');
+          NODE
+
+          workflow=.github/workflows/ci.yml
+          if ! grep -q 'Check durable documentation authority' "$workflow"; then
+            python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/ci.yml')
+          text = path.read_text()
+          anchor = '''      - name: Run drift-tool tests
+                  run: npm run test:drift
+          '''.replace('          ', '')
+          step = anchor + '''
+
+          - name: Check durable documentation authority
+            run: npm run test:doc-authority
+          '''.replace('          ', '')
+          if anchor not in text:
+              raise SystemExit('Drift-tool test step not found in CI')
+          path.write_text(text.replace(anchor, step, 1))
+          PY
+          fi
+
+      - name: Verify normalized docs
+        run: |
+          npm ci
+          npm run test:doc-authority
+          npm run typecheck:drift
+
+      - name: Remove one-shot workflow and commit
+        run: |
+          rm .github/workflows/gate-doc-authority.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A \
+            .github/workflows \
+            README.md AGENTS.md docs \
+            package.json scripts/drift/check-doc-authority.ts
+          if git diff --cached --quiet; then
+            echo "Durable documentation authority is already gated."
+            exit 0
+          fi
+          git commit -m "ci: gate durable documentation authority"
+          git pull --rebase origin main
+          git push
