@@ -1,0 +1,65 @@
+name: Gate packed SDK provenance
+
+on:
+  push:
+    paths:
+      - .github/workflows/gate-packed-provenance.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add package command and CI gate
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const packagePath = 'package.json';
+          const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+          packageJson.scripts['test:packed-provenance'] = 'tsx scripts/parity/check-packed-provenance.ts';
+          fs.writeFileSync(packagePath, JSON.stringify(packageJson, null, 2) + '\n');
+
+          const workflowPath = '.github/workflows/ci.yml';
+          let workflow = fs.readFileSync(workflowPath, 'utf8');
+          const step = `
+      - name: Verify packed upstream provenance
+        run: npm run test:packed-provenance
+`;
+          if (!workflow.includes('Verify packed upstream provenance')) {
+            const anchor = '      - name: Build package\n        run: npm run build\n';
+            if (!workflow.includes(anchor)) throw new Error('CI build step not found');
+            workflow = workflow.replace(anchor, anchor + step);
+            fs.writeFileSync(workflowPath, workflow);
+          }
+          NODE
+
+      - name: Verify before committing
+        run: |
+          npm ci
+          npm run build
+          npx tsc -p tsconfig.parity.json
+          npm run test:packed-provenance
+
+      - name: Remove one-shot workflow and commit
+        run: |
+          rm .github/workflows/gate-packed-provenance.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            .github/workflows/gate-packed-provenance.yml \
+            .github/workflows/ci.yml \
+            package.json \
+            scripts/parity/check-packed-provenance.ts
+          if git diff --cached --quiet; then
+            echo "Packed SDK provenance is already gated."
+            exit 0
+          fi
+          git commit -m "ci: gate packed SDK provenance"
+          git pull --rebase origin main
+          git push
