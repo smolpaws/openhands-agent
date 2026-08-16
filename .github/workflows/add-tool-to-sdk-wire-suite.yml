@@ -1,0 +1,110 @@
+name: Add tool definitions to SDK wire suite
+
+on:
+  push:
+    paths:
+      - .github/workflows/add-tool-to-sdk-wire-suite.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch steady-state workflows
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          refresh = Path('.github/workflows/refresh-sdk-wire-oracles.yml')
+          text = refresh.read_text()
+          replacements = [
+              (
+                  '                - scripts/parity/generate-python-event-oracle.py\n',
+                  '                - scripts/parity/generate-python-event-oracle.py\n                - scripts/parity/generate-python-tool-oracle.py\n',
+              ),
+              (
+                  '                - scripts/parity/check-event-wire-parity.ts\n',
+                  '                - scripts/parity/check-event-wire-parity.ts\n                - scripts/parity/check-tool-wire-parity.ts\n',
+              ),
+              (
+                  '                - transpile/wire/event-cases.json\n',
+                  '                - transpile/wire/event-cases.json\n                - transpile/wire/tool-cases.json\n',
+              ),
+              (
+                  '                    uv run --package openhands-sdk python \\\n                      "$GITHUB_WORKSPACE/transpile/scripts/parity/generate-python-event-oracle.py" \\\n                      --cases "$GITHUB_WORKSPACE/transpile/transpile/wire/event-cases.json" \\\n                      --output "$GITHUB_WORKSPACE/transpile/transpile/wire/python-event-oracle.json"\n',
+                  '                    uv run --package openhands-sdk python \\\n                      "$GITHUB_WORKSPACE/transpile/scripts/parity/generate-python-event-oracle.py" \\\n                      --cases "$GITHUB_WORKSPACE/transpile/transpile/wire/event-cases.json" \\\n                      --output "$GITHUB_WORKSPACE/transpile/transpile/wire/python-event-oracle.json"\n                    uv run --package openhands-sdk python \\\n                      "$GITHUB_WORKSPACE/transpile/scripts/parity/generate-python-tool-oracle.py" \\\n                      --cases "$GITHUB_WORKSPACE/transpile/transpile/wire/tool-cases.json" \\\n                      --output "$GITHUB_WORKSPACE/transpile/transpile/wire/python-tool-oracle.json"\n',
+              ),
+              (
+                  '                - name: Publish parity reports\n',
+                  '                - name: Compare tool-definition wire JSON\n                  id: tool\n                  continue-on-error: true\n                  working-directory: transpile\n                  run: npx tsx scripts/parity/check-tool-wire-parity.ts --report .wire/tools.json\n\n                - name: Publish parity reports\n',
+              ),
+              (
+                  '                    for report in .wire/messages.json .wire/events.json; do\n',
+                  '                    for report in .wire/messages.json .wire/events.json .wire/tools.json; do\n',
+              ),
+              (
+                  "                  if: steps.message.outcome != 'success' || steps.event.outcome != 'success'\n",
+                  "                  if: steps.message.outcome != 'success' || steps.event.outcome != 'success' || steps.tool.outcome != 'success'\n",
+              ),
+              (
+                  '                      transpile/wire/python-event-oracle.json\n',
+                  '                      transpile/wire/python-event-oracle.json\n                      transpile/wire/python-tool-oracle.json\n',
+              ),
+          ]
+          for old, new in replacements:
+              if old not in text and new not in text:
+                  raise SystemExit(f'Refresh workflow patch point missing: {old[:80]!r}')
+              if new not in text:
+                  text = text.replace(old, new, 1)
+          refresh.write_text(text)
+
+          check = Path('.github/workflows/sdk-wire-parity.yml')
+          text = check.read_text()
+          replacements = [
+              (
+                  '                    test -f transpile/wire/python-event-oracle.json\n',
+                  '                    test -f transpile/wire/python-event-oracle.json\n                    test -f transpile/wire/python-tool-oracle.json\n',
+              ),
+              (
+                  '                - name: Publish parity reports\n',
+                  '                - name: Compare tool-definition wire JSON\n                  id: tool\n                  continue-on-error: true\n                  run: npx tsx scripts/parity/check-tool-wire-parity.ts --report .wire/tools.json\n\n                - name: Publish parity reports\n',
+              ),
+              (
+                  '                    for report in .wire/messages.json .wire/events.json; do\n',
+                  '                    for report in .wire/messages.json .wire/events.json .wire/tools.json; do\n',
+              ),
+              (
+                  "                  if: steps.message.outcome != 'success' || steps.event.outcome != 'success'\n",
+                  "                  if: steps.message.outcome != 'success' || steps.event.outcome != 'success' || steps.tool.outcome != 'success'\n",
+              ),
+          ]
+          for old, new in replacements:
+              if old not in text and new not in text:
+                  raise SystemExit(f'Check workflow patch point missing: {old[:80]!r}')
+              if new not in text:
+                  text = text.replace(old, new, 1)
+          check.write_text(text)
+          PY
+
+      - name: Remove one-shot workflow and commit
+        run: |
+          rm .github/workflows/add-tool-to-sdk-wire-suite.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            .github/workflows/add-tool-to-sdk-wire-suite.yml \
+            .github/workflows/refresh-sdk-wire-oracles.yml \
+            .github/workflows/sdk-wire-parity.yml
+          if git diff --cached --quiet; then
+            echo "Tool-definition parity is already in the atomic SDK wire suite."
+            exit 0
+          fi
+          git commit -m "ci: include tool definitions in SDK wire suite"
+          git pull --rebase origin main
+          git push
