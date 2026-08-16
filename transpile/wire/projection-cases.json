@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "projection-single-user-message",
+      "kind": "events-to-messages",
+      "events": [
+        {
+          "source": "user",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "single projected user message"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "projection-user-then-assistant",
+      "kind": "events-to-messages",
+      "events": [
+        {
+          "source": "user",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "projected question"
+              }
+            ]
+          }
+        },
+        {
+          "source": "agent",
+          "message": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "projected answer"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
