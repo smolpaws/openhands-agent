@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "message-event-user-text",
+      "kind": "message-event",
+      "source": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "hello from a deterministic event"
+          }
+        ]
+      }
+    },
+    {
+      "id": "message-event-assistant-text",
+      "kind": "message-event",
+      "source": "agent",
+      "message": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "deterministic assistant event"
+          }
+        ]
+      }
+    }
+  ]
+}
