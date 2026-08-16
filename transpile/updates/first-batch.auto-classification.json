@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "rule": "all target-relevant paths match exactly one EXC policy",
+  "classified": 0
+}
