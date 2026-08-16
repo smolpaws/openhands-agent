@@ -1,0 +1,104 @@
+name: Harden Python event fixture metadata
+
+on:
+  push:
+    paths:
+      - .github/workflows/harden-python-event-fixture.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch metadata construction
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('scripts/parity/generate-python-event-oracle.py')
+          text = path.read_text()
+          anchor = '''def model_field_names(model_type: Any) -> set[str]:
+              fields = getattr(model_type, "model_fields", None)
+              if not isinstance(fields, dict):
+                  raise RuntimeError(f"{model_type!r} does not expose pydantic model_fields")
+              return set(fields)
+          '''.replace('          ', '')
+          addition = anchor + '''
+
+          def assign_fixed_value(
+              values: dict[str, Any],
+              model_type: Any,
+              field_name: str,
+              candidates: list[Any],
+          ) -> None:
+              fields = getattr(model_type, "model_fields")
+              if field_name not in fields:
+                  return
+              annotation = fields[field_name].annotation
+              adapter: TypeAdapter[Any] = TypeAdapter(annotation)
+              for candidate in candidates:
+                  try:
+                      values[field_name] = adapter.validate_python(candidate)
+                      return
+                  except Exception:
+                      continue
+              raise RuntimeError(
+                  f"Could not validate a deterministic value for {model_type.__name__}.{field_name}"
+              )
+          '''.replace('          ', '')
+          if 'def assign_fixed_value(' not in text:
+              if anchor not in text:
+                  raise SystemExit('model_field_names anchor not found')
+              text = text.replace(anchor, addition, 1)
+
+          old = '''    if "id" in field_names:
+              values["id"] = FIXED_EVENT_ID
+          if "event_id" in field_names:
+              values["event_id"] = FIXED_EVENT_ID
+          if "timestamp" in field_names:
+              values["timestamp"] = FIXED_TIMESTAMP
+          if "created_at" in field_names:
+              values["created_at"] = FIXED_TIMESTAMP
+          '''.replace('          ', '')
+          new = '''    assign_fixed_value(values, message_event_type, "id", [FIXED_EVENT_ID, "1", 1])
+              assign_fixed_value(values, message_event_type, "event_id", [FIXED_EVENT_ID, "1", 1])
+              assign_fixed_value(
+                  values,
+                  message_event_type,
+                  "timestamp",
+                  [FIXED_TIMESTAMP, "2026-01-01T00:00:00Z"],
+              )
+              assign_fixed_value(
+                  values,
+                  message_event_type,
+                  "created_at",
+                  [FIXED_TIMESTAMP, "2026-01-01T00:00:00Z"],
+              )
+          '''.replace('          ', '')
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif 'assign_fixed_value(values, message_event_type, "id"' not in text:
+              raise SystemExit('event metadata assignment block not found')
+
+          path.write_text(text)
+          PY
+
+      - name: Remove one-shot workflow and commit
+        run: |
+          rm .github/workflows/harden-python-event-fixture.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/workflows/harden-python-event-fixture.yml scripts/parity/generate-python-event-oracle.py
+          if git diff --cached --quiet; then
+            echo "Python event fixture metadata is already hardened."
+            exit 0
+          fi
+          git commit -m "fix: validate deterministic Python event metadata"
+          git pull --rebase origin main
+          git push
