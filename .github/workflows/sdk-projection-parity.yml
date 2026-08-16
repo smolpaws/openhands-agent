@@ -1,0 +1,79 @@
+name: SDK projection parity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/sdk-projection-parity.yml
+      - scripts/parity/check-projection-parity.ts
+      - src/event/**
+      - src/llm/**
+      - src/index.ts
+      - transpile/upstream.json
+      - transpile/wire/projection-cases.json
+      - transpile/wire/python-projection-oracle.json
+      - tsconfig.parity.json
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/sdk-projection-parity.yml
+      - scripts/parity/check-projection-parity.ts
+      - src/event/**
+      - src/llm/**
+      - src/index.ts
+      - transpile/upstream.json
+      - transpile/wire/projection-cases.json
+      - transpile/wire/python-projection-oracle.json
+      - tsconfig.parity.json
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Require pinned Python projection oracle
+        run: test -f transpile/wire/python-projection-oracle.json
+
+      - name: Typecheck parity tooling
+        run: npx tsc -p tsconfig.parity.json
+
+      - name: Compare event-to-message projection
+        id: parity
+        continue-on-error: true
+        run: |
+          mkdir -p .wire
+          npx tsx scripts/parity/check-projection-parity.ts --report .wire/projection.json
+
+      - name: Publish projection report
+        if: always()
+        run: |
+          if [ -f .wire/projection.json ]; then
+            echo '## SDK event-to-message projection parity' >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat .wire/projection.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload projection report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-projection-parity
+          path: .wire/projection.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Fail on mismatch
+        if: steps.parity.outcome != 'success'
+        run: exit 1
