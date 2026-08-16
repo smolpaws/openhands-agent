@@ -1,0 +1,121 @@
+name: Auto-classify wholly excluded first-batch units
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/auto-classify-excluded-first-batch.yml
+      - transpile/updates/first-batch.json
+      - transpile/upstream.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Classify only unambiguous exclusion-only units
+        run: |
+          test -s transpile/updates/first-batch.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const manifest = JSON.parse(fs.readFileSync('transpile/upstream.json', 'utf8'));
+          const reviewPath = 'transpile/updates/first-batch.json';
+          const review = JSON.parse(fs.readFileSync(reviewPath, 'utf8'));
+          const items = review.items && typeof review.items === 'object' ? review.items : {};
+          let classified = 0;
+
+          for (const [id, raw] of Object.entries(items)) {
+            if (!raw || typeof raw !== 'object' || raw.disposition) continue;
+            const target = raw.target ?? inferTarget(id);
+            if (target !== 'sdk' && target !== 'server') continue;
+            const targetConfig = manifest.targets?.[target];
+            if (!targetConfig) continue;
+
+            const relevantPrefixes = [
+              ...(targetConfig.sourcePrefixes ?? []),
+              ...(targetConfig.testPrefixes ?? []),
+              ...(targetConfig.examplePrefixes ?? []),
+            ];
+            const relevantPaths = collectStrings(raw)
+              .filter((value) => relevantPrefixes.some((prefix) => value.startsWith(prefix)));
+            if (relevantPaths.length === 0) continue;
+
+            const exclusionHints = (manifest.policyHints ?? []).filter(
+              (hint) => hint.target === target && String(hint.policy).startsWith('EXC-'),
+            );
+            const matchedPolicies = new Set();
+            let allExcluded = true;
+            for (const path of relevantPaths) {
+              const matches = exclusionHints.filter((hint) => path.startsWith(hint.prefix));
+              if (matches.length === 0) {
+                allExcluded = false;
+                break;
+              }
+              for (const match of matches) matchedPolicies.add(match.policy);
+            }
+            if (!allExcluded || matchedPolicies.size !== 1) continue;
+
+            const [policy] = [...matchedPolicies];
+            raw.disposition = 'EXCLUDED';
+            raw.policy = policy;
+            raw.reason = `All target-relevant changed paths are confined to ${policy}.`;
+            classified += 1;
+          }
+
+          fs.writeFileSync(reviewPath, JSON.stringify(review, null, 2) + '\n');
+          fs.writeFileSync(
+            'transpile/updates/first-batch.auto-classification.json',
+            JSON.stringify({
+              schemaVersion: 1,
+              rule: 'all target-relevant paths match exactly one EXC policy',
+              classified,
+            }, null, 2) + '\n',
+          );
+
+          function inferTarget(id) {
+            if (id.endsWith(':sdk') || id.includes(':sdk:')) return 'sdk';
+            if (id.endsWith(':server') || id.includes(':server:')) return 'server';
+            return undefined;
+          }
+
+          function collectStrings(value) {
+            const found = [];
+            walk(value);
+            return [...new Set(found)].sort();
+            function walk(current) {
+              if (typeof current === 'string') {
+                found.push(current);
+                return;
+              }
+              if (Array.isArray(current)) {
+                for (const entry of current) walk(entry);
+                return;
+              }
+              if (!current || typeof current !== 'object') return;
+              for (const entry of Object.values(current)) walk(entry);
+            }
+          }
+          NODE
+
+      - name: Remove one-shot workflow and commit
+        run: |
+          rm .github/workflows/auto-classify-excluded-first-batch.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            .github/workflows/auto-classify-excluded-first-batch.yml \
+            transpile/updates/first-batch.json \
+            transpile/updates/first-batch.auto-classification.json
+          if git diff --cached --quiet; then
+            echo "First batch contains no new unambiguous exclusion-only units."
+            exit 0
+          fi
+          git commit -m "chore: classify wholly excluded upstream review units"
+          git pull --rebase origin main
+          git push
