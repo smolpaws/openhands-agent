@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "from": "966340979be26c2162e9ab8805557b715e1f1a78",
+  "to": "b061336b800712dcb86b9c9d829910a89c0867d0",
+  "purpose": "First bounded reconciliation slice toward 23ee276f1c68f08123349d103754380f627d20c8",
+  "status": "awaiting semantic classification"
+}

@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "repository": "OpenHands/software-agent-sdk",
+  "from": "966340979be26c2162e9ab8805557b715e1f1a78",
+  "to": "b061336b800712dcb86b9c9d829910a89c0867d0",
+  "inventorySha256": "05696567d840f922240ffc7a9743930773689ff0e84ea2f60e84410ccf0590c2",
+  "items": {
+    "44199403940af0266c64d6b983607720cdcc96fd:sdk": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "98201f9fcd17d0a20843de709169c783856f9849:server": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "1cdf6485aa84adf28d5686c29ea551e4e4882625:sdk": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "5eab7198d335434d777490a44021b0bd1a731f6b:sdk": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "f8ee47d8a994c3ad113099f218f4c12cef0a5da5:server": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "217b2cf83aab4f97e066bc3785a38eab782c84f3:server": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "944284310d9a5f1ccad0ef8c2d7c4c38342b9952:sdk": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "afd248fe7de3b6e7c73e6f93c9d1e4b04eef5ab4:sdk": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "afd248fe7de3b6e7c73e6f93c9d1e4b04eef5ab4:server": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "aa0494b413b9e0a31446ae1120670e8440880b49:sdk": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "bbb6c08973e260f06069130ec679b99de347a1d9:sdk": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "c3441f8e67c8a78a07e72eb0e94ab7e2f907f8d5:sdk": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "c3441f8e67c8a78a07e72eb0e94ab7e2f907f8d5:server": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "095883242a0b0bb27e2bd782542796a99572a1f8:sdk": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "095883242a0b0bb27e2bd782542796a99572a1f8:server": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "b0dff5e6783f1106b3cdde4691c95ce0a85c2b70:sdk": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "b0dff5e6783f1106b3cdde4691c95ce0a85c2b70:server": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "b4bfa7a823cdc1ed51aa3930fe398ee6e99d4ed5:server": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "b061336b800712dcb86b9c9d829910a89c0867d0:sdk": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    }
+  },
+  "unmapped": {}
+}
