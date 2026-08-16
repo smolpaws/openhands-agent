@@ -1,0 +1,128 @@
+name: Refresh pinned SDK projection oracle
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/refresh-sdk-projection-oracle.yml
+      - scripts/parity/generate-python-projection-oracle.py
+      - scripts/parity/check-projection-parity.ts
+      - transpile/upstream.json
+      - transpile/wire/projection-cases.json
+      - tsconfig.parity.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sdk-wire-oracles
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout TypeScript transpile
+        uses: actions/checkout@v4
+        with:
+          path: transpile
+
+      - name: Read canonical upstream pin
+        id: pin
+        working-directory: transpile
+        run: |
+          pin="$(node -p "require('./transpile/upstream.json').commit")"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid canonical upstream pin: $pin" >&2
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout pinned OpenHands source
+        uses: actions/checkout@v4
+        with:
+          repository: OpenHands/software-agent-sdk
+          ref: ${{ steps.pin.outputs.sha }}
+          fetch-depth: 1
+          path: upstream
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: transpile/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --disable-pip-version-check uv
+          npm ci --prefix transpile
+
+      - name: Generate pinned Python projection oracle
+        working-directory: upstream
+        env:
+          OPENHANDS_UPSTREAM_COMMIT: ${{ steps.pin.outputs.sha }}
+        run: |
+          uv run --package openhands-sdk python \
+            "$GITHUB_WORKSPACE/transpile/scripts/parity/generate-python-projection-oracle.py" \
+            --cases "$GITHUB_WORKSPACE/transpile/transpile/wire/projection-cases.json" \
+            --output "$GITHUB_WORKSPACE/transpile/transpile/wire/python-projection-oracle.json"
+
+      - name: Typecheck parity tooling
+        working-directory: transpile
+        run: npx tsc -p tsconfig.parity.json
+
+      - name: Compare TypeScript projection exactly
+        id: parity
+        continue-on-error: true
+        working-directory: transpile
+        run: |
+          mkdir -p .wire
+          npx tsx scripts/parity/check-projection-parity.ts --report .wire/projection.json
+
+      - name: Publish projection report
+        if: always()
+        working-directory: transpile
+        run: |
+          if [ -f .wire/projection.json ]; then
+            echo '## SDK event-to-message projection parity' >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat .wire/projection.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload projection report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-sdk-projection-parity
+          path: transpile/.wire/projection.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Reject mismatching oracle
+        if: steps.parity.outcome != 'success'
+        run: exit 1
+
+      - name: Commit changed projection oracle
+        working-directory: transpile
+        run: |
+          oracle=transpile/wire/python-projection-oracle.json
+          git add "$oracle"
+          if git diff --cached --quiet; then
+            echo "Pinned Python projection oracle is already current."
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "chore: refresh pinned Python SDK projection oracle"
+          git pull --rebase origin main
+          git push
