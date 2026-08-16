@@ -1,0 +1,120 @@
+name: First upstream batch review status
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/first-batch-review-status.yml
+      - transpile/updates/first-batch.json
+      - transpile/updates/first-batch.meta.json
+      - transpile/upstream.json
+      - scripts/drift/**
+
+permissions:
+  contents: write
+
+concurrency:
+  group: first-upstream-batch-review
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout transpile
+        uses: actions/checkout@v4
+        with:
+          path: transpile
+
+      - name: Read interval endpoint
+        id: interval
+        working-directory: transpile
+        run: |
+          test -s transpile/updates/first-batch.meta.json
+          to="$(node -p "require('./transpile/updates/first-batch.meta.json').to")"
+          echo "to=$to" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout OpenHands interval endpoint
+        uses: actions/checkout@v4
+        with:
+          repository: OpenHands/software-agent-sdk
+          ref: ${{ steps.interval.outputs.to }}
+          fetch-depth: 0
+          path: upstream
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: transpile/package-lock.json
+
+      - name: Install dependencies
+        working-directory: transpile
+        run: npm ci
+
+      - name: Render current review packet
+        working-directory: transpile
+        run: npm run drift:render -- --review transpile/updates/first-batch.json --output transpile/updates/first-batch.md
+
+      - name: Check review completeness
+        id: check
+        continue-on-error: true
+        working-directory: transpile
+        run: |
+          set -o pipefail
+          npm run drift:check -- \
+            --upstream ../upstream \
+            --review transpile/updates/first-batch.json \
+            2>&1 | tee /tmp/first-batch-check.log
+
+      - name: Publish review status
+        working-directory: transpile
+        run: |
+          echo '## First bounded upstream review' >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.check.outcome }}" = 'success' ]; then
+            echo '✅ Every generated review unit has a valid disposition and required review metadata.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '🟡 Review remains intentionally open. The checker reported:' >> "$GITHUB_STEP_SUMMARY"
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            sed -n '1,200p' /tmp/first-batch-check.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload review packet and checker output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: first-upstream-batch-review
+          path: |
+            transpile/transpile/updates/first-batch.json
+            transpile/transpile/updates/first-batch.md
+            /tmp/first-batch-check.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Record completed semantic review
+        if: steps.check.outcome == 'success'
+        working-directory: transpile
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = 'transpile/updates/first-batch.meta.json';
+          const document = JSON.parse(fs.readFileSync(path, 'utf8'));
+          document.status = 'semantically classified; implementation evidence pending';
+          fs.writeFileSync(path, JSON.stringify(document, null, 2) + '\n');
+          NODE
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add transpile/updates/first-batch.meta.json transpile/updates/first-batch.md
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "chore: record completed first-batch classification"
+          git pull --rebase origin main
+          git push
