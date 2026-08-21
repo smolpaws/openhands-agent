@@ -36,6 +36,8 @@ export interface McpToolSpec {
 
 export interface McpClientLike {
   isConnected(): boolean;
+  connect?(): Promise<void> | void;
+  readonly closed?: boolean;
   callTool(name: string, arguments_: Record<string, unknown>): Promise<McpCallToolResult>;
 }
 
@@ -96,7 +98,17 @@ export class MCPToolExecutor {
 
   async execute(action: MCPToolAction): Promise<MCPToolObservation> {
     if (!this.client.isConnected()) {
-      return MCPToolObservation.fromText(`MCP client not connected for tool '${this.toolName}'. The connection may have been closed or failed to establish.`, { is_error: true, tool_name: this.toolName });
+      if (this.client.closed === true) {
+        return MCPToolObservation.fromText(`MCP client not connected for tool '${this.toolName}'. The client has been closed and cannot be reconnected.`, { is_error: true, tool_name: this.toolName });
+      }
+      if (this.client.connect === undefined) {
+        return MCPToolObservation.fromText(`MCP client not connected for tool '${this.toolName}'. The connection may have been closed or failed to establish.`, { is_error: true, tool_name: this.toolName });
+      }
+      try {
+        await this.client.connect();
+      } catch (error) {
+        return MCPToolObservation.fromText(`MCP client not connected for tool '${this.toolName}'. Reconnection attempt failed: ${String(error)}`, { is_error: true, tool_name: this.toolName });
+      }
     }
     try {
       const result = await withTimeout(this.client.callTool(this.toolName, action.toMcpArguments()), this.timeoutSeconds);

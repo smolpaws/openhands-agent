@@ -33,6 +33,55 @@ describe('MCP wrappers', () => {
     await expect(executor.execute(new MCPToolAction())).resolves.toMatchObject({ is_error: true, tool_name: 'tool' });
   });
 
+  it('reconnects once when the session is lost before calling the tool', async () => {
+    let connected = false;
+    const calls: string[] = [];
+    const client = {
+      closed: false,
+      isConnected: () => connected,
+      connect: async () => { calls.push('connect'); connected = true; },
+      callTool: async (name: string) => { calls.push(`call:${name}`); return { isError: false, content: [{ type: 'text', text: 'ok' }] }; },
+    };
+    const executor = new MCPToolExecutor('tool', client);
+
+    const observation = await executor.execute(new MCPToolAction());
+
+    expect(observation.is_error).toBe(false);
+    expect(calls).toEqual(['connect', 'call:tool']);
+  });
+
+  it('does not reconnect a closed client', async () => {
+    const calls: string[] = [];
+    const client = {
+      closed: true,
+      isConnected: () => false,
+      connect: async () => { calls.push('connect'); },
+      callTool: async () => ({ isError: false, content: [] }),
+    };
+    const executor = new MCPToolExecutor('tool', client);
+
+    const observation = await executor.execute(new MCPToolAction());
+
+    expect(observation.is_error).toBe(true);
+    expect(observation.visualize()).toContain('closed and cannot be reconnected');
+    expect(calls).toEqual([]);
+  });
+
+  it('returns an error observation when reconnection fails', async () => {
+    const client = {
+      closed: false,
+      isConnected: () => false,
+      connect: async () => { throw new Error('connect refused'); },
+      callTool: async () => ({ isError: false, content: [] }),
+    };
+    const executor = new MCPToolExecutor('tool', client);
+
+    const observation = await executor.execute(new MCPToolAction());
+
+    expect(observation.is_error).toBe(true);
+    expect(observation.visualize()).toContain('Reconnection attempt failed');
+  });
+
   it('converts names and exposes timeout errors', () => {
     expect(toCamelCase('web-search tool')).toBe('WebSearchTool');
     expect(new MCPTimeoutError('timed out', 30, { mcpServers: {} })).toMatchObject({ timeout: 30 });

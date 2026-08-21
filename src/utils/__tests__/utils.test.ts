@@ -168,6 +168,21 @@ describe('redaction utilities', () => {
       .toBe("fatal: unable to access 'https://****@github.com/o/r.git/'");
   });
 
+  it('preserves ${VAR} userinfo placeholders when asked', () => {
+    const placeholder = 'https://x-token-auth:${MY_TOKEN}@host/repo.git';
+
+    expect(redactUrlCredentials(placeholder, { preservePlaceholders: true })).toBe(placeholder);
+    // Without the flag the userinfo is masked like any other credential.
+    expect(redactUrlCredentials(placeholder)).toBe('https://****@host/repo.git');
+  });
+
+  it('still masks inline credentials even when preserving placeholders', () => {
+    const result = redactUrlCredentials('https://oauth2:SECRET@github.com/org/repo.git', { preservePlaceholders: true });
+
+    expect(result).toBe('https://****@github.com/org/repo.git');
+    expect(result).not.toContain('SECRET');
+  });
+
   it('redacts sensitive URL parameters while preserving safe ones', () => {
     const result = redactUrlParams('https://example.com/search?q=hello&apikey=secret123&Authorization=Bearer+xyz');
 

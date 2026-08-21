@@ -23,6 +23,8 @@ const knownAgentFields = new Set([
 const agentDirectories = ['.agents/agents', '.openhands/agents'] as const;
 const skipFiles = new Set(['README.md', 'readme.md']);
 
+export type AgentDefinitionLevel = 'project' | 'user' | 'builtin' | 'plugin' | 'programmatic';
+
 export interface AgentDefinitionOptions {
   readonly name: string;
   readonly description?: string;
@@ -40,6 +42,7 @@ export interface AgentDefinitionOptions {
   readonly profile_store_dir?: string | null;
   readonly condenser?: unknown;
   readonly metadata?: Record<string, unknown>;
+  readonly level?: AgentDefinitionLevel | null;
 }
 
 export class AgentDefinition {
@@ -59,6 +62,7 @@ export class AgentDefinition {
   readonly profile_store_dir: string | null;
   readonly condenser: unknown;
   readonly metadata: Record<string, unknown>;
+  readonly level: AgentDefinitionLevel | null;
 
   constructor(options: AgentDefinitionOptions) {
     this.name = options.name;
@@ -77,6 +81,7 @@ export class AgentDefinition {
     this.profile_store_dir = options.profile_store_dir ?? null;
     this.condenser = options.condenser ?? null;
     this.metadata = { ...(options.metadata ?? {}) };
+    this.level = options.level ?? null;
   }
 
   static async load(agentPath: string): Promise<AgentDefinition> {
@@ -113,6 +118,40 @@ export async function loadProjectAgents(projectDir: string): Promise<AgentDefini
 
 export async function loadUserAgents(): Promise<AgentDefinition[]> {
   return loadAgentsFromDirs(agentDirectories.map((dir) => join(homedir(), dir)));
+}
+
+export interface DiscoverAgentsOptions {
+  readonly projectDir?: string | null;
+  readonly includeProject?: boolean;
+  readonly includeUser?: boolean;
+}
+
+export async function discoverAgents(options: DiscoverAgentsOptions = {}): Promise<AgentDefinition[]> {
+  const includeProject = options.includeProject ?? true;
+  const includeUser = options.includeUser ?? true;
+
+  const discovered: AgentDefinition[] = [];
+  if (includeProject && options.projectDir !== null && options.projectDir !== undefined) {
+    for (const definition of await loadProjectAgents(options.projectDir)) {
+      discovered.push({ ...definition, level: 'project' });
+    }
+  }
+  if (includeUser) {
+    for (const definition of await loadUserAgents()) {
+      discovered.push({ ...definition, level: 'user' });
+    }
+  }
+
+  // Project wins over user on name collision; first wins.
+  const seen = new Set<string>();
+  const result: AgentDefinition[] = [];
+  for (const definition of discovered) {
+    if (!seen.has(definition.name)) {
+      seen.add(definition.name);
+      result.push(definition);
+    }
+  }
+  return result;
 }
 
 export async function loadAgentsFromDirs(directories: readonly string[]): Promise<AgentDefinition[]> {

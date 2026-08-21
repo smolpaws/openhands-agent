@@ -52,7 +52,7 @@ export class AgentContext {
     if (this.currentDatetime === null) {
       return null;
     }
-    return this.currentDatetime instanceof Date ? this.currentDatetime.toISOString() : this.currentDatetime;
+    return this.currentDatetime instanceof Date ? formatDatetimeToMinute(this.currentDatetime) : this.currentDatetime;
   }
 
   partitionSkills(): { repoSkills: Skill[]; availableSkills: Skill[] } {
@@ -121,6 +121,20 @@ export class AgentContext {
     }
     return parts.length === 0 ? null : { content: textContent(parts.join('\n\n')), activatedSkills: activated.map((skill) => skill.name) };
   }
+}
+
+function formatDatetimeToMinute(value: Date): string {
+  const year = value.getFullYear();
+  const month = pad2(value.getMonth() + 1);
+  const day = pad2(value.getDate());
+  const hour = pad2(value.getHours());
+  const minute = pad2(value.getMinutes());
+
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}
+
+function pad2(value: number): string {
+  return value.toString().padStart(2, '0');
 }
 
 function assertUniqueSkillNames(skills: readonly Skill[]): void {

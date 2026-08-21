@@ -1,0 +1,319 @@
+{
+  "schemaVersion": 1,
+  "repository": "OpenHands/software-agent-sdk",
+  "from": "b061336b800712dcb86b9c9d829910a89c0867d0",
+  "to": "d1595f72cede247218ae5f64e20d412880b7fc01",
+  "inventorySha256": "f926f1bb32814922aca14aa8fab22608bd27426ab8007fdbeab5ffa4a518cb6b",
+  "items": {
+    "e6b56beca589f2c96bdb902dd01caa1e5b8a2551:sdk": {
+      "disposition": "PORT",
+      "reason": "Real observable SDK behavior: injected current_datetime is trimmed to local wall-clock YYYY-MM-DDTHH:MM (drops seconds and the UTC offset) for Date inputs. Ported getFormattedDatetime and rendered in the system suffix.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [
+        "src/context/__tests__/agent-context-datetime.test.ts",
+        "src/context/agent-context.ts"
+      ],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "1ee364b37a53a68170da8ffc048703c6e25b5e7e:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository only targets the SDK. No TypeScript change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "ef44a8b24cee6c0827f9a86d7a58d466c5247653:sdk": {
+      "disposition": "PORT",
+      "reason": "redactUrlCredentials gains preserve_placeholders so ${VAR} userinfo refs survive masking while inline credentials are still redacted. TS already exposes redactUrlCredentials and consumes it; ported the flag and kept inline-credential masking intact.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [
+        "src/utils/__tests__/utils.test.ts",
+        "src/utils/index.ts"
+      ],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "f727906f6a794d12475aa04602c374d6d0844af8:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Disables streaming on the LLMSummarizingCondenser summarizer call. The TS transpile has no LLMSummarizingCondenser and no streaming path on LLMClient; nothing to change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "cbeda489cf949d768bd17068291deb059b3bdfae:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository only targets the SDK. No TypeScript change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "5529fcc755f8ac10337001ca84a1234975adbe34:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Caps effective_max_output_tokens only for non-Bedrock custom base_url providers. TS has no Bedrock client or LiteLLM-style max-token capping layer; provider-specific caps live in the individual clients. No target change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "9fcf43f8e78066c4b88c6665fd657739d56a13a1:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Exposes registered marketplaces in the skills API and filters marketplace auto-load by plugin name. Marketplace registration/loading is out of TS scope (EXC-SDK-002); the in-scope AgentContext/local-conversation edits only touch marketplace machinery the TS transpile does not implement.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "9fcf43f8e78066c4b88c6665fd657739d56a13a1:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository only targets the SDK. No TypeScript change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "c442fb247a50c673fc8ff1a2b50bc12575f12267:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository only targets the SDK. No TypeScript change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "860b68023f2f4522440db2690f6b065def79bb3d:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Remote conversation learns to load marketplace plugins. Marketplace plugin runtime is out of TS scope (EXC-SDK-002); TS remote conversation has no marketplace plugin loading. No target change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "860b68023f2f4522440db2690f6b065def79bb3d:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository only targets the SDK. No TypeScript change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "8fa03afd35bddd3761f72d3d04b68c7cc3702e9c:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Exposes load_plugin on the base conversation interface. Plugin runtime is out of TS scope (EXC-SDK-001/002); TS conversations expose no load_plugin surface. No target change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "224b71798af221b586e27dd6f6b2d330b1e132cd:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Replaces mutable extra_headers with a frozen LLMCallContext and threads prompt_cache_key through task delegation. TS LLMClient is a thin non-streaming boundary with no extra_headers mutation or call-context threading; the TaskManager subagent that would pass prompt_cache_key is not transpiled. No target change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "224b71798af221b586e27dd6f6b2d330b1e132cd:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository only targets the SDK. No TypeScript change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "e01d6a8ef0fb68eaa9405606395ca97b8ace5247:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Agent now returns a warning message and finishes when an image is sent to a non-vision model. TS has no vision_is_active/contains_image signal on LLMClient and no RouterLLM; the image-input warning path has no TS counterpart. No target change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "c36854513b176a549f8ebd789a0c9f5f582f799d:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Ports the planning prompt into the prompt registry and retires the system_prompt_planning.j2 template. The TS transpile has no Jinja prompt registry or planning preset; system prompts are ordinary strings. No target change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "1c230d909eaa0fe9679d49540cb887c05f268add:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Widens the EventLog filename regex to accept 6+ digit indices. The TS event-name regex already uses \\d{5,} (no width cap), so 100000+ indices are already accepted. No target change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "5a4f0a4acee7617b36cc87a998f1bfe7f02e5466:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Disables streaming for title-generation and ask_agent LLM calls. TS has no title_utils or ask_agent implementations and no streaming path. No target change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "feca62017e2d33519c953b83f3747ded6b96329d:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Store-agnostic FK refactor of LLM/agent profile stores (loader/mutator split, AgentProfileStoreProtocol, profile_refs, resolver, seed). The TS profiles module is schema/validation only and has no profile-store lifecycle layer; nothing to refactor. No target change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "feca62017e2d33519c953b83f3747ded6b96329d:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository only targets the SDK. No TypeScript change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "59b8ab830e2dc3a378fb6dfcc05b19355922d369:sdk": {
+      "disposition": "PORT",
+      "reason": "Real observable SDK behavior: MCP tool executor auto-reconnects when the client session is lost (unless the client is closed) before calling the tool, and returns a descriptive error when reconnection fails. Ported into MCPToolExecutor.execute and McpClientLike.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [
+        "src/mcp/__tests__/mcp.test.ts",
+        "src/mcp/index.ts"
+      ],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "7e1704fdb5bb27ee6499a2d1e711ec8137f2634f:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Adds client-configured session env to TerminalTool.create across the tmux/subprocess/powershell backend matrix. The TS TerminalTool is a minimal single-command child_process.exec stub with no persistent session or backend matrix, so there is no session-env surface to configure. No target change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "ab9f99e7904f8f6a64f2227d5fdf9dbf3459a51a:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository only targets the SDK. No TypeScript change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "b0608a618b1920f05dcca50fb2bff1e59695347e:sdk": {
+      "disposition": "PORT",
+      "reason": "Adds read-only discover_agents and an AgentDefinition.level scope. Ported AgentDefinitionLevel and discoverAgents (project+user discovery, level/source set, project-wins dedup, no registry mutation).",
+      "policy": null,
+      "tracking": [],
+      "evidence": [
+        "src/subagent/__tests__/subagent.test.ts",
+        "src/subagent/index.ts"
+      ],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "b0608a618b1920f05dcca50fb2bff1e59695347e:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository only targets the SDK. No TypeScript change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "d1595f72cede247218ae5f64e20d412880b7fc01:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release v1.30.0 version bump only (pyproject.toml/uv.lock). No source behavior change; TS package versioning is managed here independently.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "d1595f72cede247218ae5f64e20d412880b7fc01:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository only targets the SDK. No TypeScript change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    }
+  },
+  "unmapped": {}
+}

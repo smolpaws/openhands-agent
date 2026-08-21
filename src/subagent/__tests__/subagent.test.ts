@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AgentDefinition,
+  discoverAgents,
   getAgentFactory,
   getFactoryInfo,
   getRegisteredAgentDefinitions,
@@ -78,5 +79,38 @@ describe('subagent registry', () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe('discoverAgents', () => {
+  it('discovers project agents with level and source set, and does not mutate the registry', async () => {
+    resetAgentRegistryForTests();
+    const root = await mkdtemp(join(tmpdir(), 'openhands-discover-agents-'));
+    try {
+      await mkdir(join(root, '.agents', 'agents'), { recursive: true });
+      await writeFile(join(root, '.agents', 'agents', 'project-agent.md'), '---\nname: project-agent\ndescription: desc\n---\nPrompt for project-agent.');
+
+      const agents = await discoverAgents({ projectDir: root, includeUser: false });
+
+      expect(agents.map((agent) => agent.name)).toEqual(['project-agent']);
+      expect(agents[0]?.level).toBe('project');
+      expect(agents[0]?.source).toContain('project-agent.md');
+      expect(agents[0]?.system_prompt).toBe('Prompt for project-agent.');
+      // Discovery is read-only.
+      expect(getRegisteredAgentDefinitions()).toHaveLength(0);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('skips project discovery when projectDir is null', async () => {
+    const agents = await discoverAgents({ projectDir: null, includeUser: false });
+
+    expect(agents).toEqual([]);
+  });
+
+  it('derives the level from a loaded definition', () => {
+    const base = new AgentDefinition({ name: 'x', description: 'd' });
+    expect(base.level).toBeNull();
   });
 });

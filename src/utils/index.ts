@@ -289,8 +289,15 @@ export function isSecretKey(key: string): boolean {
   return [...SECRET_KEY_PATTERNS].some((pattern) => upper.includes(pattern));
 }
 
-export function redactUrlCredentials(url: string): string {
-  return url.replace(/^(https?:\/\/)([^@/]+)@(.+)$/u, '$1****@$3');
+export function redactUrlCredentials(url: string, options: { readonly preservePlaceholders?: boolean } = {}): string {
+  const match = /^(https?:\/\/)([^@/]+)@(.+)$/u.exec(url);
+  if (match === null) {
+    return url;
+  }
+  if (options.preservePlaceholders === true && match[2]?.includes('${')) {
+    return url;
+  }
+  return `${match[1]}****@${match[3]}`;
 }
 
 const embeddedUrlCredentialsPattern = /(https?:\/\/)[^/@\s]+@/gu;
