@@ -1,6 +1,7 @@
 import {
   agentErrorEventSchema,
   eventsToMessages,
+  messageEventSchema,
   observationEventSchema,
   type ActionEvent,
   type Event,
@@ -9,10 +10,13 @@ import {
 import { View, type Condenser } from '../context/index.js';
 import type { AgentContext } from '../context/index.js';
 import type { LLMClient } from '../llm/client.js';
+import { isContentPolicyViolation } from '../llm/exceptions.js';
 import { textContent, type Message } from '../llm/index.js';
 import type { ToolDefinition } from '../tool/index.js';
 import { ConversationState } from '../conversation/state.js';
 import { dispatchLlmResponse } from './response-dispatch.js';
+
+export const CONTENT_POLICY_NUDGE = 'Your previous response was blocked by the model\'s content filter. Please continue, rephrasing to avoid the flagged content.';
 
 export interface AgentOptions {
   readonly llm: LLMClient;
@@ -45,7 +49,27 @@ export class Agent {
     if (messages === null) {
       return [state.events.at(-1)].filter((event): event is Event => event !== undefined);
     }
-    const response = await this.llm.complete(messages, this.tools.filter((tool) => tool.usable));
+    let response;
+    try {
+      response = await this.llm.complete(messages, this.tools.filter((tool) => tool.usable));
+    } catch (error) {
+      if (isContentPolicyViolation(error)) {
+        // Content-policy blocks are deterministic; nudge the model and let the
+        // run loop continue instead of emitting a fatal error.
+        return [
+          await state.appendEventAsync(
+            messageEventSchema.parse({
+              source: 'user',
+              llm_message: {
+                role: 'user',
+                content: [textContent(CONTENT_POLICY_NUDGE)],
+              },
+            }),
+          ),
+        ];
+      }
+      throw error;
+    }
     return dispatchLlmResponse(response, state, (action) => this.runTool(action), {
       maxConcurrency: this.toolConcurrencyLimit,
     });

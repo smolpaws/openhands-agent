@@ -60,6 +60,23 @@ describe('profile-resolved Anthropic Messages client', () => {
     );
   });
 
+  it('maps content-policy blocks to LLMContentPolicyViolationError', async () => {
+    const profile = llmProfileSchema.parse({ profileId: 'sonnet', providerId: 'anthropic', model: 'claude-sonnet-4-5' });
+    const store = new InMemorySecretStore([[llmProviderSecretRef('anthropic'), 'anthropic-key']]);
+    const client = await createAnthropicClientFromProfile(profile, store, {
+      fetch: async () => ({
+        ok: false,
+        status: 400,
+        async json() { return {}; },
+        async text() { return 'Output blocked by content filtering policy'; },
+      }),
+    });
+
+    await expect(client.complete([{ role: 'user', content: [textContent('hi')] }])).rejects.toThrow(
+      /Output blocked by content filtering policy/u,
+    );
+  });
+
   it('normalizes extended thinking requests and preserves signed thinking blocks', () => {
     const profile = llmProfileSchema.parse({
       profileId: 'sonnet',

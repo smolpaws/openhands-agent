@@ -4,6 +4,7 @@ import { getLlmApiKey } from '../secrets/index.js';
 import type { SecretStore } from '../secrets/index.js';
 import type { ToolDefinition } from '../tool/index.js';
 import { llmCompletionResponseSchema, type FetchLike, type LLMClient, type LLMCompletionResponse } from './client.js';
+import { isContentPolicyViolation, LLMContentPolicyViolationError } from './exceptions.js';
 import { contentToString, messageSchema, reduceTextContent, type Content, type LLMProfile, type Message, type MessageToolCall } from './index.js';
 import { getAnthropicThinkingBudget, normalizeGenerationParamsForModel, supportsPromptCaching } from './provider-quirks.js';
 
@@ -39,7 +40,11 @@ export class AnthropicMessagesClient implements LLMClient {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`Anthropic messages completion failed with HTTP ${response.status}: ${text}`);
+      const error = new Error(`Anthropic messages completion failed with HTTP ${response.status}: ${text}`);
+      if (isContentPolicyViolation(error)) {
+        throw new LLMContentPolicyViolationError(text);
+      }
+      throw error;
     }
 
     return parseAnthropicMessagesResponse(await response.json());
