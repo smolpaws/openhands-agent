@@ -58,12 +58,36 @@ export async function writeReview(path: string, review: DriftReview): Promise<vo
   await writeFile(path, `${JSON.stringify(review, null, 2)}\n`);
 }
 
+/**
+ * True when the interval a review describes has already been closed — the
+ * canonical manifest pin has advanced to (or past) the review's target, so the
+ * regenerated interval is empty. Once a pin advance lands, `generateInventory`
+ * builds the range `manifest.commit..review.to`; when `manifest.commit` already
+ * equals `review.to`, that range has no first-parent commits. Re-auditing it is
+ * meaningless — the review is frozen historical evidence at that point — so the
+ * checker should report success rather than fail on a from-mismatch, a stale
+ * hash, and every item reading as "stale/unknown".
+ *
+ * Gated on the interval targeting the current pin (`review.to === inventory.to`)
+ * so a mismatched or garbage review still fails loudly: a wrong `to` would not
+ * produce an empty range, since `inventory.from` is the manifest pin.
+ */
+export function isAlreadyClosedInterval(
+  inventory: DriftInventory,
+  review: DriftReview,
+): boolean {
+  return inventory.firstParentCommits === 0 && review.to === inventory.to;
+}
+
 export function validateReview(
   inventory: DriftInventory,
   review: DriftReview,
   manifest: UpstreamManifest,
   phase: CheckPhase,
 ): string[] {
+  // An already-closed interval has nothing left to audit; treat it as valid.
+  if (isAlreadyClosedInterval(inventory, review)) return [];
+
   const errors: string[] = [];
   if (review.repository !== inventory.repository) errors.push('review.repository does not match inventory');
   if (review.from !== inventory.from) errors.push('review.from does not match the canonical pin');

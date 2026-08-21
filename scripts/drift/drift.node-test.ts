@@ -8,7 +8,12 @@ import test from 'node:test';
 import { GitRepository } from './git.js';
 import { generateInventory, unitId, unmappedId } from './inventory.js';
 import { parseManifest } from './manifest.js';
-import { inventoryHash, prepareReview, validateReview } from './review.js';
+import {
+  inventoryHash,
+  isAlreadyClosedInterval,
+  prepareReview,
+  validateReview,
+} from './review.js';
 import type { DriftReview, UpstreamManifest } from './types.js';
 
 const manifestTemplate = (commit: string): UpstreamManifest => parseManifest({
@@ -163,6 +168,61 @@ test('stale inventory hashes are rejected', async () => {
     assert.equal(review.inventorySha256, inventoryHash(inventory));
     (review as { inventorySha256: string }).inventorySha256 = '0'.repeat(64);
     assert.ok(validateReview(inventory, review, manifest, 'review').includes('review inventory hash is stale'));
+  } finally {
+    await rm(fixture.path, { recursive: true, force: true });
+  }
+});
+
+test('an already-closed interval reports success instead of auditing an empty range', async () => {
+  const fixture = await createFixture();
+  try {
+    await put(fixture.path, 'openhands-sdk/conversation/base.py', 'v2\n');
+    const advanced = commit(fixture.path, 'feat: change');
+    const repository = new GitRepository(fixture.path);
+
+    // Freeze the review over the real interval while the pin is still the OLD
+    // sha; it validates for the review phase (dispositions filled in later).
+    const oldPinManifest = manifestTemplate(fixture.pin);
+    const review = prepareReview(
+      generateInventory(repository, oldPinManifest, advanced),
+    );
+
+    // Advance the canonical pin to the review's target: the regenerated
+    // interval is now empty, so re-auditing must not fail on the frozen record
+    // — even though its items were never dispositioned.
+    const closedManifest = manifestTemplate(advanced);
+    const closedInventory = generateInventory(repository, closedManifest, review.to);
+    assert.equal(closedInventory.firstParentCommits, 0);
+    assert.equal(isAlreadyClosedInterval(closedInventory, review), true);
+    assert.deepEqual(validateReview(closedInventory, review, closedManifest, 'review'), []);
+    assert.deepEqual(validateReview(closedInventory, review, closedManifest, 'close'), []);
+  } finally {
+    await rm(fixture.path, { recursive: true, force: true });
+  }
+});
+
+test('an empty range is not treated as closed when the review targets a different commit', async () => {
+  const fixture = await createFixture();
+  try {
+    await put(fixture.path, 'openhands-sdk/conversation/base.py', 'v2\n');
+    const advanced = commit(fixture.path, 'feat: change');
+    const repository = new GitRepository(fixture.path);
+
+    // Manifest is already at HEAD (empty range), but the review targets an
+    // OLDER commit than the pin, so this is a mismatch, not a closed interval.
+    const manifest = manifestTemplate(advanced);
+    const inventory = generateInventory(repository, manifest, advanced);
+    assert.equal(inventory.firstParentCommits, 0);
+    const staleReview = prepareReview(
+      generateInventory(repository, manifestTemplate(fixture.pin), advanced),
+    );
+    (staleReview as { to: string }).to = fixture.pin;
+    assert.equal(isAlreadyClosedInterval(inventory, staleReview), false);
+    assert.ok(
+      validateReview(inventory, staleReview, manifest, 'review').some((error) =>
+        error.includes('review.to does not match the candidate commit'),
+      ),
+    );
   } finally {
     await rm(fixture.path, { recursive: true, force: true });
   }

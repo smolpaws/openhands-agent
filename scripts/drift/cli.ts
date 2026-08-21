@@ -6,7 +6,13 @@ import { dirname, resolve } from 'node:path';
 import { GitRepository } from './git.js';
 import { generateInventory } from './inventory.js';
 import { loadManifest } from './manifest.js';
-import { loadReview, prepareReview, validateReview, writeReview } from './review.js';
+import {
+  isAlreadyClosedInterval,
+  loadReview,
+  prepareReview,
+  validateReview,
+  writeReview,
+} from './review.js';
 import { renderMarkdown } from './render.js';
 import type { CheckPhase } from './types.js';
 
@@ -59,6 +65,12 @@ async function main(argv: readonly string[]): Promise<void> {
       if (errors.length > 0) {
         for (const error of errors) process.stderr.write(`- ${error}\n`);
         throw new Error(`drift review failed ${errors.length} validation check${errors.length === 1 ? '' : 's'}`);
+      }
+      if (isAlreadyClosedInterval(inventory, review)) {
+        process.stdout.write(
+          `Interval already closed: canonical pin is already at ${review.to}; nothing to audit.\n`,
+        );
+        return;
       }
       process.stdout.write(`Drift review is valid for phase ${phase}: ${review.from}..${review.to}\n`);
       return;
