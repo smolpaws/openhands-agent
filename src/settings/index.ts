@@ -42,12 +42,22 @@ const settingsSchemaVersion = (version: number) => z.literal(version).default(ve
 export const observabilityMetadataSchema = z.record(z.string().min(1), z.unknown());
 export const observabilityTagsSchema = z.array(z.string());
 
+const OBSERVABILITY_SPAN_NAME_PATTERN = /^[A-Za-z0-9._:/-]+$/u;
+const OBSERVABILITY_SPAN_NAME_MAX_LENGTH = 128;
+
+export const observabilitySpanNameSchema = z
+  .string()
+  .min(1, 'Observability span name must be a non-empty string')
+  .max(OBSERVABILITY_SPAN_NAME_MAX_LENGTH, `Observability span name exceeds maximum length of ${OBSERVABILITY_SPAN_NAME_MAX_LENGTH} characters`)
+  .regex(OBSERVABILITY_SPAN_NAME_PATTERN, 'Observability span name may only contain letters, numbers, dots, underscores, colons, slashes, and hyphens');
+
 export const conversationSettingsSchema = z
   .object({
     schema_version: settingsSchemaVersion(CONVERSATION_SETTINGS_SCHEMA_VERSION),
     max_iterations: z.number().int().min(1).default(500),
     observability_metadata: observabilityMetadataSchema.nullable().default(null),
     observability_tags: observabilityTagsSchema.nullable().default(null),
+    observability_span_name: observabilitySpanNameSchema.nullable().default(null),
   })
   .strict();
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { endRootSpan, extractActionName, maybeInitLaminar, observe, shouldEnableObservability, startRootSpan } from '../index.js';
+import { endRootSpan, extractActionName, maybeInitLaminar, observe, shouldEnableObservability, startChildSpan, startRootSpan } from '../index.js';
 
 describe('observability helpers', () => {
   it('gates observability on Laminar or OTEL environment variables', () => {
@@ -32,5 +32,25 @@ describe('observability helpers', () => {
     expect(extractActionName({ action: { kind: 'terminal' }, tool_name: 'fallback' })).toBe('terminal');
     expect(extractActionName({ tool_name: 'file_editor' })).toBe('file_editor');
     expect(extractActionName(null)).toBe('agent.execute_action');
+  });
+
+  it('emits a named child span under the conversation root span', () => {
+    const children: string[] = [];
+    const root = startRootSpan('conversation', {
+      env: { LMNR_PROJECT_API_KEY: 'key' },
+      spanFactory: () => ({
+        end() {},
+        beginChild(childName) { children.push(childName); },
+      }),
+    });
+    expect(root).not.toBeNull();
+
+    startChildSpan(root, 'conversation.run', ['sdk']);
+
+    expect(children).toEqual(['conversation.run']);
+  });
+
+  it('no-ops a child span when the root span is absent', () => {
+    expect(() => startChildSpan(null, 'conversation.run')).not.toThrow();
   });
 });

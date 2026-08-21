@@ -35,6 +35,7 @@ export interface RootSpanOptions {
 
 export interface RootSpanHandle {
   readonly setAttribute?: (key: string, value: string) => void;
+  readonly beginChild?: (name: string, tags?: readonly string[] | null) => void;
   readonly end?: () => void;
 }
 
@@ -116,6 +117,18 @@ export function startRootSpan(name: string, options: RootSpanOptions = {}): Root
 
 export function endRootSpan(root: RootSpan | null | undefined): void {
   root?.end();
+}
+
+export function startChildSpan(root: RootSpan | null | undefined, name: string, tags?: readonly string[] | null): void {
+  if (root === null || root === undefined) {
+    return;
+  }
+  try {
+    root.handle.beginChild?.(name, tags);
+  } catch {
+    // Child spans are best-effort observability signals; never let a broken
+    // backend abort conversation execution.
+  }
 }
 
 export function extractActionName(actionEvent: unknown): string {

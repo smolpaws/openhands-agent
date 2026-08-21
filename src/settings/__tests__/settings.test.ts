@@ -32,6 +32,17 @@ describe('ConversationSettings', () => {
     expect(() => conversationSettingsSchema.parse({ observability_metadata: [] })).toThrow();
     expect(() => conversationSettingsSchema.parse({ observability_tags: [1, 2] })).toThrow();
   });
+
+  it('validates observability span names', () => {
+    expect(conversationSettingsSchema.parse({ observability_span_name: 'conversation.run' }).observability_span_name)
+      .toBe('conversation.run');
+    expect(conversationSettingsSchema.parse({}).observability_span_name).toBeNull();
+
+    expect(() => conversationSettingsSchema.parse({ observability_span_name: '' })).toThrow();
+    expect(() => conversationSettingsSchema.parse({ observability_span_name: 42 })).toThrow();
+    expect(() => conversationSettingsSchema.parse({ observability_span_name: 'bad name' })).toThrow();
+    expect(() => conversationSettingsSchema.parse({ observability_span_name: 'a'.repeat(129) })).toThrow();
+  });
 });
 
 describe('AgentSettings', () => {
