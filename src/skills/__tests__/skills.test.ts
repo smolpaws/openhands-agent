@@ -89,4 +89,40 @@ describe('AgentContext', () => {
     expect(result?.content.text).toContain('User suffix.');
     expect(result?.activatedSkills).toEqual(['debug']);
   });
+
+  it('renders dynamic suffix sections in the upstream registry order and strips custom_suffix', () => {
+    const context = new AgentContext({
+      skills: [
+        skillSchema.parse({ name: 'repo', content: 'Repo rule content.' }),
+        skillSchema.parse({ name: 'debug', content: 'Debug content.', description: 'Debug help', trigger: { type: 'keyword', keywords: ['debug'] } }),
+      ],
+      systemMessageSuffix: '  custom suffix text  ',
+      currentDatetime: '2026-06-24T00:00:00+02:00',
+      secrets: { GITHUB_TOKEN: { description: 'GitHub token' } },
+    });
+
+    const system = context.getSystemMessageSuffix();
+    expect(system).not.toBeNull();
+
+    // Upstream registry order: datetime, repo_context, available_skills, custom_suffix, custom_secrets.
+    const datetimeIndex = system!.indexOf('<CURRENT_DATETIME>');
+    const repoIndex = system!.indexOf('<REPO_CONTEXT>');
+    const skillsIndex = system!.indexOf('<available_skills>');
+    const customSuffixIndex = system!.indexOf('custom suffix text');
+    const secretsIndex = system!.indexOf('<CUSTOM_SECRETS>');
+
+    expect(datetimeIndex).toBeGreaterThanOrEqual(0);
+    expect(repoIndex).toBeGreaterThanOrEqual(0);
+    expect(skillsIndex).toBeGreaterThanOrEqual(0);
+    expect(customSuffixIndex).toBeGreaterThanOrEqual(0);
+    expect(secretsIndex).toBeGreaterThanOrEqual(0);
+
+    expect(datetimeIndex).toBeLessThan(repoIndex);
+    expect(repoIndex).toBeLessThan(skillsIndex);
+    expect(skillsIndex).toBeLessThan(customSuffixIndex);
+    expect(customSuffixIndex).toBeLessThan(secretsIndex);
+
+    // custom_suffix is stripped of surrounding whitespace.
+    expect(system!.indexOf('  custom suffix text  ')).toBe(-1);
+  });
 });

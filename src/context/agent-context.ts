@@ -76,20 +76,20 @@ export class AgentContext {
     const datetime = this.getFormattedDatetime();
     const sections: string[] = [];
 
+    if (datetime !== null) {
+      sections.push(`<CURRENT_DATETIME>\n${datetime}\n</CURRENT_DATETIME>`);
+    }
     if (repoSkills.length > 0) {
       sections.push(`<REPO_CONTEXT>\n${repoSkills.map((skill) => `[BEGIN context from [${skill.name}]]\n${skill.content.trim()}\n[END Context]`).join('\n\n')}\n</REPO_CONTEXT>`);
-    }
-    if (this.systemMessageSuffix !== null && this.systemMessageSuffix.trim().length > 0) {
-      sections.push(this.systemMessageSuffix.trim());
     }
     if (availableSkills.length > 0) {
       sections.push(skillsToPrompt(availableSkills));
     }
+    if (this.systemMessageSuffix !== null && this.systemMessageSuffix.trim().length > 0) {
+      sections.push(this.systemMessageSuffix.trim());
+    }
     if (secretInfos.length > 0) {
       sections.push(`<CUSTOM_SECRETS>\n${secretInfos.map((secret) => `* **$${secret.name}**${secret.description ? ` - ${secret.description}` : ''}`).join('\n')}\n</CUSTOM_SECRETS>`);
-    }
-    if (datetime !== null) {
-      sections.push(`<CURRENT_DATETIME>\n${datetime}\n</CURRENT_DATETIME>`);
     }
 
     return sections.length === 0 ? null : sections.join('\n\n');
