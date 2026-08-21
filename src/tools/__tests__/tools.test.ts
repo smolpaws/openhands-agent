@@ -52,6 +52,34 @@ describe('FileEditorExecutor', () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  it('preserves new_str whitespace on an exact str_replace match', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'openhands-editor-'));
+    const path = join(root, 'file.md');
+    try {
+      await writeFile(path, 'hello world\nsecond line\n');
+      const result = await new FileEditorExecutor({ workspaceRoot: root }).execute({ command: 'str_replace', path, old_str: 'hello world', new_str: 'HELLO WORLD  ' });
+      expect(result.is_error).toBe(false);
+      expect(await readFile(path, 'utf8')).toBe('HELLO WORLD  \nsecond line\n');
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves new_str whitespace when the whitespace-tolerant fallback is used', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'openhands-editor-'));
+    const path = join(root, 'file.md');
+    try {
+      await writeFile(path, 'hello world\nsecond line\n');
+      // Leading space in old_str makes the exact match fail; the fallback must
+      // strip only old_str for the match while keeping new_str verbatim.
+      const result = await new FileEditorExecutor({ workspaceRoot: root }).execute({ command: 'str_replace', path, old_str: ' hello world', new_str: 'HELLO WORLD  ' });
+      expect(result.is_error).toBe(false);
+      expect(await readFile(path, 'utf8')).toBe('HELLO WORLD  \nsecond line\n');
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('GlobExecutor and GrepExecutor', () => {

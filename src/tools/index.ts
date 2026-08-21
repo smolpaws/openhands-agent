@@ -83,11 +83,19 @@ export class FileEditorExecutor {
   private async strReplace(path: string, action: FileEditorAction): Promise<FileEditorObservation> {
     if (action.old_str === null) throw new Error('old_str is required for str_replace');
     const oldContent = await readFile(path, 'utf8');
-    const count = oldContent.split(action.old_str).length - 1;
-    if (count === 0) throw new Error('old_str was not found in the file');
+    let oldStr = action.old_str;
+    let count = countOccurrences(oldContent, oldStr);
+    if (count === 0) {
+      // Whitespace-tolerant fallback: strip old_str for the *match* only. Do
+      // not strip new_str — it is the replacement content, and trimming it
+      // would silently drop meaningful leading/trailing whitespace.
+      oldStr = oldStr.trim();
+      count = countOccurrences(oldContent, oldStr);
+      if (count === 0) throw new Error('old_str was not found in the file');
+    }
     if (count > 1) throw new Error('old_str appears multiple times; provide a unique match');
     this.pushHistory(path, oldContent);
-    const newContent = oldContent.replace(action.old_str, action.new_str ?? '');
+    const newContent = oldContent.replace(oldStr, action.new_str ?? '');
     await writeFile(path, newContent);
     return this.observation({ text: `Edited ${path}`, is_error: false, command: action.command, path, old_content: oldContent, new_content: newContent });
   }
@@ -228,6 +236,13 @@ async function executeBrowserAction(adapter: BrowserAdapter, action: z.infer<typ
   if (action.command === 'scroll' && adapter.scroll) return adapter.scroll(action.direction);
   if (action.command === 'back' && adapter.back) return adapter.back();
   return { text: `Browser adapter does not support command '${action.command}' or required arguments are missing.`, is_error: true };
+}
+
+function countOccurrences(content: string, needle: string): number {
+  if (needle.length === 0) {
+    return 0;
+  }
+  return content.split(needle).length - 1;
 }
 
 async function exists(path: string): Promise<boolean> { return stat(path).then(() => true).catch(() => false); }
