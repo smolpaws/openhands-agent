@@ -300,7 +300,7 @@ export function redactUrlCredentials(url: string, options: { readonly preservePl
   return `${match[1]}****@${match[3]}`;
 }
 
-const embeddedUrlCredentialsPattern = /(https?:\/\/)[^/@\s]+@/gu;
+const embeddedUrlCredentialsPattern = /(https?:\/\/)[^/@\s]+@/giu;
 
 export function redactUrlCredentialsInText(text: string): string {
   return text.replace(embeddedUrlCredentialsPattern, '$1****@');

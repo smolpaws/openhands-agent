@@ -62,6 +62,69 @@ describe('Skill', () => {
 
     expect(mergeSkillsByName(primary, secondary).map((skill) => skill.content)).toEqual(['primary', 'other']);
   });
+
+  it.each([
+    // whole-word matches fire
+    ['git', 'run git status', 'git'],
+    ['git', 'git', 'git'],
+    ['git', 'git status', 'git'],
+    ['git', 'use git', 'git'],
+    ['git', 'run git status twice, git', 'git'],
+    // case-insensitive matching, original keyword returned
+    ['git', 'GIT rocks', 'git'],
+    ['git', 'use Git today', 'git'],
+    ['GIT', 'run git status', 'GIT'],
+    ['GitHub', 'open github now', 'GitHub'],
+    // non-alnum boundaries fire
+    ['git', 'git!', 'git'],
+    ['git', 'git.', 'git'],
+    ['git', '(git)', 'git'],
+    ['git', 'git:status', 'git'],
+    ['git', 'use-git-now', 'git'],
+    ['git', 'my_git_repo', 'git'],
+    ['git', 'line1\ngit\nline2', 'git'],
+    // alphanumeric adjacency blocks (the #3643 false positives)
+    ['git', 'check out github.com', null],
+    ['git', 'the digit five', null],
+    ['git', 'a legitimate reason', null],
+    ['git', 'git2 branch', null],
+    ['git', '2git branch', null],
+    ['issue', 'hand me a tissue', null],
+    // no match
+    ['git', 'no match here', null],
+    ['git', '', null],
+    // slash-prefixed keywords (why alnum boundaries, not \b)
+    ['/linear', 'use /linear now', '/linear'],
+    ['/linear', '/linear', '/linear'],
+    ['/linear', 'please /linear', '/linear'],
+    ['/linear', 'run a linearization', null],
+    ['/linear', 'src/linear.py', null],
+    // multi-word phrases match as a unit
+    ['pull request', 'open a pull request', 'pull request'],
+    ['pull request', 'pull request!', 'pull request'],
+    ['pull request', 'pullrequest', null],
+    ['pull request', 'pull requests', null],
+    // regex metacharacters stay literal
+    ['c++', 'write c++ code', 'c++'],
+    ['c++', 'c++today', null],
+    ['a.b', 'call a.b now', 'a.b'],
+    ['a.b', 'call axb now', null],
+  ] as const)('matchTrigger whole-word for keyword %j against %j', (keyword, message, expected) => {
+    const skill = skillSchema.parse({ name: 's', content: 'c', trigger: { type: 'keyword', keywords: [keyword] } });
+    expect(skill.matchTrigger(message)).toBe(expected);
+  });
+
+  it('matchTrigger returns the first matching keyword in list order', () => {
+    const skill = skillSchema.parse({ name: 's', content: 'c', trigger: { type: 'keyword', keywords: ['alpha', 'beta'] } });
+    expect(skill.matchTrigger('beta then alpha')).toBe('alpha');
+    expect(skill.matchTrigger('only beta here')).toBe('beta');
+  });
+
+  it('matchTrigger empties keyword never matches', () => {
+    const skill = skillSchema.parse({ name: 's', content: 'c', trigger: { type: 'keyword', keywords: [''] } });
+    expect(skill.matchTrigger('anything at all')).toBeNull();
+    expect(skill.matchTrigger('')).toBeNull();
+  });
 });
 
 describe('AgentContext', () => {

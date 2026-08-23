@@ -1,0 +1,261 @@
+{
+  "schemaVersion": 1,
+  "repository": "OpenHands/software-agent-sdk",
+  "from": "2eff609f9cd4ae31b219d36bd429f74f5348aeef",
+  "to": "9028562e2d5eda76de662ec9b7584125760eb83f",
+  "inventorySha256": "ba215b17c77f53e34cee9488413e834480f4ae5c3d53617fc38e7cbd5c7c7012",
+  "items": {
+    "d2ad818f4b6007bf77facc312dd692dde33ddf5d:sdk": {
+      "disposition": "PORT",
+      "reason": "match_trigger now matches keywords on whole tokens via alphanumeric boundaries so 'git' no longer fires on 'github' and 'issue' no longer fires on 'tissue', while slash-prefixed keywords like '/linear' still match. Ports the _keyword_matches logic (case-insensitive, re.escape-literal, empty keyword never matches, first-in-list wins) onto Skill.matchTrigger for both keyword and task triggers.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [
+        "src/skills/__tests__/skills.test.ts"
+      ],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "5115af7850f80a045acd8c12b01dcb1abdce2b42:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Adds WebSocketCallbackClient reconnection (fatal-close-code classification, exponential backoff, on_reconnect hook wired to state.events.reconcile). The TS SDK has no WebSocket client at all \u2014 RemoteConversation is HTTP-polling only (no ws://, no subscription loop) \u2014 so there is no reconnect surface to port.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "f0c7d8550ef61b15b54d6111c2caa8db8a824a1f:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Adds 'claude-sonnet-5' to the Python VERIFIED_*_MODELS allowlists. The TS SDK has no verified-models registry (model capability gating is not transpiled); provider clients own model handling.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "f96b80efa29d823d9715659b0cdf4d1ae6a2ccef:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Adds 'glm-5.2' to the Python VERIFIED_*_MODELS allowlists. No TS verified-models registry exists, so there is no target surface.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "53155aa636738c2c6eed445f928de83a181034f8:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Test-infrastructure change (tests/examples/test_examples.py isolation plus removal of .pr/demo_path_rules.py). Examples and test harness are not transpiled; no TS source behavior changes.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "53155aa636738c2c6eed445f928de83a181034f8:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository owns only the SDK/tools/workspace TypeScript sources, so no target change applies.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "0bebe7b939057062cbb7e79977f7ffd266de1978:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Adds CI security-scan scripts (.github/scripts/*, workflow) plus their tests/cross/* tests. Pure CI/test scaffolding; the server package is transpiled separately and these are repository-only paths with no SDK TS surface.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "f835c38162a629f008ba204acb4a5eeb0f9edfdd:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Adds a bullet to the Python static SecuritySection prompt (sections/static.py) plus prompt snapshots. The TS SDK does not transpile the security analyzer/prompt subsystem (DEV-SDK-001) nor render the static SecuritySection; the only secret-handling surface is redaction utils, which is unaffected.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "62ed727ab0071030886490765762c540bef0fae1:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Changes ConversationState._resolve_active_leaf to skip trailing ConversationStateUpdateEvent/ConversationErrorEvent artifacts when leaf_event_id is absent. The TS ConversationState is a flat index-ordered log: it has no leaf_event_id, no head_is_empty, no active_branch/path_to_root, and no tree persistence (deferred conversation-tree-port). The parent_id field is carried through the wire boundary only; the leaf-resolution code this commit touches does not exist to port.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "62ed727ab0071030886490765762c540bef0fae1:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository owns only the SDK/tools/workspace TypeScript sources, so no target change applies.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "ee2605bd94d08fb0575302eea7e995201a7496e4:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Adds 'gpt-5.6' to the Python VERIFIED_*_MODELS allowlists. No TS verified-models registry exists.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "64bf994455765920ad558dae9052321e794b83e5:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Pushes a browser_use logging workaround cleanup deadline constant from v1.x to v2.0.0. browser_use is an openhands-tools client not transpiled in this SDK.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "147160c490fa7ce27393bb4f164032c62220537e:sdk": {
+      "disposition": "PORT",
+      "reason": "Adds get_git_repository_metadata (best-effort repo_remote/head_commit/branch) and makes _EMBEDDED_URL_CREDENTIALS_RE case-insensitive (re.IGNORECASE). Ported getGitRepositoryMetadata onto the TS git module (redacting the remote URL credentials + query params) and added the 'i' flag to redactUrlCredentialsInText so mixed-case schemes like 'HTTPS://' redact.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [
+        "src/git/__tests__/git.test.ts",
+        "src/utils/__tests__/utils.test.ts"
+      ],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "147160c490fa7ce27393bb4f164032c62220537e:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository owns only the SDK/tools/workspace TypeScript sources, so no target change applies.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "75842b1f9fba38af4e9f384177d7b5c7e5b23013:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server test deflaking only (tests/agent_server/test_conversation_service.py); the server package is transpiled separately.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "dc20998acacc7181c9712daf5f8ceb0ee4d17c1d:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Support GPT-5.6 across Codex subscription authentication: renames the codex-acp package/session-mode, reworks _with_codex_base_url, updates the subscription default model and verified lists. The TS SDK has no subscription auth, no Codex ACP runtime (DEV-SDK-005 excludes ACP execution/model-switching), and no verified-models registry \u2014 only the acpAgentSettingsSchema surface exists, which carries no model default.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "dc20998acacc7181c9712daf5f8ceb0ee4d17c1d:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository owns only the SDK/tools/workspace TypeScript sources, so no target change applies.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "eed44fac7b96ab8d40f5e80553303f61d2e2da5d:sdk": {
+      "disposition": "PORT",
+      "reason": "Adds a purpose='display' base-ref policy to get_valid_ref so get_changes_in_repo/get_git_diff keep committed and even pushed work visible (skip a fully-pushed branch's own upstream, prefer the fork point via merge-base, degrade to HEAD git-status-style instead of the empty tree). Ported as getDisplayBaseRef with the same candidate order and wired getChangesInRepo/getGitDiff to purpose='display'.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [
+        "src/git/__tests__/git.test.ts"
+      ],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "853556c936b8f8ea6976f7e44121f1a9897e57ef:sdk": {
+      "disposition": "PORT",
+      "reason": "Adds git_commits.py (get_git_commits, get_commit_changes, get_commit_file_diff) and GitCommit/GitCommitsPage models for listing commits and per-commit diffs from git objects. Ported getGitCommits/getCommitChanges/getCommitFileDiff plus GitCommit/GitCommitsPage onto the TS git module, reusing _parse_name_status for the shared rename/copy parsing.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [
+        "src/git/__tests__/git.test.ts"
+      ],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "853556c936b8f8ea6976f7e44121f1a9897e57ef:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository owns only the SDK/tools/workspace TypeScript sources, so no target change applies.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "9028562e2d5eda76de662ec9b7584125760eb83f:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release version bump only (pyproject.toml/uv.lock). No source behavior change; the TypeScript package versions itself independently.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "9028562e2d5eda76de662ec9b7584125760eb83f:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release version bump only (pyproject.toml/uv.lock). No source behavior change; the TypeScript package versions itself independently.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    }
+  },
+  "unmapped": {}
+}

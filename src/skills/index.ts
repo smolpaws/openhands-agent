@@ -86,7 +86,7 @@ export class Skill implements SkillData {
     }
     const messageLower = message.toLowerCase();
     const candidates = this.trigger.type === 'keyword' ? this.trigger.keywords : this.trigger.triggers;
-    return candidates.find((candidate) => messageLower.includes(candidate.toLowerCase())) ?? null;
+    return candidates.find((candidate) => keywordMatches(candidate, messageLower)) ?? null;
   }
 
   getTriggers(): string[] {
@@ -487,6 +487,18 @@ export function pathMatchesGlob(filePath: string, pattern: string): boolean {
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+}
+
+function keywordMatches(keyword: string, messageLower: string): boolean {
+  // Whole-token match on alphanumeric boundaries so "git" does not fire on
+  // "github" while slash-prefixed keywords like "/linear" still match (the
+  // slash is a non-alnum boundary, unlike \b which treats it as a word char).
+  const keywordLower = keyword.toLowerCase();
+  if (keywordLower.length === 0) {
+    return false;
+  }
+  const pattern = new RegExp(`(?<![a-z0-9])${escapeRegex(keywordLower)}(?![a-z0-9])`, 'u');
+  return pattern.test(messageLower);
 }
 
 function inputList(value: unknown): InputMetadata[] {

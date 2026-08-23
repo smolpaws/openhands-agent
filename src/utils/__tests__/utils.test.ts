@@ -168,6 +168,10 @@ describe('redaction utilities', () => {
       .toBe("fatal: unable to access 'https://****@github.com/o/r.git/'");
   });
 
+  it('redacts credentials in mixed-case scheme (case-insensitive scheme match)', () => {
+    expect(redactUrlCredentialsInText('HTTPS://user:token@github.com/o/r.git')).toBe('HTTPS://****@github.com/o/r.git');
+  });
+
   it('preserves ${VAR} userinfo placeholders when asked', () => {
     const placeholder = 'https://x-token-auth:${MY_TOKEN}@host/repo.git';
 
