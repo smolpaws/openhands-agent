@@ -74,7 +74,7 @@ export const openHandsAgentSettingsSchema = z
     agent_kind: z.literal('openhands').default('openhands'),
     llm_profile_ref: z.string().min(1),
     agent: z.string().default('CodeActAgent'),
-    tools: z.array(z.unknown()).default([]),
+    tools: z.array(z.unknown()).nullable().default(null),
     enable_sub_agents: z.boolean().default(false),
     enable_switch_llm_tool: z.boolean().default(true),
     tool_concurrency_limit: z.number().int().min(1).default(1),

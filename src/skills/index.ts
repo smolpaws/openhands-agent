@@ -5,7 +5,8 @@ import { z } from 'zod';
 
 export const keywordTriggerSchema = z.object({ type: z.literal('keyword').default('keyword'), keywords: z.array(z.string()) }).strict();
 export const taskTriggerSchema = z.object({ type: z.literal('task').default('task'), triggers: z.array(z.string()) }).strict();
-export const triggerSchema = z.discriminatedUnion('type', [keywordTriggerSchema, taskTriggerSchema]);
+export const pathTriggerSchema = z.object({ type: z.literal('path').default('path'), paths: z.array(z.string()) }).strict();
+export const triggerSchema = z.discriminatedUnion('type', [keywordTriggerSchema, taskTriggerSchema, pathTriggerSchema]);
 export const inputMetadataSchema = z.object({ name: z.string(), description: z.string() }).strict();
 export const skillResourcesSchema = z.object({ skillRoot: z.string(), scripts: z.array(z.string()).default([]), references: z.array(z.string()).default([]), assets: z.array(z.string()).default([]) }).strict();
 
@@ -29,6 +30,7 @@ const skillDataSchema = z.object({
 
 export type KeywordTrigger = z.infer<typeof keywordTriggerSchema>;
 export type TaskTrigger = z.infer<typeof taskTriggerSchema>;
+export type PathTrigger = z.infer<typeof pathTriggerSchema>;
 export type Trigger = z.infer<typeof triggerSchema>;
 export type InputMetadata = z.infer<typeof inputMetadataSchema>;
 export type SkillResources = z.infer<typeof skillResourcesSchema>;
@@ -79,7 +81,7 @@ export class Skill implements SkillData {
   }
 
   matchTrigger(message: string): string | null {
-    if (this.trigger === null) {
+    if (this.trigger === null || this.trigger.type === 'path') {
       return null;
     }
     const messageLower = message.toLowerCase();
@@ -91,7 +93,17 @@ export class Skill implements SkillData {
     if (this.trigger === null) {
       return [];
     }
+    if (this.trigger.type === 'path') {
+      return [...this.trigger.paths];
+    }
     return this.trigger.type === 'keyword' ? [...this.trigger.keywords] : [...this.trigger.triggers];
+  }
+
+  matchPathTrigger(filePath: string): string | null {
+    if (this.trigger?.type !== 'path') {
+      return null;
+    }
+    return this.trigger.paths.find((pattern) => pathMatchesGlob(filePath, pattern)) ?? null;
   }
 
   getSkillType(): SkillType {
@@ -197,18 +209,29 @@ function loadLegacySkill(path: string, fileContent: string, skillBaseDir?: strin
 function createSkillFromMetadata(name: string, content: string, source: string, metadata: Record<string, unknown>, resources: SkillResources | null, isAgentskillsFormat: boolean): Skill {
   const triggers = stringList(metadata.triggers);
   const inputs = inputList(metadata.inputs);
-  const trigger = inputs.length > 0
-    ? taskTriggerSchema.parse({ triggers: triggers.includes(`/${name}`) ? triggers : [...triggers, `/${name}`] })
-    : triggers.length > 0
-      ? keywordTriggerSchema.parse({ keywords: triggers })
-      : null;
+  const paths = parsePaths(metadata.paths);
+  let trigger: Trigger | null;
+  let triggerInputs = inputs;
+  if (paths !== null && paths.length > 0) {
+    // A skill is either path-triggered OR model-invocable, not both: ``paths:``
+    // wins and any ``triggers:``/``inputs:`` are dropped (ignored here — the
+    // Python side also emits a warning).
+    trigger = pathTriggerSchema.parse({ paths });
+    triggerInputs = [];
+  } else if (inputs.length > 0) {
+    trigger = taskTriggerSchema.parse({ triggers: triggers.includes(`/${name}`) ? triggers : [...triggers, `/${name}`] });
+  } else if (triggers.length > 0) {
+    trigger = keywordTriggerSchema.parse({ keywords: triggers });
+  } else {
+    trigger = null;
+  }
   const allowedRaw = metadata['allowed-tools'] ?? metadata.allowed_tools;
   return skillSchema.parse({
     name,
-    content: appendMissingVariablesPrompt(content, trigger, inputs),
+    content: appendMissingVariablesPrompt(content, trigger, triggerInputs),
     source,
     trigger,
-    inputs,
+    inputs: triggerInputs,
     isAgentskillsFormat,
     description: stringValue(metadata.description),
     license: stringValue(metadata.license),
@@ -410,6 +433,60 @@ function stringList(value: unknown): string[] {
     return [];
   }
   return value.map((item) => String(item));
+}
+
+function parsePaths(value: unknown): string[] | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value === 'string') {
+    return value.split(',').map((part) => part.trim()).filter((part) => part.length > 0) || null;
+  }
+  if (Array.isArray(value)) {
+    const paths = value.map((item) => String(item).trim()).filter((item) => item.length > 0);
+    return paths.length > 0 ? paths : null;
+  }
+  return null;
+}
+
+const globTokenPattern = /\*\*\/|\*\*|\*|\?|[^*?]+/gu;
+const globToRegex: Readonly<Record<string, string>> = {
+  '**/': '(?:.*/)?',
+  '**': '.*',
+  '*': '[^/]*',
+  '?': '[^/]',
+};
+
+const pathGlobCache = new Map<string, RegExp>();
+
+function compilePathGlob(pattern: string): RegExp {
+  const cached = pathGlobCache.get(pattern);
+  if (cached !== undefined) {
+    return cached;
+  }
+  let expanded = pattern;
+  if (!pattern.includes('/')) {
+    expanded = `**/${pattern}`;
+  }
+  const body = (expanded.match(globTokenPattern) ?? [])
+    .map((token) => globToRegex[token] ?? escapeRegex(token))
+    .join('');
+  const compiled = new RegExp(`${body}$`, 'u');
+  if (pathGlobCache.size < 512) {
+    pathGlobCache.set(pattern, compiled);
+  }
+  return compiled;
+}
+
+export function pathMatchesGlob(filePath: string, pattern: string): boolean {
+  if (pattern.length === 0) {
+    return false;
+  }
+  return compilePathGlob(pattern).test(filePath);
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
 function inputList(value: unknown): InputMetadata[] {

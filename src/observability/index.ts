@@ -21,6 +21,7 @@ export interface ObserveAdapter {
 export interface LaminarInitOptions {
   readonly env?: EnvLike;
   readonly initializer?: () => void;
+  readonly isInitialized?: () => boolean;
 }
 
 export interface RootSpanOptions {
@@ -84,6 +85,11 @@ export function shouldEnableObservability(env: EnvLike = process.env): boolean {
 export function maybeInitLaminar(options: LaminarInitOptions = {}): boolean {
   if (!shouldEnableObservability(options.env ?? process.env)) {
     return false;
+  }
+  // Skip the initializer when the backend already reports as initialized; a
+  // second initialize can misconfigure or reset an active tracer.
+  if (options.isInitialized?.() === true) {
+    return true;
   }
   options.initializer?.();
   return true;

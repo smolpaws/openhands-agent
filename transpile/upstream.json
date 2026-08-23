@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "OpenHands/software-agent-sdk",
-  "commit": "d1595f72cede247218ae5f64e20d412880b7fc01",
+  "commit": "2eff609f9cd4ae31b219d36bd429f74f5348aeef",
   "targets": {
     "sdk": {
       "sourcePrefixes": [
@@ -95,7 +95,8 @@
     "Makefile",
     "README.md",
     "tests/README.md",
-    "tests/__init__.py"
+    "tests/__init__.py",
+    "tests/fixtures/conversations/v1_17_0_with_mcp_config/base_state.json"
   ],
   "policies": [
     {

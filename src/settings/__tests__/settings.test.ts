@@ -178,4 +178,15 @@ describe('AgentSettings', () => {
     expect(defaultAgentSettings('default').llm_profile_ref).toBe('default');
     expect(defaultAgentSettings('default').enable_switch_llm_tool).toBe(true);
   });
+
+  it('preserves the tools tri-state (null = SDK default vs empty list vs explicit list)', () => {
+    const defaulted = openHandsAgentSettingsSchema.parse({ llm_profile_ref: 'd' });
+    const bare = openHandsAgentSettingsSchema.parse({ llm_profile_ref: 'd', tools: [] });
+    const explicit = openHandsAgentSettingsSchema.parse({ llm_profile_ref: 'd', tools: [{ name: 'terminal' }] });
+
+    expect(defaulted.tools).toBeNull();
+    expect(bare.tools).toEqual([]);
+    expect(explicit.tools).toEqual([{ name: 'terminal' }]);
+    expect(openHandsAgentSettingsSchema.parse(JSON.parse(JSON.stringify(defaulted))).tools).toBeNull();
+  });
 });

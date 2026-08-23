@@ -26,10 +26,18 @@ export const sourceTypeSchema = z.union([
 
 const recordSchema = z.record(z.string(), z.unknown());
 
+export const ROOT_PARENT_ID = '__root__';
+
 const baseEventFields = {
-  id: z.string().default(() => randomUUID()),
+  id: z.string().refine((value) => value !== ROOT_PARENT_ID, `Event id may not equal reserved sentinel '${ROOT_PARENT_ID}'`).default(() => randomUUID()),
   timestamp: z.string().default(() => new Date().toISOString()),
   source: sourceTypeSchema,
+  // Conversation-tree linkage (6575534). None for the root or for legacy events
+  // predating the tree; events sharing a parent_id are sibling branches. The TS
+  // EventLog still persists a flat, index-ordered log — the tree field is carried
+  // through the wire/serialization boundary for compatibility while fork/navigate
+  // semantics remain deferred (see the review for 6575534).
+  parent_id: z.string().nullable().default(null),
 } as const;
 
 function eventObject<const Shape extends z.ZodRawShape>(shape: Shape) {
@@ -123,6 +131,7 @@ export const observationEventSchema = eventObject({
   action_id: z.string(),
   tool_name: z.string(),
   tool_call_id: z.string(),
+  extended_content: z.array(contentSchema).default([]),
 });
 
 export const userRejectObservationSchema = eventObject({
@@ -344,7 +353,7 @@ export function toLLMMessage(event: LLMConvertibleEvent): Message {
         responses_reasoning_item: event.responses_reasoning_item,
       };
     case 'ObservationEvent':
-      return toolMessage(event.tool_name, event.tool_call_id, observationContent(event.observation));
+      return toolMessage(event.tool_name, event.tool_call_id, [...observationContent(event.observation), ...event.extended_content]);
     case 'UserRejectObservation':
       return toolMessage(event.tool_name, event.tool_call_id, [textContent(`Action rejected: ${event.rejection_reason}`)]);
     case 'AgentErrorEvent':

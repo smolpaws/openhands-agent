@@ -39,11 +39,13 @@ export const openHandsAgentProfileSchema = z
     agent_kind: z.literal('openhands').default('openhands'),
     llm_profile_ref: z.string().min(1),
     agent: z.string().default('CodeActAgent'),
-    skills: z.array(z.unknown()).default([]),
+    tools: z.array(z.unknown()).nullable().default(null),
     system_message_suffix: z.string().nullable().default(null),
+    disabled_skills: z.array(z.string()).default([]),
     condenser: z.unknown().default({ condenser_kind: 'llm_summarizing', enabled: true }),
     verification: profileVerificationSettingsSchema.default(defaultProfileVerificationSettings),
     enable_sub_agents: z.boolean().default(false),
+    enable_switch_llm_tool: z.boolean().default(true),
     tool_concurrency_limit: z.number().int().min(1).default(1),
   })
   .strict();

@@ -28,6 +28,15 @@ describe('observability helpers', () => {
     expect(() => endRootSpan(null)).not.toThrow();
   });
 
+  it('skips the initializer when the backend is already initialized', () => {
+    const initializer = vi.fn();
+    expect(maybeInitLaminar({ env: { LMNR_PROJECT_API_KEY: 'key' }, isInitialized: () => true, initializer })).toBe(true);
+    expect(initializer).not.toHaveBeenCalled();
+
+    expect(maybeInitLaminar({ env: { LMNR_PROJECT_API_KEY: 'key' }, isInitialized: () => false, initializer })).toBe(true);
+    expect(initializer).toHaveBeenCalledTimes(1);
+  });
+
   it('extracts action names defensively', () => {
     expect(extractActionName({ action: { kind: 'terminal' }, tool_name: 'fallback' })).toBe('terminal');
     expect(extractActionName({ tool_name: 'file_editor' })).toBe('file_editor');

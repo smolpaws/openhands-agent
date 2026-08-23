@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export * from './defaults.js';
+
 export type JsonObject = Record<string, unknown>;
 export type ToolExecutor<TAction = unknown, TObservation = unknown> = (
   action: TAction,

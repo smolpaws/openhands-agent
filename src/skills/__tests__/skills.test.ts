@@ -104,7 +104,8 @@ describe('AgentContext', () => {
     const system = context.getSystemMessageSuffix();
     expect(system).not.toBeNull();
 
-    // Upstream registry order: datetime, repo_context, available_skills, custom_suffix, custom_secrets.
+    // Upstream registry order: repo_context, available_skills, custom_suffix,
+    // custom_secrets, datetime (datetime last — it is the volatile value).
     const datetimeIndex = system!.indexOf('<CURRENT_DATETIME>');
     const repoIndex = system!.indexOf('<REPO_CONTEXT>');
     const skillsIndex = system!.indexOf('<available_skills>');
@@ -117,10 +118,10 @@ describe('AgentContext', () => {
     expect(customSuffixIndex).toBeGreaterThanOrEqual(0);
     expect(secretsIndex).toBeGreaterThanOrEqual(0);
 
-    expect(datetimeIndex).toBeLessThan(repoIndex);
     expect(repoIndex).toBeLessThan(skillsIndex);
     expect(skillsIndex).toBeLessThan(customSuffixIndex);
     expect(customSuffixIndex).toBeLessThan(secretsIndex);
+    expect(secretsIndex).toBeLessThan(datetimeIndex);
 
     // custom_suffix is stripped of surrounding whitespace.
     expect(system!.indexOf('  custom suffix text  ')).toBe(-1);

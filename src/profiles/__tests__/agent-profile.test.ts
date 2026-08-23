@@ -79,6 +79,19 @@ describe('AgentProfile schemas', () => {
     expect(() => validateAgentProfile({ name: 'oh', llm_profile_ref: 'd', schema_version: -1 })).toThrow(/non-negative/u);
   });
 
+  it('preserves the tools tri-state and disabled_skills deny-list', () => {
+    const defaulted = openHandsAgentProfileSchema.parse({ name: 'a', llm_profile_ref: 'd' });
+    const bare = openHandsAgentProfileSchema.parse({ name: 'b', llm_profile_ref: 'd', tools: [] });
+    const explicit = openHandsAgentProfileSchema.parse({ name: 'c', llm_profile_ref: 'd', tools: [{ name: 'terminal' }] });
+    const denied = openHandsAgentProfileSchema.parse({ name: 'd', llm_profile_ref: 'd', disabled_skills: ['x', 'y'] });
+
+    expect(defaulted.tools).toBeNull();
+    expect(bare.tools).toEqual([]);
+    expect(explicit.tools).toEqual([{ name: 'terminal' }]);
+    expect(denied.disabled_skills).toEqual(['x', 'y']);
+    expect(defaulted.enable_switch_llm_tool).toBe(true);
+  });
+
   it('persists no raw secret fields', () => {
     const openHands = openHandsAgentProfileSchema.parse({ name: 'oh', llm_profile_ref: 'default' });
     const acp = acpAgentProfileSchema.parse({ name: 'acp', acp_server: 'claude-code' });

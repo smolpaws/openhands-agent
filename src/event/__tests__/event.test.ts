@@ -15,8 +15,27 @@ import {
   type LLMConvertibleEvent,
 } from '../index.js';
 import { textContent, type MessageToolCall } from '../../llm/index.js';
+import { ROOT_PARENT_ID } from '../index.js';
 
 describe('event serialization', () => {
+  it('carries a nullable parent_id through the event union (conversation-tree wire field)', () => {
+    const root = messageEventSchema.parse({
+      source: 'user',
+      llm_message: { role: 'user', content: [textContent('root')] },
+    });
+    expect(root.parent_id).toBeNull();
+
+    const child = messageEventSchema.parse({
+      source: 'user',
+      parent_id: root.id,
+      llm_message: { role: 'user', content: [textContent('child')] },
+    });
+    expect(child.parent_id).toBe(root.id);
+
+    expect(eventSchema.parse(JSON.parse(JSON.stringify(child))).parent_id).toBe(root.id);
+    expect(() => messageEventSchema.parse({ source: 'user', id: ROOT_PARENT_ID, llm_message: { role: 'user', content: [textContent('x')] } })).toThrow(/reserved sentinel/u);
+  });
+
   it('round-trips a system prompt event', () => {
     const event = systemPromptEventSchema.parse({
       source: 'agent',

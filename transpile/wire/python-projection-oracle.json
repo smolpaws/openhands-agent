@@ -24,6 +24,7 @@
           "tool_calls": null
         },
         "llm_response_id": null,
+        "parent_id": null,
         "sender": null,
         "source": "user",
         "timestamp": "2026-01-01T00:00:00Z"
@@ -53,6 +54,7 @@
           "tool_calls": null
         },
         "llm_response_id": null,
+        "parent_id": null,
         "sender": null,
         "source": "user",
         "timestamp": "2026-01-01T00:00:00Z"
@@ -80,6 +82,7 @@
           "tool_calls": null
         },
         "llm_response_id": null,
+        "parent_id": null,
         "sender": null,
         "source": "agent",
         "timestamp": "2026-01-01T00:00:01Z"
@@ -146,7 +149,7 @@
   },
   "schemaVersion": 1,
   "source": {
-    "commit": "d1595f72cede247218ae5f64e20d412880b7fc01",
+    "commit": "2eff609f9cd4ae31b219d36bd429f74f5348aeef",
     "repository": "OpenHands/software-agent-sdk"
   }
 }

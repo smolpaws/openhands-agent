@@ -1,0 +1,514 @@
+{
+  "schemaVersion": 1,
+  "repository": "OpenHands/software-agent-sdk",
+  "from": "d1595f72cede247218ae5f64e20d412880b7fc01",
+  "to": "2eff609f9cd4ae31b219d36bd429f74f5348aeef",
+  "inventorySha256": "995897b8f0ba5c344803fe182f0e9a50269933c4c1ab546c849d54c088693f7c",
+  "items": {
+    "8473c0f5d69c2861e897238cea8245ebd60c0ad2:sdk": {
+      "disposition": "PORT",
+      "reason": "Ports enable_switch_llm_tool (default true) onto OpenHandsAgentProfile. The skill_refs allow-list introduced here was later superseded by disabled_skills in 1877912, so only enable_switch_llm_tool is retained.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [
+        "src/profiles/__tests__/agent-profile.test.ts"
+      ],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "8473c0f5d69c2861e897238cea8245ebd60c0ad2:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository owns only the SDK/tools/workspace TypeScript sources, so no target change applies.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "850f415bcc2e50879d7383a88275750e14bf77c9:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Broadens a LiteLLM long-prompt error pattern. The TS SDK has no long-prompt/context-size classifier (only content-policy recovery); provider clients own error mapping.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "54980f06bd00dca8ab938f98a1bbaa4d9185e3bb:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository owns only the SDK/tools/workspace TypeScript sources, so no target change applies.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "8dac62fad46d5ccb3c60464e899495f002cef82f:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Custom FileStore injection already exists in the TS SDK: LocalConversationOptions.fileStore plus LocalFileStore/InMemoryFileStore in src/io. No new surface introduced.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "657553455ead07106c5f2196316984d3fc30c4ab:sdk": {
+      "disposition": "DEFERRED",
+      "reason": "Only the wire field (parent_id + ROOT_PARENT_ID sentinel) is ported and tested; the conversation tree itself (leaf HEAD, EventStore tree persistence, fork-from-event, navigate) is not. fork/navigate semantics remain deferred.",
+      "policy": null,
+      "tracking": [
+        "conversation-tree-port"
+      ],
+      "evidence": [],
+      "compatibilityConsequence": "Events carry parent_id through the wire/serialization boundary, but the TS EventLog remains a flat index-ordered log with no fork-from-event, navigate, or lineage.",
+      "revisitTrigger": "When the conversation tree is implemented, add leaf-HEAD/fork/navigate semantics plus tree persistence to EventStore and re-test against 6575534.",
+      "docsImpact": "none",
+      "docs": []
+    },
+    "657553455ead07106c5f2196316984d3fc30c4ab:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository owns only the SDK/tools/workspace TypeScript sources, so no target change applies.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "9ec9e93e94f25123ff32a3f7b04c624a34a885aa:sdk": {
+      "disposition": "DEFERRED",
+      "reason": "Remote fork-from-event/navigate/lineage endpoints have no TS RemoteConversation counterpart and depend on the 6575534 tree that is itself deferred.",
+      "policy": null,
+      "tracking": [
+        "conversation-tree-http-port"
+      ],
+      "evidence": [],
+      "compatibilityConsequence": "Remote conversations cannot fork, navigate, or read lineage; upstream callers relying on those HTTP actions get no TS equivalent.",
+      "revisitTrigger": "After the 6575534 tree lands, port remote fork/navigate/lineage methods and their tests.",
+      "docsImpact": "none",
+      "docs": []
+    },
+    "9ec9e93e94f25123ff32a3f7b04c624a34a885aa:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository owns only the SDK/tools/workspace TypeScript sources, so no target change applies.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "f8a9284a4b72b9738048e783670a760fd6075bab:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Adds claude-fable-5 to the verified-models allowlist. The TS SDK has no verified-models registry; model capability gating is not transpiled.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "fab94a6837b2c0b0c111b38f9ec1574b68bee0ad:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-tools delegate sub-agent cleanup. The delegate tool is not transpiled (no delegate implementation in src/tools or src/subagent).",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "6b72482776ab82d4c2d494f46cad3194ce019ef3:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Adds the inspect_image_with_vision builtin tool. The TS SDK does not transpile the vision-inspect builtin (src/tool/builtins.ts has only Finish/Think).",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "5f208d65f8d932ed8b699ddff6df12492d6c84f3:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Refreshes the cached ask-agent LLM on switch_llm via llm_registry. The TS SDK has neither ask-agent nor an llm_registry refresh hook; switch_llm is gated via enable_switch_llm_tool only.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "bb6d86785310b713285399f0b2cb3ea104a54f7b:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Extends the browser_use logging workaround deadline. browser_use is an openhands-tools client not transpiled in this SDK.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "733562af5ea7da39f6ff2393c6724604962a4fa3:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Handles MCP tool arguments named \"kind\" colliding with the pydantic discriminator. The TS MCPToolAction passes arguments through as raw JSON and has no pydantic discriminator, so the collision does not arise.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "31f71fe172f1104b856a2fa4d873b85ed901098a:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release version bump only (pyproject.toml/uv.lock). No source behavior change; the TypeScript package versions itself independently.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "31f71fe172f1104b856a2fa4d873b85ed901098a:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release version bump only (pyproject.toml/uv.lock). No source behavior change; the TypeScript package versions itself independently.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "244b30bf4b57ef8605fdf38a739447ee00240d0b:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Updates the integration-test README model matrix only (tests/integration/README.md). No source behavior; not a TS surface.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "77b022c87f34be92fa145adeb9f9dcfa4644f108:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Tolerates litellm wrappers returning a plain sync generator instead of CustomStreamWrapper. The TS provider clients iterate streams by protocol and have no CustomStreamWrapper assertion to relax.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "8ae1f71391d60bf166df9d5ad5df42471a28ec63:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release version bump only (pyproject.toml/uv.lock). No source behavior change; the TypeScript package versions itself independently.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "8ae1f71391d60bf166df9d5ad5df42471a28ec63:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release version bump only (pyproject.toml/uv.lock). No source behavior change; the TypeScript package versions itself independently.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "04f52d8bbae9a157e74892318eff94009dc778f5:sdk": {
+      "disposition": "PORT",
+      "reason": "Ports SDK-owned default tool names (default_tool_specs) and the tools tri-state (null = default vs [] vs explicit list) onto settings/profile schemas.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [
+        "src/tool/__tests__/defaults.test.ts",
+        "src/settings/__tests__/settings.test.ts",
+        "src/profiles/__tests__/agent-profile.test.ts"
+      ],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "04f52d8bbae9a157e74892318eff94009dc778f5:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository owns only the SDK/tools/workspace TypeScript sources, so no target change applies.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "6e24af27bc0db466bdfb6873c126b6b40c2a4776:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository owns only the SDK/tools/workspace TypeScript sources, so no target change applies.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "fe924f705cb7c3ab53d8da19f9da4ae512a2f06f:sdk": {
+      "disposition": "DEFERRED",
+      "reason": "Settings-backed MCP auth credentials (mcp/config.py + OAuth token store) is a large, security-sensitive, mixed commit spanning in-scope mcp/profiles/settings and excluded plugin/marketplace plus DEV-SDK-003 secret surfaces. Not ported.",
+      "policy": null,
+      "tracking": [
+        "mcp-auth-credentials-port"
+      ],
+      "evidence": [],
+      "compatibilityConsequence": "MCP servers requiring auth cannot be configured from TS settings; no credential-resolution or OAuth store exists, so upstream MCP auth workflows are unavailable.",
+      "revisitTrigger": "When the MCP config/credential surface is brought in scope, port credential resolution profile-first, honoring the plugin/marketplace exclusions and DEV-SDK-003 secret handling.",
+      "docsImpact": "none",
+      "docs": []
+    },
+    "fe924f705cb7c3ab53d8da19f9da4ae512a2f06f:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository owns only the SDK/tools/workspace TypeScript sources, so no target change applies.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "2ca3b7742c5b42928e50df75038a30e8ccb11017:sdk": {
+      "disposition": "PORT",
+      "reason": "Moves the CURRENT_DATETIME section to the end of the dynamic system-prompt block so stable dynamic content remains a cache-friendly prefix.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [
+        "src/skills/__tests__/skills.test.ts"
+      ],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "8bca16e77750e8a0bd5105cda8e6e60746f6183c:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Relaxes litellm Responses iterator type assertions to protocol-based draining. The TS provider clients own stream draining and have no litellm iterator assertion.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "820c50b913b4031e6c799e1e9ca76bff0efacd9b:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release version bump only (pyproject.toml/uv.lock). No source behavior change; the TypeScript package versions itself independently.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "820c50b913b4031e6c799e1e9ca76bff0efacd9b:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release version bump only (pyproject.toml/uv.lock). No source behavior change; the TypeScript package versions itself independently.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "91f8b9403c16c30edee2f86cff634c38234c8a27:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release v1.32.0 version bump plus edits to two examples (19_llm_routing, 31_iterative_refinement). Examples are not transpiled and the version is independent.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "91f8b9403c16c30edee2f86cff634c38234c8a27:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release version bump only (pyproject.toml/uv.lock). No source behavior change; the TypeScript package versions itself independently.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "27cb289bb8d470e0d285d99935d82fec810ae25e:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Releases the conversation state lock during the async LLM call. The TS LocalConversation does not hold a state lock across the LLM call (no fifo_lock), so there is nothing to release.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "1877912ae1ac79c99f9278f1676daf4d21267095:sdk": {
+      "disposition": "PORT",
+      "reason": "Ports the disabled_skills deny-list onto OpenHandsAgentProfile and filters them out in AgentContext. Supersedes the 8473c0f5 skill_refs allow-list.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [
+        "src/profiles/__tests__/agent-profile.test.ts"
+      ],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "1877912ae1ac79c99f9278f1676daf4d21267095:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository owns only the SDK/tools/workspace TypeScript sources, so no target change applies.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "ce8f1184b450f4645c68ef07840add1339d1d3e9:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Offloads waiting on litellm modify_params lock to a dedicated executor. The TS SDK does not use litellm, so the async lock-offload has no counterpart.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "7ef44d10b2132125833ce2269559b3960f402805:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release v1.33.0 removes the deprecated ACP resolve_provider_env and the llm attribution field. The TS settings never exposed either, so only the independent version bump applies.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "7ef44d10b2132125833ce2269559b3960f402805:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release version bump only (pyproject.toml/uv.lock). No source behavior change; the TypeScript package versions itself independently.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "98f562484f483c469147d939c2926af3b5c1d6bb:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Adds skip_mcp to skill loading for root plugin SKILL.md. Mixed plugin (EXC-SDK-001) + skills change, but the TS skill loader never loads .mcp.json, so skip_mcp is a no-op.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "378660cc7114933160a4c1ce36090b4e2006ebd9:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled in a separate smolpaws package; this repository owns only the SDK/tools/workspace TypeScript sources, so no target change applies.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "e3bb8e4c736f5b6b43d631ff903465c02c0c681c:sdk": {
+      "disposition": "PORT",
+      "reason": "Ports the isInitialized guard so maybeInitLaminar skips the initializer when the backend already reports as initialized.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [
+        "src/observability/__tests__/observability.test.ts"
+      ],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "7ce74f73baa5e32b2f23d0d84da6e4b5de0a798c:sdk": {
+      "disposition": "DEFERRED",
+      "reason": "Path-triggered skill schema/glob matching + AgentContext.getToolUseSuffix and the observation extended_content field are ported and tested, but the conversation run-loop injection (state.activated_path_rules + file-touch enrichment) that actually fires rules is deferred.",
+      "policy": null,
+      "tracking": [
+        "path-rules-conversation-injection"
+      ],
+      "evidence": [],
+      "compatibilityConsequence": "Rules declared via paths: never auto-inject on file-touch; getToolUseSuffix exists but nothing in the run loop invokes it, so path-triggered rules have no runtime effect.",
+      "revisitTrigger": "When the conversation run loop enriches ObservationEvents from matched action paths, wire state.activated_path_rules + getToolUseSuffix and add an integration test mirroring test_path_rules_injection.",
+      "docsImpact": "none",
+      "docs": []
+    },
+    "2eff609f9cd4ae31b219d36bd429f74f5348aeef:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release version bump only (pyproject.toml/uv.lock). No source behavior change; the TypeScript package versions itself independently.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "2eff609f9cd4ae31b219d36bd429f74f5348aeef:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release version bump only (pyproject.toml/uv.lock). No source behavior change; the TypeScript package versions itself independently.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    }
+  },
+  "unmapped": {}
+}
