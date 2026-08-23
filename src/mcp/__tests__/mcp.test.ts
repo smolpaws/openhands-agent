@@ -87,3 +87,134 @@ describe('MCP wrappers', () => {
     expect(new MCPTimeoutError('timed out', 30, { mcpServers: {} })).toMatchObject({ timeout: 30 });
   });
 });
+
+// Regression port of upstream tests/sdk/mcp/test_mcp_nested_schema.py
+// (fix(mcp): preserve nested object properties in LLM-facing tool schema).
+// The TypeScript MCP tool definition passes its inputSchema through verbatim,
+// so nested object structure must survive into LLM-facing payloads.
+describe('MCP LLM-facing schema preservation', () => {
+  const client = { isConnected: () => true, callTool: async () => ({ isError: false, content: [] }) };
+
+  function makeTool(name: string, inputSchema: Record<string, unknown>, description = 'test'): MCPToolDefinition {
+    return new MCPToolDefinition({ name, description, inputSchema }, client);
+  }
+
+  function openAiParams(tool: MCPToolDefinition): Record<string, any> {
+    const openaiTool = tool.toOpenAiTool() as { function: { parameters: Record<string, any> } };
+    return openaiTool.function.parameters;
+  }
+
+  const issue3955Schema = {
+    type: 'object',
+    properties: {
+      definition: { description: 'Component model ID', type: 'string' },
+      position: {
+        description: 'Component position',
+        type: 'object',
+        properties: {
+          '0': { type: 'number' },
+          '1': { type: 'number' },
+        },
+        required: ['0', '1'],
+      },
+    },
+    required: ['definition', 'position'],
+  };
+
+  it('preserves nested object properties in OpenAI-facing schema (issue #3955)', () => {
+    const tool = makeTool('add_diagram_component', issue3955Schema);
+    const position = openAiParams(tool).properties.position;
+
+    expect(position.properties).toBeDefined();
+    expect(position.properties['0']).toEqual({ type: 'number' });
+    expect(position.properties['1']).toEqual({ type: 'number' });
+    expect(new Set<string>(position.required)).toEqual(new Set(['0', '1']));
+    expect(position.description).toBe('Component position');
+  });
+
+  it('preserves nested object properties in Responses-facing schema', () => {
+    const tool = makeTool('add_diagram_component', issue3955Schema);
+    const params = tool.toResponsesTool().parameters as Record<string, any>;
+    const position = params.properties.position;
+
+    expect(position.properties).toBeDefined();
+    expect(position.properties['0']).toEqual({ type: 'number' });
+    expect(new Set<string>(position.required)).toEqual(new Set(['0', '1']));
+  });
+
+  it('preserves three levels of nesting', () => {
+    const tool = makeTool('configure_app', {
+      type: 'object',
+      properties: {
+        config: {
+          type: 'object',
+          description: 'App configuration',
+          properties: {
+            theme: {
+              type: 'object',
+              description: 'Theme settings',
+              properties: {
+                primary: { type: 'string' },
+                secondary: { type: 'string' },
+              },
+              required: ['primary'],
+            },
+          },
+          required: ['theme'],
+        },
+      },
+      required: ['config'],
+    });
+    const params = openAiParams(tool);
+    const config = params.properties.config;
+    const theme = config.properties.theme;
+
+    expect(config.properties).toBeDefined();
+    expect(theme.properties.primary).toEqual({ type: 'string' });
+    expect(theme.properties.secondary).toEqual({ type: 'string' });
+    expect(theme.required).toEqual(['primary']);
+    expect(config.required).toEqual(['theme']);
+  });
+
+  it('preserves arrays of objects', () => {
+    const tool = makeTool('batch_create', {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          description: 'List of entries',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'integer' },
+              label: { type: 'string' },
+            },
+            required: ['id'],
+          },
+        },
+      },
+    });
+    const itemsField = openAiParams(tool).properties.items;
+
+    expect(itemsField.type).toBe('array');
+    expect(itemsField.items.properties).toBeDefined();
+    expect(itemsField.items.properties.id).toEqual({ type: 'integer' });
+    expect(itemsField.items.required).toEqual(['id']);
+  });
+
+  it('keeps flat schemas intact', () => {
+    const tool = makeTool('search', {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query' },
+        limit: { type: 'integer', description: 'Max results' },
+      },
+      required: ['query'],
+    });
+    const params = openAiParams(tool);
+
+    expect(params.properties.query).toEqual({ type: 'string', description: 'Search query' });
+    expect(params.properties.limit).toEqual({ type: 'integer', description: 'Max results' });
+    expect(params.required).toContain('query');
+  });
+});
