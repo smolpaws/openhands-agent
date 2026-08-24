@@ -50,6 +50,42 @@ describe('AgentProfile schemas', () => {
     expect(profile.agent_kind).toBe('openhands');
   });
 
+  it('exposes acp_startup_timeout with its default on ACP profiles', () => {
+    const profile = validateAgentProfile({ agent_kind: 'acp', name: 'minimal' });
+
+    expect(profile.agent_kind).toBe('acp');
+    if (profile.agent_kind !== 'acp') {
+      throw new Error('expected ACP profile');
+    }
+    expect(profile.acp_startup_timeout).toBe(90);
+  });
+
+  it('migrates a v1 shipped default profile tools [] to null', () => {
+    const migrated = validateAgentProfile({
+      schema_version: 1,
+      name: 'default',
+      llm_profile_ref: 'default',
+      revision: 0,
+      tools: [],
+    });
+
+    expect(migrated.schema_version).toBe(AGENT_PROFILE_SCHEMA_VERSION);
+    expect(migrated.tools).toBeNull();
+  });
+
+  it('keeps an explicit v1 empty tools list on non-default profiles', () => {
+    const migrated = validateAgentProfile({
+      schema_version: 1,
+      name: 'custom',
+      llm_profile_ref: 'default',
+      revision: 0,
+      tools: [],
+    });
+
+    expect(migrated.schema_version).toBe(AGENT_PROFILE_SCHEMA_VERSION);
+    expect(migrated.tools).toEqual([]);
+  });
+
   it('rejects cross-variant fields and unknown ACP providers', () => {
     expect(() => validateAgentProfile({ agent_kind: 'acp', name: 'acp', llm_profile_ref: 'default' })).toThrow();
     expect(() => validateAgentProfile({ agent_kind: 'openhands', name: 'oh', llm_profile_ref: 'default', acp_server: 'codex' })).toThrow();

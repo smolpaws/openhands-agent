@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { Agent } from '../../agent/index.js';
-import { messageEventSchema, type Event } from '../../event/index.js';
+import { messageEventSchema, ROOT_PARENT_ID, type Event } from '../../event/index.js';
 import { InMemoryFileStore, LocalFileStore, type FileStoreLockOptions } from '../../io/index.js';
 import type { LLMClient, LLMCompletionResponse } from '../../llm/client.js';
 import { textContent, type LLMProfile, type Message } from '../../llm/index.js';
@@ -161,6 +161,27 @@ describe('ConversationState disk-backed events', () => {
 
     expect(store.lockCount).toBe(1);
     expect(state.events.map((event) => event.id)).toEqual([alreadyPersisted.id, missing.id]);
+  });
+
+  it('rejects events whose explicit parent_id is not already indexed', () => {
+    const log = new EventLog(new InMemoryFileStore());
+    const event = messageEventSchema.parse({
+      id: '00000000-0000-4000-8000-000000000114',
+      source: 'user',
+      parent_id: '00000000-0000-4000-8000-00000000bad',
+      llm_message: { role: 'user', content: [textContent('orphan')] },
+    });
+
+    expect(() => log.append(event)).toThrow(/does not exist/u);
+
+    // A root parent is always accepted, and so is an indexed parent.
+    const rooted = messageEventSchema.parse({
+      id: '00000000-0000-4000-8000-000000000115',
+      source: 'user',
+      parent_id: ROOT_PARENT_ID,
+      llm_message: { role: 'user', content: [textContent('rooted')] },
+    });
+    expect(() => log.append(rooted)).not.toThrow();
   });
 
 });

@@ -171,7 +171,13 @@ describe('AgentSettings', () => {
     expect(settings.acp_command).toEqual(['codex-acp']);
     expect(settings.acp_args).toEqual(['--flag']);
     expect(settings.acp_prompt_timeout).toBe(1800);
+    expect(settings.acp_startup_timeout).toBe(90);
     expect(JSON.stringify(settings)).not.toMatch(/api[_-]?key|secrets|agent_context|"llm"/iu);
+  });
+
+  it('defaults acp_startup_timeout without disabling an explicit override', () => {
+    expect(acpAgentSettingsSchema.parse({ agent_kind: 'acp', acp_server: 'codex' }).acp_startup_timeout).toBe(90);
+    expect(acpAgentSettingsSchema.parse({ agent_kind: 'acp', acp_server: 'codex', acp_startup_timeout: 120 }).acp_startup_timeout).toBe(120);
   });
 
   it('returns profile-first defaults', () => {

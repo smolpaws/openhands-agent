@@ -1,4 +1,4 @@
-import { eventSchema, type Event } from '../event/index.js';
+import { eventSchema, ROOT_PARENT_ID, type Event } from '../event/index.js';
 import type { FileStore } from '../io/index.js';
 
 export const EVENTS_DIR = 'events';
@@ -183,6 +183,13 @@ export class EventLog {
       const pendingIndex = batchIds.get(event.id);
       if (pendingIndex !== undefined) {
         throw new DuplicateEventError(event.id, pendingIndex);
+      }
+      if (
+        event.parent_id !== null
+        && event.parent_id !== ROOT_PARENT_ID
+        && !this.idToIndex.has(event.parent_id)
+      ) {
+        throw new Error(`Parent event '${event.parent_id}' does not exist for event '${event.id}'`);
       }
       batchIds.set(event.id, this.lengthValue + batchIds.size);
     }

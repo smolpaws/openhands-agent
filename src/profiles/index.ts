@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { z } from 'zod';
 
-export const AGENT_PROFILE_SCHEMA_VERSION = 1;
+export const AGENT_PROFILE_SCHEMA_VERSION = 2;
 
 export const acpServerKindSchema = z.union([
   z.literal('claude-code'),
@@ -58,6 +58,7 @@ export const acpAgentProfileSchema = z
     acp_model: z.string().nullable().default(null),
     acp_session_mode: z.string().nullable().default(null),
     acp_prompt_timeout: z.number().positive().default(1800),
+    acp_startup_timeout: z.number().positive().default(90),
     acp_command: z.string().nullable().default(null),
     acp_args: z.array(z.string()).nullable().default(null),
   })
@@ -106,6 +107,20 @@ function applyAgentProfileMigrations(data: unknown): Record<string, unknown> {
     throw new Error(
       `AgentProfile schema_version ${version} is newer than supported version ${AGENT_PROFILE_SCHEMA_VERSION}.`,
     );
+  }
+  // v1 -> v2 (upstream #4030): the shipped default profile recorded `tools: []`
+  // explicitly; from v2 that tri-state collapses to `null` (SDK default).
+  if (version === 1) {
+    if (
+      (migrated.agent_kind ?? 'openhands') === 'openhands'
+      && migrated.name === 'default'
+      && (migrated.revision ?? 0) === 0
+      && Array.isArray(migrated.tools)
+      && migrated.tools.length === 0
+    ) {
+      migrated.tools = null;
+    }
+    migrated.schema_version = 2;
   }
   return migrated;
 }

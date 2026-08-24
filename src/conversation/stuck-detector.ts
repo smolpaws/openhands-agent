@@ -1,5 +1,4 @@
 import type { ActionEvent, Event } from '../event/index.js';
-import type { ConversationState } from './state.js';
 
 const DEFAULT_THRESHOLD = 4;
 const MAX_EVENTS_TO_SCAN = 20;
@@ -11,11 +10,16 @@ export interface StuckDetectionThresholds {
   readonly alternatingPattern?: number;
 }
 
+/** The minimal state surface StuckDetector reads; trivially satisfied by ConversationState. */
+export interface StuckDetectorState {
+  readonly events: readonly Event[];
+}
+
 export class StuckDetector {
-  readonly state: ConversationState;
+  readonly state: StuckDetectorState;
   readonly thresholds: Required<StuckDetectionThresholds>;
 
-  constructor(state: ConversationState, thresholds: StuckDetectionThresholds = {}) {
+  constructor(state: StuckDetectorState, thresholds: StuckDetectionThresholds = {}) {
     this.state = state;
     this.thresholds = {
       actionObservation: thresholds.actionObservation ?? DEFAULT_THRESHOLD,

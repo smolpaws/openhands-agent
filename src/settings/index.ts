@@ -34,7 +34,7 @@ export type ProfileSelectedLlmSettings = {
   readonly [K in RawLlmFieldIgnoredWhenProfileSelected]?: unknown;
 };
 
-export const AGENT_SETTINGS_SCHEMA_VERSION = 4;
+export const AGENT_SETTINGS_SCHEMA_VERSION = 5;
 export const CONVERSATION_SETTINGS_SCHEMA_VERSION = 1;
 
 const settingsSchemaVersion = (version: number) => z.literal(version).default(version);
@@ -93,6 +93,7 @@ export const acpAgentSettingsSchema = z
     acp_model: z.string().nullable().default(null),
     acp_session_mode: z.string().nullable().default(null),
     acp_prompt_timeout: z.number().positive().default(1800),
+    acp_startup_timeout: z.number().positive().default(90),
   })
   .strict();
 

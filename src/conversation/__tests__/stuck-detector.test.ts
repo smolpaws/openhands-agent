@@ -29,6 +29,31 @@ describe('StuckDetector', () => {
 
     expect(new StuckDetector(new ConversationState({ events }), { monologue: 2 }).isStuck()).toBe(false);
   });
+
+  it('does not reset the stuck-detection window for an environment-sourced corrective nudge', () => {
+    const events: Event[] = [userMessage('Please keep trying ls')];
+    for (let index = 0; index < 4; index += 1) {
+      const action = actionEvent(`action-${index}`, `call-${index}`);
+      events.push(action);
+      events.push(observationEventSchema.parse({
+        action_id: action.id,
+        tool_name: action.tool_name,
+        tool_call_id: action.tool_call_id,
+        observation: { text: 'file1.txt\nfile2.txt' },
+      }));
+    }
+    // Framework corrective nudge: user-role content, environment source (upstream #3954).
+    events.push(messageEventSchema.parse({
+      source: 'environment',
+      llm_message: { role: 'user', content: [textContent('Your last response did not include a function call or a message. Please use a tool to proceed with the task.')] },
+    }));
+
+    expect(new StuckDetector(new ConversationState({ events })).isStuck()).toBe(true);
+
+    // A real human turn at the same position would have reset the window.
+    const withUserNudge = [...events.slice(0, -1), userMessage('keep going')];
+    expect(new StuckDetector(new ConversationState({ events: withUserNudge })).isStuck()).toBe(false);
+  });
 });
 
 function actionEvent(id: string, toolCallId: string): ActionEvent {
