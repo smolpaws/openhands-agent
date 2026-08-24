@@ -1,6 +1,5 @@
 import type { ActionEvent, Event } from '../event/index.js';
 
-const DEFAULT_THRESHOLD = 4;
 const MAX_EVENTS_TO_SCAN = 20;
 
 export interface StuckDetectionThresholds {
@@ -18,14 +17,15 @@ export interface StuckDetectorState {
 export class StuckDetector {
   readonly state: StuckDetectorState;
   readonly thresholds: Required<StuckDetectionThresholds>;
+  private lastNudgedErrorEventId: string | null = null;
 
   constructor(state: StuckDetectorState, thresholds: StuckDetectionThresholds = {}) {
     this.state = state;
     this.thresholds = {
-      actionObservation: thresholds.actionObservation ?? DEFAULT_THRESHOLD,
-      actionError: thresholds.actionError ?? DEFAULT_THRESHOLD,
-      monologue: thresholds.monologue ?? DEFAULT_THRESHOLD,
-      alternatingPattern: thresholds.alternatingPattern ?? DEFAULT_THRESHOLD * 2,
+      actionObservation: thresholds.actionObservation ?? 4,
+      actionError: thresholds.actionError ?? 3,
+      monologue: thresholds.monologue ?? 3,
+      alternatingPattern: thresholds.alternatingPattern ?? 6,
     };
   }
 
@@ -35,6 +35,37 @@ export class StuckDetector {
       return false;
     }
     return this.hasRepeatingActionObservation(events) || this.hasRepeatingActionError(events) || this.hasMonologue(events);
+  }
+
+  /**
+   * Nudge text once a trailing run of one action repeatedly erroring first
+   * reaches the threshold. Nudges once per streak: a frozen streak (e.g. an
+   * empty/reasoning-only response that adds no new action) keeps the same
+   * error event, so it is not re-emitted.
+   */
+  getActionErrorNudge(): string | null {
+    const events = eventsSinceLastUser(this.state.events.slice(-MAX_EVENTS_TO_SCAN));
+    const threshold = this.thresholds.actionError;
+    const pairs = actionObservationPairs(events).slice(-(threshold + 1));
+    if (actionErrorStreak(pairs) !== threshold) {
+      return null;
+    }
+
+    const [first] = pairs;
+    if (first === undefined || first.observation.kind !== 'AgentErrorEvent') {
+      return null;
+    }
+    if (first.observation.id === this.lastNudgedErrorEventId) {
+      return null;
+    }
+    this.lastNudgedErrorEventId = first.observation.id;
+
+    return (
+      `You've called \`${first.action.tool_name}\` with the same arguments ` +
+      `${threshold} times in a row and gotten the same error each time: ${first.observation.error}. ` +
+      'Repeating the exact same call again will not work — review the error message and either ' +
+      'correct the arguments or try a different approach.'
+    );
   }
 
   private hasRepeatingActionObservation(events: readonly Event[]): boolean {
@@ -47,15 +78,10 @@ export class StuckDetector {
   }
 
   private hasRepeatingActionError(events: readonly Event[]): boolean {
-    const pairs = actionObservationPairs(events).slice(-this.thresholds.actionError);
-    if (pairs.length < this.thresholds.actionError) {
-      return false;
-    }
-    const [first] = pairs;
-    return (
-      first !== undefined &&
-      pairs.every((pair) => sameAction(first.action, pair.action) && pair.observation.kind === 'AgentErrorEvent')
-    );
+    // One repeat past the threshold: the first threshold-many repeats only
+    // trigger a nudge (see getActionErrorNudge).
+    const pairs = actionObservationPairs(events).slice(-(this.thresholds.actionError + 1));
+    return actionErrorStreak(pairs) > this.thresholds.actionError;
   }
 
   private hasMonologue(events: readonly Event[]): boolean {
@@ -104,6 +130,28 @@ function actionObservationPairs(events: readonly Event[]): { action: ActionEvent
 
 function isObservationLike(event: Event | undefined): event is Event {
   return event?.kind === 'ObservationEvent' || event?.kind === 'UserRejectObservation' || event?.kind === 'AgentErrorEvent';
+}
+
+/** Length of the trailing run of one action repeatedly erroring (most recent first). */
+function actionErrorStreak(pairs: readonly { action: ActionEvent; observation: Event }[]): number {
+  if (pairs.length === 0) {
+    return 0;
+  }
+  const [first] = pairs;
+  if (first === undefined) {
+    return 0;
+  }
+  let streak = 0;
+  for (const pair of pairs) {
+    if (!sameAction(first.action, pair.action)) {
+      break;
+    }
+    if (pair.observation.kind !== 'AgentErrorEvent') {
+      break;
+    }
+    streak += 1;
+  }
+  return streak;
 }
 
 function sameAction(left: ActionEvent, right: ActionEvent): boolean {

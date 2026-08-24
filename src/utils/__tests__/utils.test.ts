@@ -204,6 +204,25 @@ describe('redaction utilities', () => {
     expect(redacted).toContain('<redacted>');
     expect(redacted).toContain('DEBUG=true');
   });
+
+  it('redacts lowercase and mixed-case dict entries', () => {
+    const text = "{'api_key': 's3cr3t', \"token\": \"tok-XYZ\", 'UserPassword': 'p@ssw0rd', 'normal': 'keep-me'}";
+
+    expect(redactTextSecrets(text)).toBe(
+      "{'api_key': '<redacted>', \"token\": \"<redacted>\", 'UserPassword': '<redacted>', 'normal': 'keep-me'}",
+    );
+  });
+
+  it('still redacts uppercase dict entries', () => {
+    expect(redactTextSecrets("{'API_KEY': 'abc', \"MY_SECRET\": \"def\"}")).toBe(
+      "{'API_KEY': '<redacted>', \"MY_SECRET\": \"<redacted>\"}",
+    );
+  });
+
+  it('leaves non-sensitive dict entries unchanged', () => {
+    const text = "{'name': 'alice', 'path': '/tmp/x'}";
+    expect(redactTextSecrets(text)).toBe(text);
+  });
 });
 
 describe('lightweight utility helpers', () => {

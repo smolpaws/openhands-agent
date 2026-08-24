@@ -1,4 +1,5 @@
 import { agentErrorEventSchema, type ActionEvent, type AgentErrorEvent, type Event } from '../event/index.js';
+import { AGENT_OUTCOME } from '../event/error-classification.js';
 import type { CancellationToken } from './state.js';
 
 export type ToolRunner = (action: ActionEvent) => readonly Event[] | Promise<readonly Event[]>;
@@ -59,6 +60,7 @@ export class ParallelToolExecutor {
           error: `Error executing tool '${action.tool_name}': ${message}`,
           tool_name: action.tool_name,
           tool_call_id: action.tool_call_id,
+          classification: AGENT_OUTCOME,
         }),
       ];
     }
@@ -70,5 +72,6 @@ function cancelledError(action: ActionEvent): AgentErrorEvent {
     error: 'Tool call cancelled by interrupt.',
     tool_name: action.tool_name,
     tool_call_id: action.tool_call_id,
+    classification: AGENT_OUTCOME,
   });
 }

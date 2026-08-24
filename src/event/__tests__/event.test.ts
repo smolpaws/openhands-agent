@@ -14,6 +14,7 @@ import {
   systemPromptEventSchema,
   type LLMConvertibleEvent,
 } from '../index.js';
+import { classifyError, conversationErrorEventSchema, type FailureKind } from '../index.js';
 import { textContent, type MessageToolCall } from '../../llm/index.js';
 import { ROOT_PARENT_ID } from '../index.js';
 
@@ -322,5 +323,66 @@ describe('eventsToMessages', () => {
         }),
       ]),
     ).toThrow(/empty thought/u);
+  });
+});
+
+describe('error classification', () => {
+  it.each([
+    ['OpenAIError', 'Incorrect API key provided', 'auth'],
+    ['APIError', 'This request requires more credits', 'quota'],
+    ['OpenAIError', 'Error code: 429', 'rate_limit'],
+    ['MaxBudgetReached', '', 'quota'],
+    ['OpenRouterException', '', 'transient'],
+    ['LLMBadRequestError', 'LLM Provider NOT provided', 'config'],
+    ['NoCondensationAvailableException', 'Streaming requires an on_token callback', 'internal'],
+    ['PydanticSerializationError', 'surrogates not allowed', 'internal'],
+    ['UnexpectedProviderError', '', 'unknown'],
+    ['MaxIterationsReached', 'Agent reached maximum iterations', 'agent_action'],
+    ['ConversationOwnershipLostError', '', 'agent_action'],
+    ['LLMContextWindowExceedError', '', 'agent_action'],
+    ['LLMMalformedConversationHistoryError', '', 'agent_action'],
+  ] as const)('classifies %s detail as %s', (code, detail, kind) => {
+    const event = conversationErrorEventSchema.parse({ source: 'environment', code, detail });
+    expect(event.classification?.kind).toBe(kind);
+  });
+
+  it('does not serialize sensitive detail into the classification', () => {
+    const event = conversationErrorEventSchema.parse({
+      source: 'environment',
+      code: 'OpenAIError',
+      detail: 'Incorrect API key provided: sk-ant-secret',
+    });
+    expect(JSON.stringify(event.classification)).not.toContain('sk-ant-secret');
+  });
+
+  it.each([
+    ['KeyError', "'timeout_seconds'", 'internal'],
+    ['AssertionError', 'Tool result not found for call id abc123', 'internal'],
+    ['TypeError', 'connection error during call', 'internal'],
+    ['AttributeError', 'model not found in registry', 'internal'],
+    ['HTTPStatusError', 'Connection reset for request req_814295af', 'transient'],
+    ['UnexpectedError', 'model not found', 'config'],
+  ] as const)('code-based classification wins over detail: %s', (code, detail, kind) => {
+    expect(classifyError(code, detail).kind).toBe(kind as FailureKind);
+  });
+
+  it('defaults AgentErrorEvent classification to unknown', () => {
+    const event = agentErrorEventSchema.parse({
+      error: 'something went wrong',
+      tool_name: 'bash',
+      tool_call_id: 'call-1',
+    });
+    expect(event.classification?.kind).toBe('unknown');
+    expect(event.classification?.retryable).toBe(false);
+  });
+
+  it('preserves an explicit AgentErrorEvent classification', () => {
+    const event = agentErrorEventSchema.parse({
+      error: 'validation failed',
+      tool_name: 'bash',
+      tool_call_id: 'call-1',
+      classification: { kind: 'agent_action', retryable: true, user_action: 'retry' },
+    });
+    expect(event.classification?.kind).toBe('agent_action');
   });
 });

@@ -7,6 +7,7 @@ import {
   type Event,
   type LLMConvertibleEvent,
 } from '../event/index.js';
+import { AGENT_OUTCOME } from '../event/error-classification.js';
 import { View, type Condenser } from '../context/index.js';
 import type { AgentContext } from '../context/index.js';
 import type { LLMClient } from '../llm/client.js';
@@ -107,6 +108,7 @@ export class Agent {
           error: `Unknown tool '${action.tool_name}'`,
           tool_name: action.tool_name,
           tool_call_id: action.tool_call_id,
+          classification: AGENT_OUTCOME,
         }),
       ];
     }

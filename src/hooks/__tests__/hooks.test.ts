@@ -13,6 +13,7 @@ import {
   HookMatcher,
   hookEventSchema,
 } from '../index.js';
+import { textContent, type LLMClient, type LLMCompletionResponse } from '../../llm/index.js';
 
 describe('HookConfig', () => {
   it('normalizes legacy PascalCase hook config and matches tools', () => {
@@ -78,6 +79,85 @@ describe('HookExecutor and HookManager-like behavior', () => {
 
     expect(results).toHaveLength(1);
     expect(results[0]).toMatchObject({ blocked: true, exit_code: 2 });
+  });
+});
+
+describe('prompt hooks', () => {
+  function fakeLlm(completion: string | (() => string)): LLMClient {
+    return {
+      profile: { model: 'test' },
+      complete: async (): Promise<LLMCompletionResponse> => ({
+        message: { role: 'assistant', content: [textContent(typeof completion === 'function' ? completion() : completion)] },
+        usage: null,
+      }),
+    };
+  }
+
+  it('validates prompt hook field requirements', () => {
+    expect(() => new HookDefinition({ type: 'prompt' })).toThrow(/prompt/);
+    expect(() => new HookDefinition({ type: 'prompt', prompt: 'p', command: 'nope' })).toThrow(/must not/);
+    expect(() => new HookDefinition({ type: 'prompt', prompt: 'p', async: true })).toThrow(/async/);
+    expect(new HookDefinition({ type: 'prompt', prompt: 'review' }).displayCommand).toBe('prompt-hook:review');
+  });
+
+  it('returns a deny decision when the LLM responds deny', async () => {
+    const llm = fakeLlm('{"decision":"deny","reason":"blocked by policy"}');
+    const executor = new HookExecutor({ llm });
+    const event = hookEventSchema.parse({ event_type: HookEventType.PreToolUse, tool_name: 'terminal' });
+
+    const result = await executor.execute(new HookDefinition({ type: 'prompt', prompt: 'deny everything' }), event);
+
+    expect(result.decision).toBe(HookDecision.Deny);
+    expect(result.blocked).toBe(true);
+    expect(result.success).toBe(true);
+  });
+
+  it('falls open when no LLM is configured', async () => {
+    const executor = new HookExecutor({});
+    const event = hookEventSchema.parse({ event_type: HookEventType.PreToolUse, tool_name: 'terminal' });
+
+    const result = await executor.execute(new HookDefinition({ type: 'prompt', prompt: 'deny everything' }), event);
+
+    expect(result.decision).toBe(HookDecision.Allow);
+    expect(result.success).toBe(false);
+  });
+
+  it('falls open when the LLM returns unparseable output', async () => {
+    const llm = fakeLlm('here is some prose with no json');
+    const executor = new HookExecutor({ llm });
+    const event = hookEventSchema.parse({ event_type: HookEventType.PreToolUse, tool_name: 'terminal' });
+
+    const result = await executor.execute(new HookDefinition({ type: 'prompt', prompt: 'deny everything' }), event);
+
+    expect(result.decision).toBe(HookDecision.Allow);
+    expect(result.success).toBe(false);
+  });
+
+  it('extracts the first JSON object even when wrapped in prose', async () => {
+    const llm = fakeLlm('Sure! Here you go:\n```json\n{"decision":"allow","reason":"ok"}\n```');
+    const executor = new HookExecutor({ llm });
+    const event = hookEventSchema.parse({ event_type: HookEventType.PreToolUse, tool_name: 'terminal' });
+
+    const result = await executor.execute(new HookDefinition({ type: 'prompt', prompt: 'always allow' }), event);
+
+    expect(result.decision).toBe(HookDecision.Allow);
+    expect(result.success).toBe(true);
+  });
+
+  it('falls open when the LLM throws', async () => {
+    const llm: LLMClient = {
+      profile: { model: 'test' },
+      complete: async (): Promise<LLMCompletionResponse> => {
+        throw new Error('boom');
+      },
+    };
+    const executor = new HookExecutor({ llm });
+    const event = hookEventSchema.parse({ event_type: HookEventType.PreToolUse, tool_name: 'terminal' });
+
+    const result = await executor.execute(new HookDefinition({ type: 'prompt', prompt: 'deny everything' }), event);
+
+    expect(result.decision).toBe(HookDecision.Allow);
+    expect(result.success).toBe(false);
   });
 });
 

@@ -334,10 +334,17 @@ export function redactUrlParams(url: string): string {
 const keyValueSecretPattern = /\b([A-Za-z0-9_.-]*(?:api[_-]?key|authorization|cookie|credential|password|secret|session|token|key)[A-Za-z0-9_.-]*)\s*=\s*("[^"]*"|'[^']*'|[^\s]+)/giu;
 const anthropicKeyPattern = /sk-ant-api\d{2}-[A-Za-z0-9_-]{20,}/gu;
 
+// Dict entries whose key contains a secret-bearing token, e.g. "'api_key': '...'"
+// or "\"UserPassword\": \"...\"". Case-insensitive, matching is_secret_key.
+const singleQuotedDictSecretPattern = /('[A-Za-z_]*(?:KEY|SECRET|TOKEN|PASSWORD)[A-Za-z_]*':\s*')[^']*(')/giu;
+const doubleQuotedDictSecretPattern = /("[A-Za-z_]*(?:KEY|SECRET|TOKEN|PASSWORD)[A-Za-z_]*":\s*")[^"]*(")/giu;
+
 export function redactTextSecrets(text: string): string {
   return redactUrlCredentialsInText(text)
     .replace(anthropicKeyPattern, '<redacted>')
-    .replace(keyValueSecretPattern, (_match: string, key: string) => `${key}=<redacted>`);
+    .replace(keyValueSecretPattern, (_match: string, key: string) => `${key}=<redacted>`)
+    .replace(singleQuotedDictSecretPattern, '$1<redacted>$2')
+    .replace(doubleQuotedDictSecretPattern, '$1<redacted>$2');
 }
 
 export function utcNow(): Date {

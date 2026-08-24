@@ -76,6 +76,36 @@ describe('workspace repo helpers', () => {
     expect(buildCloneUrl('https://github.com.evil.test/owner/repo', 'github', 'secret')).toBe('https://github.com.evil.test/owner/repo');
   });
 
+  it('injects tokens into self-hosted hosts only when the provider is explicit', () => {
+    expect(buildCloneUrl('https://gitlab.mycompany.com/owner/repo', 'gitlab', 'gltoken123', true)).toBe(
+      'https://oauth2:gltoken123@gitlab.mycompany.com/owner/repo',
+    );
+    expect(buildCloneUrl('https://gitlab.mycompany.com/owner/repo', 'gitlab', 'gltoken123', false)).toBe(
+      'https://gitlab.mycompany.com/owner/repo',
+    );
+  });
+
+  it('never injects tokens into lookalike hosts', () => {
+    expect(buildCloneUrl('https://github.com.evil.com/owner/repo', 'github', 'ghtoken123', false)).toBe(
+      'https://github.com.evil.com/owner/repo',
+    );
+    expect(buildCloneUrl('https://github.com.evil.com/owner/repo', 'github', 'ghtoken123', true)).toBe(
+      'https://github.com.evil.com/owner/repo',
+    );
+  });
+
+  it('normalizes host case and preserves non-default ports when injecting', () => {
+    expect(buildCloneUrl('https://GitLab.MyCompany.com:8443/owner/repo', 'gitlab', 'gltoken123', true)).toBe(
+      'https://oauth2:gltoken123@gitlab.mycompany.com:8443/owner/repo',
+    );
+  });
+
+  it('preserves credentials already embedded in the URL', () => {
+    expect(buildCloneUrl('https://oauth2:embedded@gitlab.mycompany.com/owner/repo', 'gitlab', 'gltoken123', true)).toBe(
+      'https://oauth2:embedded@gitlab.mycompany.com/owner/repo',
+    );
+  });
+
   it('creates local workspaces from the workspace factory and renders repo context', () => {
     const ws = workspace({ workingDir: '/tmp/project' });
 

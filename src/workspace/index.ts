@@ -376,7 +376,7 @@ const providerTokenFormat: Record<GitProvider, (token: string) => string> = {
   bitbucket: (token) => `x-token-auth:${token}@`,
 };
 
-export function buildCloneUrl(url: string, provider: GitProvider, token: string | null = null): string {
+export function buildCloneUrl(url: string, provider: GitProvider, token: string | null = null, explicitProvider = false): string {
   const host = providerHosts[provider];
   const auth = token === null ? '' : providerTokenFormat[provider](token);
   if (isShortUrlFormat(url)) {
@@ -385,12 +385,27 @@ export function buildCloneUrl(url: string, provider: GitProvider, token: string 
   if (token === null) {
     return url;
   }
-  const parsed = new URL(url);
-  if (parsed.protocol === 'https:' && parsed.host.toLowerCase() === host) {
-    parsed.username = auth.endsWith('@') ? auth.slice(0, -1) : auth;
-    return parsed.toString();
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return url;
   }
-  return url;
+  const hostname = parsed.hostname.toLowerCase();
+  if (parsed.protocol !== 'https:' || parsed.username !== '' || hostname.length === 0) {
+    return url;
+  }
+  if (hostname !== host) {
+    // An auto-detected provider derives from the URL, so it cannot authorize
+    // another host — and never a lookalike of the public one.
+    if (!explicitProvider || hostname.startsWith(`${host}.`)) {
+      return url;
+    }
+  }
+
+  const netloc = parsed.port === '' ? hostname : `${hostname}:${parsed.port}`;
+  return `https://${auth}${netloc}${parsed.pathname}${parsed.search}${parsed.hash}`;
 }
 
 export function getReposContext(repoMappings: Readonly<Record<string, RepoMapping>>): string {

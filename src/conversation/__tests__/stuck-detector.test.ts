@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { actionEventSchema, messageEventSchema, observationEventSchema } from '../../event/index.js';
+import { actionEventSchema, agentErrorEventSchema, messageEventSchema, observationEventSchema } from '../../event/index.js';
 import type { ActionEvent, Event } from '../../event/index.js';
 import { textContent } from '../../llm/index.js';
 import { ConversationState } from '../state.js';
@@ -73,3 +73,59 @@ function agentMessage(text: string): Event {
 function userMessage(text: string): Event {
   return messageEventSchema.parse({ source: 'user', llm_message: { role: 'user', content: [textContent(text)] } });
 }
+
+describe('StuckDetector action-error nudge', () => {
+  function actionErrorPair(index: number): [ActionEvent, Event] {
+    const action = actionEventSchema.parse({
+      id: `error-action-${index}`,
+      tool_name: 'terminal',
+      tool_call_id: `call-${index}`,
+      action: { command: 'invalid_command' },
+      tool_call: { id: `call-${index}`, name: 'terminal', arguments: '{"command":"invalid_command"}', origin: 'completion' },
+    });
+    const error = agentErrorEventSchema.parse({
+      source: 'agent',
+      error: "Command 'invalid_command' not found",
+      tool_call_id: action.tool_call_id,
+      tool_name: action.tool_name,
+    });
+    return [action, error];
+  }
+
+  it('nudges once at the threshold and only goes stuck after one more repeat', () => {
+    const events: Event[] = [userMessage('Please run the invalid command')];
+
+    for (let index = 0; index < 2; index += 1) {
+      events.push(...actionErrorPair(index));
+    }
+    let detector = new StuckDetector(new ConversationState({ events }), { actionError: 3 });
+    expect(detector.isStuck()).toBe(false);
+    expect(detector.getActionErrorNudge()).toBeNull();
+
+    // 3rd pair reaches the threshold: nudge, but not yet stuck.
+    events.push(...actionErrorPair(2));
+    detector = new StuckDetector(new ConversationState({ events }), { actionError: 3 });
+    expect(detector.isStuck()).toBe(false);
+    const nudge = detector.getActionErrorNudge();
+    expect(nudge).toContain('terminal');
+    expect(nudge).toContain("Command 'invalid_command' not found");
+
+    // 4th pair despite the nudge: hard stuck.
+    events.push(...actionErrorPair(3));
+    detector = new StuckDetector(new ConversationState({ events }), { actionError: 3 });
+    expect(detector.isStuck()).toBe(true);
+    expect(detector.getActionErrorNudge()).toBeNull();
+  });
+
+  it('does not re-nudge the same error event on a frozen streak', () => {
+    const events: Event[] = [userMessage('Please run the invalid command')];
+    for (let index = 0; index < 3; index += 1) {
+      events.push(...actionErrorPair(index));
+    }
+
+    const detector = new StuckDetector(new ConversationState({ events }), { actionError: 3 });
+    expect(detector.getActionErrorNudge()).not.toBeNull();
+    // Same frozen streak: the error event id is unchanged, so no re-nudge.
+    expect(detector.getActionErrorNudge()).toBeNull();
+  });
+});

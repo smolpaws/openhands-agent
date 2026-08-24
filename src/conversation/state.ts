@@ -5,6 +5,7 @@ import {
   type AgentErrorEvent,
   type Event,
 } from '../event/index.js';
+import { AGENT_OUTCOME } from '../event/error-classification.js';
 import { messageSchema, type Message } from '../llm/index.js';
 import { DuplicateEventError, type EventLog } from './event-log.js';
 
@@ -95,6 +96,7 @@ export class ConversationState {
         error,
         tool_name: action.tool_name,
         tool_call_id: action.tool_call_id,
+        classification: AGENT_OUTCOME,
       }),
     );
     for (const errorEvent of errors) {
@@ -241,6 +243,7 @@ export class PendingActionsQueue {
         error: 'Tool call cancelled by interrupt.',
         tool_name: action.tool_name,
         tool_call_id: action.tool_call_id,
+        classification: AGENT_OUTCOME,
       }),
     );
   }

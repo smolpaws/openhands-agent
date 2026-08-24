@@ -13,6 +13,7 @@ import {
   type Content,
   type Message,
 } from '../llm/index.js';
+import { classifyError, errorClassificationSchema } from './error-classification.js';
 
 export const N_CHAR_PREVIEW = 500;
 export const FULL_STATE_KEY = 'full_state';
@@ -61,6 +62,12 @@ export const conversationErrorEventSchema = eventObject({
   kind: z.literal('ConversationErrorEvent').default('ConversationErrorEvent'),
   code: z.string(),
   detail: z.string(),
+  classification: errorClassificationSchema.nullable().default(null),
+}).transform((event) => {
+  if (event.classification === null) {
+    return { ...event, classification: classifyError(event.code, event.detail) };
+  }
+  return event;
 });
 
 export const llmCompletionLogEventSchema = eventObject({
@@ -150,6 +157,12 @@ export const agentErrorEventSchema = eventObject({
   tool_name: z.string(),
   tool_call_id: z.string(),
   error: z.string(),
+  classification: errorClassificationSchema.nullable().default(null),
+}).transform((event) => {
+  if (event.classification === null) {
+    return { ...event, classification: errorClassificationSchema.parse({ kind: 'unknown', retryable: false }) };
+  }
+  return event;
 });
 
 export const condensationSchema = eventObject({
@@ -276,6 +289,15 @@ export type HookEventType = z.infer<typeof hookEventTypeSchema>;
 export type HookExecutionEvent = z.infer<typeof hookExecutionEventSchema>;
 export type ResumeTranscriptEvent = z.infer<typeof resumeTranscriptEventSchema>;
 export type LLMConvertibleEvent = z.infer<typeof llmConvertibleEventSchema>;
+
+export {
+  AGENT_OUTCOME,
+  classifyError,
+  errorClassificationSchema,
+  failureActionSchema,
+  failureKindSchema,
+} from './error-classification.js';
+export type { ErrorClassification, FailureAction, FailureKind } from './error-classification.js';
 
 
 export function isMessageEvent(event: unknown): event is MessageEvent {

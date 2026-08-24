@@ -85,6 +85,7 @@ export interface InstallationInfoOptions {
   readonly description?: string;
   readonly enabled?: boolean;
   readonly source: string;
+  readonly requestedRef?: string | null;
   readonly resolvedRef?: string | null;
   readonly repoPath?: string | null;
   readonly installedAt?: string;
@@ -97,6 +98,7 @@ export class InstallationInfo {
   readonly description: string;
   enabled: boolean;
   readonly source: string;
+  readonly requestedRef: string | null;
   readonly resolvedRef: string | null;
   readonly repoPath: string | null;
   readonly installedAt: string;
@@ -108,19 +110,21 @@ export class InstallationInfo {
     this.description = options.description ?? '';
     this.enabled = options.enabled ?? true;
     this.source = options.source;
+    this.requestedRef = options.requestedRef ?? null;
     this.resolvedRef = options.resolvedRef ?? null;
     this.repoPath = options.repoPath ?? null;
     this.installedAt = options.installedAt ?? new Date().toISOString();
     this.installPath = options.installPath;
   }
 
-  static fromExtension(extension: ExtensionProtocol, source: string, installPath: string, options: { readonly resolvedRef?: string | null; readonly repoPath?: string | null } = {}): InstallationInfo {
+  static fromExtension(extension: ExtensionProtocol, source: string, installPath: string, options: { readonly requestedRef?: string | null; readonly resolvedRef?: string | null; readonly repoPath?: string | null } = {}): InstallationInfo {
     return new InstallationInfo({
       name: extension.name,
       version: extension.version,
       description: extension.description ?? '',
       source,
       installPath,
+      requestedRef: options.requestedRef ?? null,
       resolvedRef: options.resolvedRef ?? null,
       repoPath: options.repoPath ?? null,
     });
@@ -133,6 +137,7 @@ export class InstallationInfo {
       description: this.description,
       enabled: this.enabled,
       source: this.source,
+      requestedRef: this.requestedRef,
       resolvedRef: this.resolvedRef,
       repoPath: this.repoPath,
       installedAt: this.installedAt,

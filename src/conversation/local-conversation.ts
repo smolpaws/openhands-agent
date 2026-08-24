@@ -71,8 +71,7 @@ export class LocalConversation {
 
     let iteration = 0;
     while (this.state.executionStatus === conversationExecutionStatus.RUNNING) {
-      if (this.stuckDetector?.isStuck() === true) {
-        this.state.executionStatus = conversationExecutionStatus.STUCK;
+      if (this.stuckDetector !== null && this.checkStuckOrNudge()) {
         return;
       }
 
@@ -96,6 +95,31 @@ export class LocalConversation {
         return;
       }
     }
+  }
+
+  /**
+   * Nudge once on a repeating action-error streak, otherwise apply isStuck().
+   * Returns true when STUCK was set and the run loop should stop.
+   */
+  private checkStuckOrNudge(): boolean {
+    if (this.stuckDetector === null) {
+      return false;
+    }
+    const nudge = this.stuckDetector.getActionErrorNudge();
+    if (nudge !== null) {
+      this.state.appendEvent(
+        messageEventSchema.parse({
+          source: 'environment',
+          llm_message: { role: 'user', content: [textContent(nudge)] },
+        }),
+      );
+      return false;
+    }
+    if (this.stuckDetector.isStuck()) {
+      this.state.executionStatus = conversationExecutionStatus.STUCK;
+      return true;
+    }
+    return false;
   }
 
   async arun(): Promise<void> {

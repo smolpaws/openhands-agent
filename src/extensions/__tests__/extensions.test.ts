@@ -61,4 +61,38 @@ describe('extension installation metadata', () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it('records requested_ref separately from resolved_ref', () => {
+    const info = InstallationInfo.fromExtension(
+      { name: 'mock-extension', version: '0.1.2', description: 'Test' },
+      'github:owner/repo',
+      '/tmp/installed',
+      { requestedRef: 'v1.0.0', resolvedRef: 'abc123' },
+    );
+    expect(info.requestedRef).toBe('v1.0.0');
+    expect(info.resolvedRef).toBe('abc123');
+  });
+
+  it('leaves requested_ref null when only a resolved commit is recorded', () => {
+    const info = InstallationInfo.fromExtension(
+      { name: 'mock-extension', version: '0.1.2' },
+      'github:owner/repo',
+      '/tmp/installed',
+      { resolvedRef: 'abc123' },
+    );
+    expect(info.requestedRef).toBeNull();
+    expect(info.resolvedRef).toBe('abc123');
+  });
+
+  it('round-trips requested_ref through toJSON', () => {
+    const info = new InstallationInfo({
+      name: 'mock-extension',
+      source: 'github:owner/repo',
+      installPath: '/tmp/installed',
+      requestedRef: 'main',
+      resolvedRef: 'abc123',
+    });
+    expect(info.toJSON().requestedRef).toBe('main');
+    expect(new InstallationInfo(info.toJSON()).requestedRef).toBe('main');
+  });
 });
