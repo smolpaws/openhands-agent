@@ -61,6 +61,44 @@ export function hasExtendedThinking(profile: LLMProfile): boolean {
   return profile.reasoningEffort !== null;
 }
 
+// Reasoning models emit a hidden reasoning/thinking segment alongside the answer,
+// and some of them (DeepSeek dual-mode, Moonshot Kimi thinking, MiniMax-M2, ...)
+// REQUIRE that segment to be echoed back on the next turn or the provider rejects
+// the request (HTTP 400: "reasoning_content ... must be passed back"). See
+// `isReasoningModel` for how we decide to send `reasoning_content` / `thinking_blocks`.
+//
+// NOTE: the Python SDK models this as an explicit per-model `send_reasoning_content`
+// feature flag (SEND_REASONING_CONTENT_MODELS). We deliberately renamed it to a
+// single `isReasoningModel` predicate: if a model reasons, we echo its reasoning by
+// default rather than maintaining a separate "should we send it back" flag. Keep this
+// list broader than the Python one on purpose.
+const REASONING_MODELS = [
+  'deepseek-reasoner',
+  'deepseek-r1',
+  'deepseek-v4-pro',
+  'deepseek-v4-flash',
+  'kimi-k2-thinking',
+  'kimi-k2.5',
+  'kimi-k2.6',
+  'kimi-k3',
+  'minimax-m2',
+  'glm-4.6',
+  'qwen3',
+  'qwq',
+] as const;
+
+/**
+ * Whether the profile's model produces reasoning/thinking content that must be
+ * threaded back to the provider on subsequent turns.
+ *
+ * Substring match, so an optional provider-qualified id (`deepseek/deepseek-v4-flash`)
+ * resolves the same as the bare model name (`deepseek-v4-flash`).
+ */
+export function isReasoningModel(profile: LLMProfile): boolean {
+  const model = profile.model.trim().toLowerCase();
+  return REASONING_MODELS.some((candidate) => model.includes(candidate));
+}
+
 export function isAnthropicModel(profile: LLMProfile): boolean {
   if (profile.providerId === 'anthropic') {
     return true;

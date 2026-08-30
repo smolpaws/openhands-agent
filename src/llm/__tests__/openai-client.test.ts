@@ -329,6 +329,115 @@ describe('OpenAI chat message serialization parity', () => {
     expect((body.messages as Array<Record<string, unknown>>)[0]).not.toHaveProperty('content');
   });
 
+  it('echoes reasoning_content back for reasoning models (e.g. deepseek-v4-flash thinking mode)', () => {
+    const profile = llmProfileSchema.parse({
+      profileId: 'flash',
+      providerId: 'deepseek',
+      model: 'deepseek-v4-flash',
+      baseUrl: 'https://api.deepseek.com',
+    });
+
+    const body = buildChatCompletionsBody(profile, [
+      { role: 'user', content: [textContent('hi')] },
+      {
+        role: 'assistant',
+        content: [textContent('done')],
+        reasoning_content: 'the model thought about it',
+      },
+    ]);
+
+    const assistant = (body.messages as Array<Record<string, unknown>>)[1];
+    expect(assistant.reasoning_content).toBe('the model thought about it');
+  });
+
+  it('does not send reasoning_content for non-reasoning models', () => {
+    const profile = llmProfileSchema.parse({ profileId: 'default', providerId: 'openai', model: 'gpt-4o' });
+
+    const body = buildChatCompletionsBody(profile, [
+      {
+        role: 'assistant',
+        content: [textContent('done')],
+        reasoning_content: 'should not be echoed',
+      },
+    ]);
+
+    expect((body.messages as Array<Record<string, unknown>>)[0]).not.toHaveProperty('reasoning_content');
+  });
+
+  it('echoes reasoning_content regardless of a provider-qualified model id', () => {
+    const profile = llmProfileSchema.parse({
+      profileId: 'flash',
+      providerId: 'deepseek',
+      model: 'deepseek/deepseek-v4-flash',
+      baseUrl: 'https://api.deepseek.com',
+    });
+
+    const body = buildChatCompletionsBody(profile, [
+      { role: 'assistant', content: [textContent('done')], reasoning_content: 'thought' },
+    ]);
+
+    expect((body.messages as Array<Record<string, unknown>>)[0].reasoning_content).toBe('thought');
+  });
+
+  it('echoes thinking_blocks back for reasoning models when present', () => {
+    const profile = llmProfileSchema.parse({
+      profileId: 'flash',
+      providerId: 'deepseek',
+      model: 'deepseek-v4-flash',
+      baseUrl: 'https://api.deepseek.com',
+    });
+
+    const body = buildChatCompletionsBody(profile, [
+      {
+        role: 'assistant',
+        content: [textContent('done')],
+        thinking_blocks: [{ type: 'thinking', thinking: 'step by step', signature: 'sig' }],
+      },
+    ]);
+
+    const assistant = (body.messages as Array<Record<string, unknown>>)[0];
+    expect(assistant.thinking_blocks).toEqual([
+      { type: 'thinking', thinking: 'step by step', signature: 'sig' },
+    ]);
+  });
+
+  it('parses reasoning_content from a chat completion response into the message', async () => {
+    const profile = llmProfileSchema.parse({
+      profileId: 'flash',
+      providerId: 'deepseek',
+      model: 'deepseek-v4-flash',
+      baseUrl: 'https://api.deepseek.com',
+    });
+    const store = new InMemorySecretStore([[llmProviderSecretRef('deepseek'), 'deepseek-key']]);
+    const client = await createOpenAIChatClientFromProfile(profile, store, {
+      fetch: fakeReasoningFetch({ content: 'done', reasoning: 'the model thought' }),
+    });
+
+    const result = await client.complete([{ role: 'user', content: [textContent('hi')] }]);
+
+    expect(result.message.reasoning_content).toBe('the model thought');
+  });
+
+  it('round-trips reasoning_content: a parsed response echoes back on the next request', async () => {
+    const profile = llmProfileSchema.parse({
+      profileId: 'flash',
+      providerId: 'deepseek',
+      model: 'deepseek-v4-flash',
+      baseUrl: 'https://api.deepseek.com',
+    });
+    const store = new InMemorySecretStore([[llmProviderSecretRef('deepseek'), 'deepseek-key']]);
+    const calls: FakeFetchCall[] = [];
+    const client = await createOpenAIChatClientFromProfile(profile, store, {
+      fetch: fakeReasoningFetch({ content: 'done', reasoning: 'chain of thought' }, calls),
+    });
+
+    const first = await client.complete([{ role: 'user', content: [textContent('hi')] }]);
+    await client.complete([{ role: 'user', content: [textContent('hi')] }, first.message]);
+
+    const secondBody = calls[1]?.body as { messages: Array<Record<string, unknown>> };
+    expect(secondBody.messages[1].reasoning_content).toBe('chain of thought');
+  });
+
   it('omits temperature for GPT-5 chat-completions models', () => {
     const profile = llmProfileSchema.parse({
       profileId: 'default',
@@ -515,6 +624,35 @@ function fakeFetch(response: { content: string }, calls: FakeFetchCall[] = []) {
               rejected_prediction_tokens: 0,
             },
           },
+        };
+      },
+      async text() {
+        return JSON.stringify(await this.json());
+      },
+    };
+  };
+}
+
+function fakeReasoningFetch(response: { content: string; reasoning: string }, calls: FakeFetchCall[] = []) {
+  return async (url: string, init: { headers?: HeadersInit; body?: BodyInit | null }) => {
+    calls.push({
+      url,
+      headers: normalizeHeaders(init.headers),
+      body: JSON.parse(String(init.body)) as Record<string, unknown>,
+    });
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          choices: [
+            {
+              index: 0,
+              finish_reason: 'stop',
+              message: { role: 'assistant', content: response.content, reasoning_content: response.reasoning },
+            },
+          ],
+          usage: { prompt_tokens: 7, completion_tokens: 3, total_tokens: 10 },
         };
       },
       async text() {

@@ -132,6 +132,10 @@ const rawMessageSchema = z
     vision_enabled: z.boolean().optional(),
     function_calling_enabled: z.boolean().optional(),
     force_string_serializer: z.boolean().optional(),
+    // Accepted-and-dropped backward-compat shim: older serialized messages may carry
+    // a `send_reasoning_content` flag. We no longer use it — whether to echo reasoning
+    // is now decided by the model itself via `isReasoningModel` (see provider-quirks.ts).
+    // Kept here only so historical payloads still parse; the transform below drops it.
     send_reasoning_content: z.boolean().optional(),
     reasoning_content: z.string().nullable().default(null),
     thinking_blocks: z.array(z.union([thinkingBlockSchema, redactedThinkingBlockSchema])).default([]),

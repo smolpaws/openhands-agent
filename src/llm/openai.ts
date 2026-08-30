@@ -12,7 +12,7 @@ import {
   type Message,
   type MessageToolCall,
 } from './index.js';
-import { normalizeGenerationParamsForModel, resolveOpenAIPromptCacheKey, resolveOpenAIPromptCacheRetention } from './provider-quirks.js';
+import { isReasoningModel, normalizeGenerationParamsForModel, resolveOpenAIPromptCacheKey, resolveOpenAIPromptCacheRetention } from './provider-quirks.js';
 
 export { llmCompletionResponseSchema, llmUsageSchema } from './client.js';
 export type { FetchLike, FetchResponseLike, LLMClient, LLMCompletionResponse, LLMUsage } from './client.js';
@@ -143,9 +143,10 @@ export function buildChatCompletionsBody(
   tools: readonly ToolDefinition[] = [],
 ): Record<string, unknown> {
   const normalizedProfile = normalizeGenerationParamsForModel(profile);
+  const sendReasoningContent = isReasoningModel(normalizedProfile);
   const body: Record<string, unknown> = {
     model: normalizedProfile.model,
-    messages: messages.map((message) => toOpenAIChatMessage(messageSchema.parse(message))),
+    messages: messages.map((message) => toOpenAIChatMessage(messageSchema.parse(message), sendReasoningContent)),
   };
   if (tools.length > 0) {
     body.tools = tools.map(toOpenAIChatTool);
@@ -287,7 +288,7 @@ function toOpenAIChatTool(tool: ToolDefinition): Record<string, unknown> {
   };
 }
 
-function toOpenAIChatMessage(message: Message): Record<string, unknown> {
+function toOpenAIChatMessage(message: Message, sendReasoningContent = false): Record<string, unknown> {
   const out: Record<string, unknown> = {
     role: message.role,
     content: serializeContent(message.content),
@@ -303,6 +304,17 @@ function toOpenAIChatMessage(message: Message): Record<string, unknown> {
   }
   if (message.name !== null) {
     out.name = message.name;
+  }
+  // Thinking/reasoning models (e.g. DeepSeek dual-mode, Kimi thinking) require the
+  // prior assistant turn's reasoning to be echoed back, or the provider 400s. Only
+  // assistant messages carry reasoning; only send it when the model reasons.
+  if (sendReasoningContent && message.role === 'assistant') {
+    if (message.reasoning_content !== null) {
+      out.reasoning_content = message.reasoning_content;
+    }
+    if (message.thinking_blocks.length > 0) {
+      out.thinking_blocks = message.thinking_blocks;
+    }
   }
   return out;
 }
@@ -357,6 +369,9 @@ function parseChatCompletionsResponse(raw: unknown): LLMCompletionResponse {
     role: firstChoice.message.role,
     content: firstChoice.message.content,
     tool_calls: firstChoice.message.tool_calls?.map(fromOpenAIChatToolCall) ?? null,
+    // Preserve the model's reasoning so it can be threaded back on the next turn
+    // for reasoning models that require it (see isReasoningModel / toOpenAIChatMessage).
+    reasoning_content: firstChoice.message.reasoning_content,
   });
 
   return llmCompletionResponseSchema.parse({
@@ -493,6 +508,7 @@ const openAIChatCompletionResponseSchema = z
               role: z.union([z.literal('assistant'), z.literal('tool'), z.literal('user'), z.literal('system')]),
               content: z.string().nullable().default(null),
               tool_calls: z.array(openAIChatToolCallSchema).optional(),
+              reasoning_content: z.string().nullable().default(null),
             })
             .passthrough(),
         })
