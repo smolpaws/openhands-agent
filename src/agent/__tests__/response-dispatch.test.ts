@@ -54,37 +54,48 @@ describe('dispatchLlmResponse', () => {
     expect(ConversationState.getUnmatchedActions(state.events)).toHaveLength(0);
   });
 
-  it('appends visible assistant content as a MessageEvent', async () => {
+  it('appends visible assistant content and finishes the turn', async () => {
     const state = new ConversationState();
 
     await dispatchLlmResponse({ message: baseMessage({ content: [textContent('hello')] }), usage: null }, state, async () => []);
 
     expect(state.events).toHaveLength(1);
     expect(state.events[0]).toMatchObject({ kind: 'MessageEvent', source: 'agent' });
+    expect(state.executionStatus).toBe('finished');
   });
 
-  it('nudges an empty response as a user-role environment MessageEvent', async () => {
+  it('nudges an empty response as a user-role environment MessageEvent without finishing', async () => {
     const state = new ConversationState();
 
     await dispatchLlmResponse({ message: baseMessage(), usage: null }, state, async () => []);
 
-    expect(state.events).toHaveLength(1);
-    expect(state.events[0]).toMatchObject({
+    expect(state.events.map((event) => event.kind)).toEqual(['MessageEvent', 'MessageEvent']);
+    expect(state.events[0]).toMatchObject({ kind: 'MessageEvent', source: 'agent' });
+    expect(state.events[1]).toMatchObject({
       kind: 'MessageEvent',
       source: 'environment',
       llm_message: { role: 'user' },
     });
+    expect(state.executionStatus).not.toBe('finished');
   });
 
-  it('does not nudge content or reasoning-only responses', async () => {
+  it('nudges a reasoning-only response without finishing', async () => {
+    const state = new ConversationState();
+
+    await dispatchLlmResponse({ message: baseMessage({ reasoning_content: 'thought' }), usage: null }, state, async () => []);
+
+    expect(state.events.map((event) => event.kind)).toEqual(['MessageEvent', 'MessageEvent']);
+    expect(state.events[0]).toMatchObject({ kind: 'MessageEvent', source: 'agent' });
+    expect(state.events[1]).toMatchObject({ kind: 'MessageEvent', source: 'environment', llm_message: { role: 'user' } });
+    expect(state.executionStatus).not.toBe('finished');
+  });
+
+  it('does not nudge visible content responses', async () => {
     const contentState = new ConversationState();
-    const reasoningState = new ConversationState();
 
     await dispatchLlmResponse({ message: baseMessage({ content: [textContent('hi')] }), usage: null }, contentState, async () => []);
-    await dispatchLlmResponse({ message: baseMessage({ reasoning_content: 'thought' }), usage: null }, reasoningState, async () => []);
 
     expect(contentState.events.some((event) => event.kind === 'MessageEvent' && event.source === 'environment')).toBe(false);
-    expect(reasoningState.events.some((event) => event.kind === 'MessageEvent' && event.source === 'environment')).toBe(false);
   });
 });
 

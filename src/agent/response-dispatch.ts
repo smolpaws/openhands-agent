@@ -5,6 +5,7 @@ import {
   ConversationState,
   ParallelToolExecutor,
   actionEventsFromMessage,
+  conversationExecutionStatus,
   type ToolRunner,
 } from '../conversation/index.js';
 
@@ -47,8 +48,9 @@ export async function dispatchLlmResponse(
 ): Promise<readonly Event[]> {
   const emitted: Event[] = [];
   const message = messageSchema.parse(response.message);
+  const responseType = classifyResponse(message);
 
-  if (classifyResponse(message) === llmResponseType.TOOL_CALLS) {
+  if (responseType === llmResponseType.TOOL_CALLS) {
     const actions = actionEventsFromMessage(message, options.llmResponseId ?? null);
     for (const event of await state.appendEventsAsync(actions)) {
       emitted.push(event);
@@ -63,24 +65,31 @@ export async function dispatchLlmResponse(
     return emitted;
   }
 
-  if (classifyResponse(message) === llmResponseType.CONTENT || classifyResponse(message) === llmResponseType.REASONING_ONLY) {
-    emitted.push(
-      await state.appendEventAsync(
-        messageEventSchema.parse({
-          source: 'agent',
-          llm_message: message,
-          llm_response_id: options.llmResponseId ?? null,
-        }),
-      ),
-    );
+  // Every non-tool response emits the assistant message as it was received.
+  emitted.push(
+    await state.appendEventAsync(
+      messageEventSchema.parse({
+        source: 'agent',
+        llm_message: message,
+        llm_response_id: options.llmResponseId ?? null,
+      }),
+    ),
+  );
+
+  if (responseType === llmResponseType.CONTENT) {
+    // Visible text is a complete turn: hand control back to the user, exactly
+    // like the Python SDK's _handle_content_response. The run loop stops when
+    // the status is no longer RUNNING.
+    state.executionStatus = conversationExecutionStatus.FINISHED;
     return emitted;
   }
 
-  // Empty response (no tool call, no content, no reasoning): send a corrective
-  // nudge. It is a user-role message so the model sees it as a turn, but the
-  // event source is 'environment' so the framework (not the human) is its
-  // origin — this keeps it from resetting the stuck-detection user-turn window
-  // (upstream #3954).
+  // Reasoning-only or empty: the model produced no user-facing content and no
+  // tool call, so it did not actually make progress. Follow the assistant
+  // message with a corrective nudge and keep the run loop going. The nudge is a
+  // user-role message so the model reads it as a turn, but its event source is
+  // 'environment' so the framework (not the human) is its origin — this keeps
+  // it from resetting the stuck-detection user-turn window (upstream #3954).
   emitted.push(
     await state.appendEventAsync(
       messageEventSchema.parse({

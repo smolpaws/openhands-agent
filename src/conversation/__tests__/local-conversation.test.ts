@@ -28,10 +28,24 @@ describe('LocalConversation', () => {
     expect(llm.requests[0]?.map((message) => message.role)).toEqual(['user']);
   });
 
-  it('continues after non-final content until max iterations is reached', async () => {
+  it('finishes the turn as soon as the model replies with visible content', async () => {
+    const llm = new FakeLLM([{ message: assistantContent('here is the answer'), usage: null }]);
+    const agent = new Agent({ llm, tools: [FinishTool.create()] });
+    const conversation = new LocalConversation({ agent, maxIterations: 5 });
+
+    conversation.sendMessage('question');
+    await conversation.run();
+
+    expect(conversation.state.executionStatus).toBe(conversationExecutionStatus.FINISHED);
+    expect(conversation.state.events.map((event) => event.kind)).toEqual(['MessageEvent', 'MessageEvent']);
+    expect(conversation.state.events.at(-1)).toMatchObject({ kind: 'MessageEvent', source: 'agent' });
+    expect(llm.requests).toHaveLength(1);
+  });
+
+  it('nudges and keeps running after a reasoning-only response until max iterations', async () => {
     const llm = new FakeLLM([
-      { message: assistantContent('still working'), usage: null },
-      { message: assistantContent('still working'), usage: null },
+      { message: assistantReasoning('thinking'), usage: null },
+      { message: assistantReasoning('still thinking'), usage: null },
     ]);
     const agent = new Agent({ llm, tools: [FinishTool.create()] });
     const conversation = new LocalConversation({ agent, maxIterations: 2 });
@@ -41,6 +55,7 @@ describe('LocalConversation', () => {
 
     expect(conversation.state.executionStatus).toBe(conversationExecutionStatus.ERROR);
     expect(conversation.state.events.at(-1)).toMatchObject({ kind: 'ConversationErrorEvent', code: 'MaxIterationsReached' });
+    expect(conversation.state.events.some((event) => event.kind === 'MessageEvent' && event.source === 'environment')).toBe(true);
   });
 
   it('can pause before a run and resume from paused status', async () => {
@@ -104,6 +119,13 @@ function assistantContent(text: string): Message {
     reasoning_content: null,
     thinking_blocks: [],
     responses_reasoning_item: null,
+  };
+}
+
+function assistantReasoning(text: string): Message {
+  return {
+    ...assistantContent(''),
+    reasoning_content: text,
   };
 }
 
