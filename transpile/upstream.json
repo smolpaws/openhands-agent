@@ -180,6 +180,20 @@
       "paths": []
     },
     {
+      "id": "EXT-SDK-001",
+      "kind": "EXTENSION",
+      "target": "sdk",
+      "prefixes": [],
+      "paths": []
+    },
+    {
+      "id": "EXT-SDK-002",
+      "kind": "EXTENSION",
+      "target": "sdk",
+      "prefixes": [],
+      "paths": []
+    },
+    {
       "id": "DEV-SERVER-001",
       "kind": "DEVIATION",
       "target": "server",

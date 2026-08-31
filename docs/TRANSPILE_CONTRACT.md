@@ -54,6 +54,8 @@ A mixed change cannot be blanket-excluded. Every changed file in an `EXCLUDED` r
 
 Do not add an `ADAPTED` disposition. Target-language implementation choices that preserve behavior are `PORT`/parity work, not policy exceptions.
 
+Extensions are target policy, not upstream-change dispositions. Give additive target-only behavior — code that has no upstream counterpart to be faithful to — a stable `EXT-*` ID (see [Additive extensions](#additive-extensions)).
+
 ## Intentional deviations and exclusions
 
 The stable policy IDs below are also registered in the canonical manifest so tooling can validate review records. The prose here remains the policy authority.
@@ -87,6 +89,27 @@ The Python plugin runtime is outside current transpilation scope unless this con
 ### EXC-SDK-002 — marketplace runtime
 
 The Python marketplace runtime is outside current transpilation scope unless this contract is deliberately changed.
+
+## Additive extensions
+
+Extensions are additive, target-only behavior that has **no upstream counterpart**. They are not judged by upstream parity because there is nothing upstream to be faithful to. Each extension has a stable `EXT-SDK-*` ID registered in the canonical manifest with `kind: EXTENSION`.
+
+Rules for every extension:
+
+- It must not change the observable behavior of any ported upstream surface. Ported concepts, tool schemas, event shapes, and the agent loop stay parity-governed.
+- It must live in clearly separated target-only files so drift discovery does not mistake it for unclassified upstream work.
+- It is not exempt from tests, typecheck, lint, or build — only from the differential/golden parity oracle.
+- Keep the extension surface small. An extension that starts reshaping a parity-governed contract is no longer additive and must be reconsidered.
+
+SmolPaws builds product-specific agent tools (outbound messaging, task scheduling) on the SDK's public `ToolDefinition` and tool-registry surface. Such tools are additive extensions: they emit ordinary `ActionEvent`s and carry no delivery, queue, or scheduling semantics inside the SDK — those live in the SmolPaws coordinator and server.
+
+### EXT-SDK-001 — outbound message tool
+
+The SDK may define a `send_message` tool that lets the agent emit a mid-turn outbound message as an ordinary `ActionEvent`. The tool only records intent on the EventLog; it performs no delivery and does not end the turn. Delivery is owned by the SmolPaws coordinator, which projects the action into its durable outbox.
+
+### EXT-SDK-002 — task-scheduler tools
+
+The SDK may define smolpaws' cross-conversation scheduling tools (`schedule_task`, `list_tasks`, `cancel_task`, `pause_task`, `resume_task`) as ordinary tools that emit `ActionEvent`s. This is distinct from the upstream-parity `task_tracker` tool (a per-conversation checklist). The scheduling engine and turn enqueue live outside the SDK; these tools only express the request as durable events.
 
 ## LLM/provider rule
 
