@@ -6,3 +6,4 @@
  * parity oracle but still covered by tests, typecheck, lint, and build.
  */
 export * from './send-message.js';
+export * from './task-scheduler.js';
