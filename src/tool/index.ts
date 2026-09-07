@@ -144,6 +144,10 @@ export class ToolRegistry {
     const parsedSpec = toolSpecSchema.parse(spec);
     const registration = this.registrations.get(parsedSpec.name);
     if (registration === undefined) {
+      const builtin = builtinToolResolvers.get(parsedSpec.name);
+      if (builtin !== undefined) {
+        return builtin(parsedSpec.params, context);
+      }
       throw new Error(`Unknown tool: ${parsedSpec.name}`);
     }
 
@@ -200,4 +204,20 @@ function schemaToJsonObject(schema: z.ZodType): JsonObject {
 
 function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Built-in tools the global registry can resolve by name even when they were
+ * never explicitly registered. Upstream ``resolve_tool`` falls back to
+ * ``BUILT_IN_TOOL_CLASSES`` so a structured builtin spec (e.g. ``finish`` with
+ * a ``response_schema``) resolves remotely without a prior ``register_tool``
+ * call. The classes live in ``tool/builtins.ts``; this module imports them
+ * lazily so the registry stays independent of the concrete tool surface.
+ */
+type BuiltInResolver = (params: Readonly<Record<string, unknown>>, context?: unknown) => readonly ToolDefinition[];
+
+const builtinToolResolvers = new Map<string, BuiltInResolver>();
+
+export function registerBuiltinResolver(name: string, resolver: BuiltInResolver): void {
+  builtinToolResolvers.set(name, resolver);
 }

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { ToolDefinition, toolAnnotationsSchema, type ToolAnnotations } from './index.js';
+import { registerBuiltinResolver, ToolDefinition, toolAnnotationsSchema, type ToolAnnotations } from './index.js';
 
 export const baseObservationSchema = z
   .object({
@@ -94,3 +94,9 @@ export const BUILT_IN_TOOL_FACTORIES = {
   FinishTool: () => FinishTool.create(),
   ThinkTool: () => ThinkTool.create(),
 } satisfies Readonly<Record<string, BuiltInToolFactory>>;
+
+// Register built-ins with the global registry by *tool* name (not class name),
+// matching upstream ``BUILT_IN_TOOL_CLASSES`` fallback resolution keyed on the
+// resolved ``ToolDefinition.name`` ('finish', 'think').
+registerBuiltinResolver('finish', () => [FinishTool.create()]);
+registerBuiltinResolver('think', () => [ThinkTool.create()]);

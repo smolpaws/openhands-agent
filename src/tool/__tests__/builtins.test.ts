@@ -7,6 +7,7 @@ import {
   finishActionSchema,
   thinkActionSchema,
 } from '../builtins.js';
+import { resolveTool } from '../index.js';
 
 describe('built-in tools', () => {
   it('creates default built-ins with safe annotations', () => {
@@ -43,5 +44,13 @@ describe('built-in tools', () => {
       is_error: false,
     });
     expect(() => thinkActionSchema.parse({ thought: 12 })).toThrow();
+  });
+
+  it('resolves built-ins by tool name through the global registry without explicit registration', () => {
+    const [finish] = resolveTool({ name: 'finish' });
+    const [think] = resolveTool({ name: 'think' });
+
+    expect(finish?.name).toBe('finish');
+    expect(think?.name).toBe('think');
   });
 });
