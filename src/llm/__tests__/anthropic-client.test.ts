@@ -115,10 +115,14 @@ describe('profile-resolved Anthropic Messages client', () => {
 
   it('gates Anthropic prompt cache-control on supported models', () => {
     const supported = llmProfileSchema.parse({ profileId: 'sonnet', providerId: 'anthropic', model: 'claude-sonnet-4-5' });
+    const sonnet5 = llmProfileSchema.parse({ profileId: 'sonnet5', providerId: 'anthropic', model: 'claude-sonnet-5' });
     const unsupported = llmProfileSchema.parse({ profileId: 'legacy', providerId: 'anthropic', model: 'claude-2.1' });
     const messages = [{ role: 'user' as const, content: [textContent('cache me', true)] }];
 
     expect(buildAnthropicMessagesBody(supported, messages).messages).toEqual([
+      { role: 'user', content: [{ type: 'text', text: 'cache me', cache_control: { type: 'ephemeral' } }] },
+    ]);
+    expect(buildAnthropicMessagesBody(sonnet5, messages).messages).toEqual([
       { role: 'user', content: [{ type: 'text', text: 'cache me', cache_control: { type: 'ephemeral' } }] },
     ]);
     expect(buildAnthropicMessagesBody(unsupported, messages).messages).toEqual([
