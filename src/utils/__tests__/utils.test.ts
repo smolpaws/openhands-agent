@@ -151,6 +151,24 @@ describe('command utilities', () => {
     expect(result).toEqual({ LD_LIBRARY_PATH_ORIG: '' });
   });
 
+  it('strips session, cipher, and indexed session-key slots while preserving other vars', () => {
+    const result = sanitizedEnv({
+      SESSION_API_KEY: 'v0-session',
+      OH_SECRET_KEY: 'cipher-secret',
+      OH_SESSION_API_KEYS_0: 'v1-session-0',
+      OH_SESSION_API_KEYS_1: 'v1-session-1',
+      OH_WEB_URL: 'https://example.test',
+      FOO: 'bar',
+    });
+
+    expect(result).not.toHaveProperty('SESSION_API_KEY');
+    expect(result).not.toHaveProperty('OH_SECRET_KEY');
+    expect(result).not.toHaveProperty('OH_SESSION_API_KEYS_0');
+    expect(result).not.toHaveProperty('OH_SESSION_API_KEYS_1');
+    expect(result.OH_WEB_URL).toBe('https://example.test');
+    expect(result.FOO).toBe('bar');
+  });
+
   it('executes commands and captures stdout and stderr', () => {
     const result = executeCommand('printf out && printf err >&2', { printOutput: false });
 

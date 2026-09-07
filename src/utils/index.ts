@@ -200,7 +200,8 @@ export async function* pageIterator<T, P extends Record<string, unknown>>(
   }
 }
 
-const SENSITIVE_ENV_VARS = new Set(['SESSION_API_KEY']);
+const SENSITIVE_ENV_VARS = new Set(['SESSION_API_KEY', 'OH_SECRET_KEY']);
+const SENSITIVE_ENV_PREFIXES = ['OH_SESSION_API_KEYS_'] as const;
 
 export function sanitizedEnv(env: Readonly<Record<string, string | undefined>> = process.env): Record<string, string> {
   const result: Record<string, string> = {};
@@ -212,6 +213,14 @@ export function sanitizedEnv(env: Readonly<Record<string, string | undefined>> =
 
   for (const key of SENSITIVE_ENV_VARS) {
     delete result[key];
+  }
+
+  // Strip indexed / prefixed credential slots (e.g. OH_SESSION_API_KEYS_0..N),
+  // so a rename or an added rotation key cannot silently re-expose the credential.
+  for (const key of Object.keys(result)) {
+    if (SENSITIVE_ENV_PREFIXES.some((prefix) => key.startsWith(prefix))) {
+      delete result[key];
+    }
   }
 
   if (Object.hasOwn(result, 'LD_LIBRARY_PATH_ORIG')) {
