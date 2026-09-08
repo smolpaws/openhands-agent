@@ -97,6 +97,55 @@ describe('dispatchLlmResponse', () => {
 
     expect(contentState.events.some((event) => event.kind === 'MessageEvent' && event.source === 'environment')).toBe(false);
   });
+
+  it('masks registered secret values in the durable agent MessageEvent text', async () => {
+    const state = new ConversationState();
+    const mask = (text: string) => text.replaceAll('supersecret', '<secret-hidden>');
+
+    await dispatchLlmResponse(
+      { message: baseMessage({ content: [textContent('the value is supersecret now')] }), usage: null },
+      state,
+      async () => [],
+      { maskSecretsInOutput: mask },
+    );
+
+    const event = state.events[0];
+    expect(event).toMatchObject({ kind: 'MessageEvent', source: 'agent' });
+    expect((event as { llm_message: { content: { text: string }[] } }).llm_message.content[0]?.text).toBe(
+      'the value is <secret-hidden> now',
+    );
+  });
+
+  it('masks reasoning_content and leaves signed thinking blocks untouched', async () => {
+    const state = new ConversationState();
+    const mask = (text: string) => text.replaceAll('supersecret', '<secret-hidden>');
+
+    await dispatchLlmResponse(
+      {
+        message: baseMessage({
+          reasoning_content: 'the value is supersecret now',
+          thinking_blocks: [{ type: 'thinking', thinking: 'supersecret in signed payload', signature: 'sig' }],
+        }),
+        usage: null,
+      },
+      state,
+      async () => [],
+      { maskSecretsInOutput: mask },
+    );
+
+    const event = state.events[0] as { llm_message: { reasoning_content: string; thinking_blocks: { thinking: string }[] } };
+    expect(event.llm_message.reasoning_content).toBe('the value is <secret-hidden> now');
+    expect(event.llm_message.thinking_blocks[0]?.thinking).toBe('supersecret in signed payload');
+  });
+
+  it('leaves the message unchanged when no mask is provided', async () => {
+    const state = new ConversationState();
+
+    await dispatchLlmResponse({ message: baseMessage({ content: [textContent('nothing to hide')] }), usage: null }, state, async () => []);
+
+    const event = state.events[0] as { llm_message: { content: { text: string }[] } };
+    expect(event.llm_message.content[0]?.text).toBe('nothing to hide');
+  });
 });
 
 function baseMessage(overrides = {}) {

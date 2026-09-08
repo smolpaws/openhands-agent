@@ -1,6 +1,6 @@
 import { messageEventSchema, type Event } from '../event/index.js';
 import { type LLMCompletionResponse } from '../llm/client.js';
-import { messageSchema, textContent, type Message } from '../llm/index.js';
+import { messageSchema, textContent, type Message, type TextContent } from '../llm/index.js';
 import {
   ConversationState,
   ParallelToolExecutor,
@@ -22,6 +22,7 @@ export interface DispatchLlmResponseOptions {
   readonly llmResponseId?: string | null;
   readonly maxConcurrency?: number;
   readonly executor?: ParallelToolExecutor;
+  readonly maskSecretsInOutput?: ((text: string) => string) | null;
 }
 
 export const CORRECTIVE_NUDGE = 'Your last response did not include a function call or a message. Please use a tool to proceed with the task.';
@@ -65,12 +66,13 @@ export async function dispatchLlmResponse(
     return emitted;
   }
 
-  // Every non-tool response emits the assistant message as it was received.
+  // Every non-tool response emits the assistant message as it was received,
+  // with registered secret values masked in its text (upstream #4783).
   emitted.push(
     await state.appendEventAsync(
       messageEventSchema.parse({
         source: 'agent',
-        llm_message: message,
+        llm_message: maskMessageSecrets(message, options.maskSecretsInOutput ?? null),
         llm_response_id: options.llmResponseId ?? null,
       }),
     ),
@@ -104,4 +106,22 @@ export async function dispatchLlmResponse(
   );
 
   return emitted;
+}
+
+function maskMessageSecrets(message: Message, mask: ((text: string) => string) | null): Message {
+  // Mirror Python `ResponseDispatchMixin._mask_secrets`: mask registered secret
+  // values in the durable message's text. `thinking_blocks` and
+  // `responses_reasoning_item` are signed provider payloads and are left alone.
+  if (mask === null) {
+    return message;
+  }
+  return {
+    ...message,
+    content: message.content.map((part) => (isTextContent(part) ? { ...part, text: mask(part.text) } : part)),
+    reasoning_content: message.reasoning_content === null ? null : mask(message.reasoning_content),
+  };
+}
+
+function isTextContent(part: Message['content'][number]): part is TextContent {
+  return part.type === 'text';
 }
