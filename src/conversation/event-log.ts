@@ -6,6 +6,11 @@ export const EVENT_FILE_PATTERN = 'event-{idx}-{event_id}.json';
 export const LOCK_FILE_NAME = '.eventlog.lock';
 export const LOCK_TIMEOUT_SECONDS = 30;
 
+// Sidecar marker naming the log's event count, so a writer can check it with one
+// `exists()` instead of listing the events directory. The count lives in the name
+// because `FileStore.read` is cached.
+const LENGTH_MARKER_PATTERN = '.eventlog-len-{length}.marker';
+
 const eventNamePattern = /^event-(?<idx>\d{5,})-(?<event_id>[0-9a-fA-F-]{8,})\.json$/u;
 
 export class DuplicateEventError extends Error {
@@ -169,9 +174,13 @@ export class EventLog {
   }
 
   private writeEventsUnderLock(events: readonly Event[]): void {
-    const diskLength = this.countEventsOnDisk();
-    if (diskLength > this.lengthValue) {
-      this.syncFromDisk(diskLength);
+    // Sync with disk only if the marker cannot rule out another writer. A missing
+    // marker is not proof of divergence, so fall back to the exact count then.
+    if (!this.markerMatchesLength()) {
+      const diskLength = this.countEventsOnDisk();
+      if (diskLength > this.lengthValue) {
+        this.syncFromDisk(diskLength);
+      }
     }
 
     const batchIds = new Map<string, number>();
@@ -201,6 +210,33 @@ export class EventLog {
       this.idToIndex.set(event.id, index);
       this.eventCache.set(index, event);
       this.lengthValue += 1;
+      this.advanceLengthMarker(index);
+    }
+  }
+
+  private markerPath(length: number): string {
+    return joinStorePath(this.dir, LENGTH_MARKER_PATTERN.replace('{length}', String(length)));
+  }
+
+  private markerMatchesLength(): boolean {
+    // Whether the marker proves no one has appended since we last did. `false` is
+    // not proof of divergence, so callers must fall back to the exact count.
+    try {
+      return this.fs.exists(this.markerPath(this.lengthValue));
+    } catch {
+      return false;
+    }
+  }
+
+  private advanceLengthMarker(previousLength: number): void {
+    // Move the marker from `previousLength` to the current length. Deleting first
+    // is deliberate: an interrupted update leaves no marker rather than a stale
+    // one claiming to be current.
+    try {
+      this.fs.delete(this.markerPath(previousLength));
+      this.fs.write(this.markerPath(this.lengthValue), '');
+    } catch {
+      // Marker maintenance is best-effort; an absent marker only costs a list next append.
     }
   }
 

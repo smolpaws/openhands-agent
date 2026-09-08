@@ -84,7 +84,8 @@ describe('EventLog upstream parity edge cases', () => {
     const store = new InMemoryFileStore();
     const customLog = new EventLog(store, 'custom_events');
     customLog.append(userMessage('custom-event', 'custom'));
-    expect(store.list('custom_events')).toEqual(['custom_events/event-00000-custom-event.json']);
+    const customFiles = store.list('custom_events').filter((filePath) => !posixBaseName(filePath).startsWith('.'));
+    expect(customFiles).toEqual(['custom_events/event-00000-custom-event.json']);
 
     const largeLog = new EventLog(new InMemoryFileStore());
     internals(largeLog).lengthValue = 99_999;
@@ -228,6 +229,10 @@ function userMessage(id: string, text: string): Event {
       content: [textContent(text)],
     },
   });
+}
+
+function posixBaseName(filePath: string): string {
+  return filePath.split('/').filter(Boolean).at(-1) ?? filePath;
 }
 
 function serialize(event: Event): string {

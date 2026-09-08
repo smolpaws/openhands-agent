@@ -30,7 +30,8 @@ describe('EventLog', () => {
     log.append(event);
 
     expect(log.length).toBe(1);
-    expect(store.list('events')).toEqual(['events/event-00000-00000000-0000-4000-8000-000000000001.json']);
+    const files = store.list('events').filter((filePath) => !posixBaseName(filePath).startsWith('.'));
+    expect(files).toEqual(['events/event-00000-00000000-0000-4000-8000-000000000001.json']);
     expect(JSON.parse(store.read('events/event-00000-00000000-0000-4000-8000-000000000001.json'))).toMatchObject({
       id: event.id,
       kind: 'MessageEvent',
@@ -73,6 +74,54 @@ describe('EventLog', () => {
     expect(restored.getId(1)).toBe(events[1]?.id);
     expect(restored.getIndex(events[0]?.id ?? '')).toBe(0);
     expect(restored.toArray()).toEqual(events);
+  });
+
+  it('does not list the events directory on every append as the log grows', () => {
+    const store = new CountingListFileStore();
+    const log = new EventLog(store);
+
+    for (let i = 0; i < 50; i += 1) {
+      log.append(userMessage(`${i.toString(16).padStart(8, '0')}-0000-0000-0000-000000000000`, `e${i}`));
+    }
+
+    // The constructor scans once to build the index; the first append has no
+    // marker to go on and pays for one listing. Every later append is answered
+    // by the marker alone, so the events dir must not be listed again.
+    expect(store.listCount).toBeLessThanOrEqual(2);
+    expect(log.length).toBe(50);
+  });
+
+  it('still syncs when another writer appended, marker or not', () => {
+    const store = new InMemoryFileStore();
+    const first = new EventLog(store);
+    const second = new EventLog(store);
+
+    first.append(userMessage('00000000-0000-4000-8000-000000000001', 'one'));
+    first.append(userMessage('00000000-0000-4000-8000-000000000002', 'two'));
+
+    // `second` opened at length 0 and never saw those appends; the marker no
+    // longer names its length, so it falls back to counting and lands after them.
+    second.append(userMessage('00000000-0000-4000-8000-000000000003', 'three'));
+
+    expect(second.length).toBe(3);
+    expect(second.getIndex('00000000-0000-4000-8000-000000000003')).toBe(2);
+  });
+
+  it('syncs a legacy log with events but no length marker', () => {
+    const store = new InMemoryFileStore();
+    const first = new EventLog(store);
+    first.append(userMessage('00000000-0000-4000-8000-000000000001', 'one'));
+
+    // Simulate an on-disk log written before the marker existed.
+    for (const path of [...store.files.keys()]) {
+      if (path.split('/').filter(Boolean).at(-1)?.startsWith('.') === true) {
+        store.files.delete(path);
+      }
+    }
+
+    const reopened = new EventLog(store);
+    reopened.append(userMessage('00000000-0000-4000-8000-000000000002', 'two'));
+    expect(reopened.length).toBe(2);
   });
 
   it('syncs stale writers from disk and rejects duplicate event ids', async () => {
@@ -228,10 +277,23 @@ class CountingMemoryFileStore extends InMemoryFileStore {
   }
 }
 
+class CountingListFileStore extends InMemoryFileStore {
+  listCount = 0;
+
+  override list(filePath: string): string[] {
+    this.listCount += 1;
+    return super.list(filePath);
+  }
+}
+
 async function tempDir(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'openhands-event-log-'));
   tempDirs.push(dir);
   return dir;
+}
+
+function posixBaseName(filePath: string): string {
+  return filePath.split('/').filter(Boolean).at(-1) ?? filePath;
 }
 
 function userMessage(id: string, text: string): Event {
