@@ -2,6 +2,8 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, extname, join, posix, sep } from 'node:path';
 
+import { getUserPersistenceDir } from '../utils/index.js';
+
 // Retain permission_mode as a known frontmatter key so legacy agent files load,
 // but do not expose or enforce Python confirmation semantics.
 const knownAgentFields = new Set([
@@ -117,7 +119,18 @@ export async function loadProjectAgents(projectDir: string): Promise<AgentDefini
 }
 
 export async function loadUserAgents(): Promise<AgentDefinition[]> {
-  return loadAgentsFromDirs(agentDirectories.map((dir) => join(homedir(), dir)));
+  return loadAgentsFromDirs(agentDirectories.map((dir) => userAgentsDir(dir)));
+}
+
+function userAgentsDir(relative: string): string {
+  // Map a file-based agents dir onto its user-level base: `.openhands/agents`
+  // goes under the persistence dir (which replaces the `~/.openhands` base);
+  // every other entry stays home-relative.
+  const [base, ...rest] = relative.split('/');
+  if (base === '.openhands') {
+    return join(getUserPersistenceDir(), rest.join('/'));
+  }
+  return join(homedir(), relative);
 }
 
 export interface DiscoverAgentsOptions {

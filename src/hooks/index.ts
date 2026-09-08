@@ -1,12 +1,12 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import { z } from 'zod';
 
 import type { LLMClient } from '../llm/client.js';
 import { messageSchema, reduceTextContent, textContent, type Message } from '../llm/index.js';
+import { getUserPersistenceDir } from '../utils/index.js';
 
 export enum HookEventType {
   PreToolUse = 'PreToolUse',
@@ -192,7 +192,7 @@ export class HookConfig {
     let path = options.path ?? null;
     if (path === null) {
       const base = options.workingDir ?? process.cwd();
-      for (const candidate of [join(base, '.openhands', 'hooks.json'), join(homedir(), '.openhands', 'hooks.json')]) {
+      for (const candidate of [join(base, '.openhands', 'hooks.json'), join(getUserPersistenceDir(), 'hooks.json')]) {
         if (await existsFile(candidate)) {
           path = candidate;
           break;

@@ -1,11 +1,35 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import path from 'node:path';
 
 import type { Event } from '../event/index.js';
 
 export type AsyncConversationCallback<TEvent = Event> = (event: TEvent) => Promise<void>;
+
+// Anchor for a relative OH_PERSISTENCE_DIR: captured once so the state tree
+// cannot move when something chdirs mid-process.
+const INITIAL_CWD = process.cwd();
+
+export function getUserPersistenceDir(defaultDir?: string | null): string {
+  // Return the base directory for user-level OpenHands persistence.
+  //
+  // Honors OH_PERSISTENCE_DIR when set (ephemeral/isolated sandboxes redirect
+  // state onto a persistent volume); otherwise returns `defaultDir`, or
+  // `~/.openhands` when none is given. OH_PERSISTENCE_DIR replaces the
+  // `~/.openhands` base; callers append their usual subdirectories.
+  //
+  // OH_PERSISTENCE_DIR is expected to be absolute. A relative value is honored
+  // but anchored to the module's initial working directory so a later `chdir`
+  // cannot split the state tree across call sites.
+  const envDir = process.env.OH_PERSISTENCE_DIR?.trim();
+  if (envDir !== undefined && envDir !== '') {
+    const expanded = envDir.startsWith('~/') ? path.join(homedir(), envDir.slice(2)) : envDir;
+    return path.isAbsolute(expanded) ? expanded : path.resolve(INITIAL_CWD, expanded);
+  }
+  return defaultDir ?? path.join(homedir(), '.openhands');
+}
 
 export class AsyncCallbackWrapper<TEvent = Event> {
   readonly callback: (event: TEvent) => void;
