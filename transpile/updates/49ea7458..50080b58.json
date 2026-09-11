@@ -6,25 +6,25 @@
   "inventorySha256": "294163846b5b4f62252dac06eeb9f94ccc2356e2170654f218f659b6cde96826",
   "items": {
     "3896f186936342b99c7c5d3f89cdae888f458e7f:server": {
-      "disposition": null,
-      "reason": "",
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; this repository owns only the SDK/tools/workspace TypeScript sources.",
       "policy": null,
       "tracking": [],
       "evidence": [],
       "compatibilityConsequence": null,
       "revisitTrigger": null,
-      "docsImpact": null,
+      "docsImpact": "none",
       "docs": []
     },
     "fc9646ad8e349b78e5332341a02da156d1c1cd5f:sdk": {
-      "disposition": null,
-      "reason": "",
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Registers litellm_proxy alias pricing and annotates observability spans with authoritative cost/cache buckets. The TS SDK has no LiteLLM model-pricing layer, no cost/pricing telemetry, and no span-cost attributes, so there is no target surface to change.",
       "policy": null,
       "tracking": [],
       "evidence": [],
       "compatibilityConsequence": null,
       "revisitTrigger": null,
-      "docsImpact": null,
+      "docsImpact": "none",
       "docs": []
     },
     "56b016e7f2d028a31ab59af4424d3172ac0b5aec:sdk": {
@@ -52,88 +52,90 @@
       "docs": []
     },
     "6a1e4d0f08dcdd02786526a51b7965e1877008bc:sdk": {
-      "disposition": null,
-      "reason": "",
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release v1.46.0: Python package version bumps (openhands-sdk/-tools/-workspace pyproject.toml) and uv.lock. The TS package versions are independent of upstream release numbers.",
       "policy": null,
       "tracking": [],
       "evidence": [],
       "compatibilityConsequence": null,
       "revisitTrigger": null,
-      "docsImpact": null,
+      "docsImpact": "none",
       "docs": []
     },
     "6a1e4d0f08dcdd02786526a51b7965e1877008bc:server": {
-      "disposition": null,
-      "reason": "",
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release v1.46.0 server side: openhands-agent-server pyproject.toml version bump plus a test_auto_title_span_metadata assertion tweak; the server is transpiled separately and carries no TS target here.",
       "policy": null,
       "tracking": [],
       "evidence": [],
       "compatibilityConsequence": null,
       "revisitTrigger": null,
-      "docsImpact": null,
+      "docsImpact": "none",
       "docs": []
     },
     "7a018907c9b6cac2ee7b205a1b4a5e3e0228e8e4:server": {
-      "disposition": null,
-      "reason": "",
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; this repository owns only the SDK/tools/workspace TypeScript sources.",
       "policy": null,
       "tracking": [],
       "evidence": [],
       "compatibilityConsequence": null,
       "revisitTrigger": null,
-      "docsImpact": null,
+      "docsImpact": "none",
       "docs": []
     },
     "03900b331d575abc8207f2f31536cb3209c19ef4:sdk": {
-      "disposition": null,
-      "reason": "",
+      "disposition": "DEFERRED",
+      "reason": "Adds StreamContext (minted stream identity, per-attempt deltas, guaranteed abort/close) and threads stream_callbacks through the agent loop. The TS SDK does not implement token streaming (LLMClient.complete returns a single completion response with no on_token surface), so there is no counterpart to port yet. The utils/models.py clear_subclass_cache and secret_registry.py compile_stream_mask changes ride the same commit and likewise have no TS counterpart.",
       "policy": null,
-      "tracking": [],
+      "tracking": [
+        "sdk-stream-progress-callbacks"
+      ],
       "evidence": [],
-      "compatibilityConsequence": null,
-      "revisitTrigger": null,
-      "docsImpact": null,
+      "compatibilityConsequence": "TS consumers cannot subscribe to stream-progress frames (StreamStarted/StreamDelta/StreamAborted) and cannot correlate a durable event id with a streamed slot; upstream's streaming surface is absent.",
+      "revisitTrigger": "When the TS LLM boundary gains a token-streaming surface (on_token/stream_callbacks), port StreamContext, StreamOutputMask, and the agent-loop wiring test-first.",
+      "docsImpact": "none",
       "docs": []
     },
     "03900b331d575abc8207f2f31536cb3209c19ef4:server": {
-      "disposition": null,
-      "reason": "",
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; this repository owns only the SDK/tools/workspace TypeScript sources.",
       "policy": null,
       "tracking": [],
       "evidence": [],
       "compatibilityConsequence": null,
       "revisitTrigger": null,
-      "docsImpact": null,
+      "docsImpact": "none",
       "docs": []
     },
     "50080b58d35b4824fda25fca2345d80bcd08aeff:sdk": {
-      "disposition": null,
-      "reason": "",
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release v1.47.0: Python package version bumps (openhands-sdk/-tools/-workspace pyproject.toml) and uv.lock. The TS package versions are independent of upstream release numbers.",
       "policy": null,
       "tracking": [],
       "evidence": [],
       "compatibilityConsequence": null,
       "revisitTrigger": null,
-      "docsImpact": null,
+      "docsImpact": "none",
       "docs": []
     },
     "50080b58d35b4824fda25fca2345d80bcd08aeff:server": {
-      "disposition": null,
-      "reason": "",
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release v1.47.0 server side: openhands-agent-server pyproject.toml version bump plus uv.lock; the server is transpiled separately and carries no TS target here.",
       "policy": null,
       "tracking": [],
       "evidence": [],
       "compatibilityConsequence": null,
       "revisitTrigger": null,
-      "docsImpact": null,
+      "docsImpact": "none",
       "docs": []
     }
   },
   "unmapped": {
-    "6a1e4d0f08dcdd02786526a51b7965e1877008bc:clients/typescript/package-lock.json": null,
-    "6a1e4d0f08dcdd02786526a51b7965e1877008bc:clients/typescript/package.json": null,
-    "1a33e946c4cbe1e2abd94167a5dbad2ce9db73ce:clients/typescript/AGENTS.md": null,
-    "50080b58d35b4824fda25fca2345d80bcd08aeff:clients/typescript/package-lock.json": null,
-    "50080b58d35b4824fda25fca2345d80bcd08aeff:clients/typescript/package.json": null
+    "6a1e4d0f08dcdd02786526a51b7965e1877008bc:clients/typescript/package-lock.json": "Upstream TypeScript client lives under clients/typescript/; that client is a separate concern from this SDK transpile and has no target mapping.",
+    "6a1e4d0f08dcdd02786526a51b7965e1877008bc:clients/typescript/package.json": "Upstream TypeScript client lives under clients/typescript/; that client is a separate concern from this SDK transpile and has no target mapping.",
+    "1a33e946c4cbe1e2abd94167a5dbad2ce9db73ce:clients/typescript/AGENTS.md": "Upstream TypeScript client lives under clients/typescript/; that client is a separate concern from this SDK transpile and has no target mapping.",
+    "50080b58d35b4824fda25fca2345d80bcd08aeff:clients/typescript/package-lock.json": "Upstream TypeScript client lives under clients/typescript/; that client is a separate concern from this SDK transpile and has no target mapping.",
+    "50080b58d35b4824fda25fca2345d80bcd08aeff:clients/typescript/package.json": "Upstream TypeScript client lives under clients/typescript/; that client is a separate concern from this SDK transpile and has no target mapping."
   }
 }
