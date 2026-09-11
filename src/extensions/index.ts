@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { access, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 
 import { extractRepoName, isGitUrl, normalizeGitUrl } from '../git/index.js';
 
@@ -55,10 +55,8 @@ export interface FetchResolution {
 export async function fetchWithResolution(source: string, cacheDir: string, options: FetchOptions = {}): Promise<FetchResolution> {
   const parsed = parseExtensionSource(source);
   if (parsed.type === 'local') {
-    if (options.repoPath !== undefined && options.repoPath !== null) {
-      throw new ExtensionFetchError('repoPath is not supported for local extension sources. Specify the full path directly.');
-    }
-    return { path: await resolveLocalSource(parsed.url), resolvedRef: null };
+    const basePath = await resolveLocalSource(parsed.url);
+    return { path: await applySubpath(basePath, options.repoPath ?? null, `local source '${source}'`), resolvedRef: null };
   }
   if (options.gitFetcher === undefined) {
     throw new ExtensionFetchError('Git extension fetching requires an explicit gitFetcher in the TypeScript package');
@@ -66,7 +64,7 @@ export async function fetchWithResolution(source: string, cacheDir: string, opti
   await mkdir(cacheDir, { recursive: true });
   const cachePath = getCachePath(source, cacheDir);
   const resolvedRef = await options.gitFetcher(parsed.url, cachePath, { ref: options.ref ?? null, update: options.update ?? true });
-  return { path: await applySubpath(cachePath, options.repoPath ?? null), resolvedRef };
+  return { path: await applySubpath(cachePath, options.repoPath ?? null, 'extension repository'), resolvedRef };
 }
 
 export async function fetchExtension(source: string, cacheDir: string, options: FetchOptions = {}): Promise<string> {
@@ -240,13 +238,19 @@ async function resolveLocalSource(source: string): Promise<string> {
   return path;
 }
 
-async function applySubpath(basePath: string, subpath: string | null): Promise<string> {
+async function applySubpath(basePath: string, subpath: string | null, context: string): Promise<string> {
   if (subpath === null || subpath.length === 0) {
     return basePath;
   }
   const finalPath = resolve(basePath, subpath.replace(/^\/+|\/+$/gu, ''));
+  const resolvedBase = resolve(basePath);
+  const rel = relative(resolvedBase, finalPath);
+  // Containment: a subpath must not climb out of the base via ".." or a symlink.
+  if (rel === '..' || rel.startsWith(`..${sep}`)) {
+    throw new ExtensionFetchError(`Subdirectory '${subpath}' escapes ${context}`);
+  }
   if (!(await exists(finalPath))) {
-    throw new ExtensionFetchError(`Subdirectory '${subpath}' not found in extension repository`);
+    throw new ExtensionFetchError(`Subdirectory '${subpath}' not found in ${context}`);
   }
   return finalPath;
 }

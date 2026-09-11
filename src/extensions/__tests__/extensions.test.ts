@@ -30,7 +30,65 @@ describe('extension fetch utilities', () => {
 
       expect(getCachePath('github:owner/repo', dir)).toMatch(new RegExp(`${dir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/repo-[a-f0-9]{12}$`, 'u'));
       await expect(fetchWithResolution(extDir, dir)).resolves.toEqual({ path: extDir, resolvedRef: null });
-      await expect(fetchWithResolution(extDir, dir, { repoPath: 'subdir' })).rejects.toThrow(/repoPath is not supported/u);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('composes a local source with repo_path into the subdirectory', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'openhands-ext-'));
+    try {
+      const extDir = join(dir, 'monorepo');
+      const subdir = join(extDir, 'extensions', 'my-ext');
+      await mkdir(subdir, { recursive: true });
+
+      const result = await fetchWithResolution(extDir, dir, { repoPath: 'extensions/my-ext' });
+      expect(result.path).toBe(subdir);
+      expect(result.resolvedRef).toBeNull();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('tolerates leading/trailing slashes on either field', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'openhands-ext-'));
+    try {
+      const extDir = join(dir, 'monorepo');
+      const subdir = join(extDir, 'extensions', 'my-ext');
+      await mkdir(subdir, { recursive: true });
+
+      for (const [sourceSuffix, repoPath] of [
+        ['', 'extensions/my-ext'],
+        ['', '/extensions/my-ext'],
+        ['/', 'extensions/my-ext'],
+        ['/', '/extensions/my-ext'],
+      ] as const) {
+        const result = await fetchWithResolution(`${extDir}${sourceSuffix}`, dir, { repoPath });
+        expect(result.path).toBe(subdir);
+      }
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('raises when the repo_path does not exist in a local source', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'openhands-ext-'));
+    try {
+      const extDir = join(dir, 'monorepo');
+      await mkdir(extDir);
+      await expect(fetchWithResolution(extDir, dir, { repoPath: 'extensions/my-ext' })).rejects.toThrow(/not found in local source/u);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a repo_path that escapes the local source', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'openhands-ext-'));
+    try {
+      const extDir = join(dir, 'monorepo');
+      await mkdir(extDir);
+      await mkdir(join(dir, 'outside'));
+      await expect(fetchWithResolution(extDir, dir, { repoPath: '../outside' })).rejects.toThrow(/escapes local source/u);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

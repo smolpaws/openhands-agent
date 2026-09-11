@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "repository": "OpenHands/software-agent-sdk",
+  "from": "49ea74587c376b90700f6eff128c3d9b57585d27",
+  "to": "50080b58d35b4824fda25fca2345d80bcd08aeff",
+  "inventorySha256": "294163846b5b4f62252dac06eeb9f94ccc2356e2170654f218f659b6cde96826",
+  "items": {
+    "3896f186936342b99c7c5d3f89cdae888f458e7f:server": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "fc9646ad8e349b78e5332341a02da156d1c1cd5f:sdk": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "56b016e7f2d028a31ab59af4424d3172ac0b5aec:sdk": {
+      "disposition": "PORT",
+      "reason": "Ports upstream 56b016e7: local extension sources now compose repo_path as a subdirectory instead of rejecting it, with containment + existence validation.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [
+        "src/extensions/__tests__/extensions.test.ts"
+      ],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "56b016e7f2d028a31ab59af4424d3172ac0b5aec:server": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; this repository owns only the SDK/tools/workspace TypeScript sources.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "6a1e4d0f08dcdd02786526a51b7965e1877008bc:sdk": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "6a1e4d0f08dcdd02786526a51b7965e1877008bc:server": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "7a018907c9b6cac2ee7b205a1b4a5e3e0228e8e4:server": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "03900b331d575abc8207f2f31536cb3209c19ef4:sdk": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "03900b331d575abc8207f2f31536cb3209c19ef4:server": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "50080b58d35b4824fda25fca2345d80bcd08aeff:sdk": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    },
+    "50080b58d35b4824fda25fca2345d80bcd08aeff:server": {
+      "disposition": null,
+      "reason": "",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": null,
+      "docs": []
+    }
+  },
+  "unmapped": {
+    "6a1e4d0f08dcdd02786526a51b7965e1877008bc:clients/typescript/package-lock.json": null,
+    "6a1e4d0f08dcdd02786526a51b7965e1877008bc:clients/typescript/package.json": null,
+    "1a33e946c4cbe1e2abd94167a5dbad2ce9db73ce:clients/typescript/AGENTS.md": null,
+    "50080b58d35b4824fda25fca2345d80bcd08aeff:clients/typescript/package-lock.json": null,
+    "50080b58d35b4824fda25fca2345d80bcd08aeff:clients/typescript/package.json": null
+  }
+}
