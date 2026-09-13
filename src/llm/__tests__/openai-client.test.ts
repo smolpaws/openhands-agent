@@ -88,6 +88,59 @@ describe('profile-resolved OpenAI-compatible chat client', () => {
     expect(result.usage).toEqual({ promptTokens: 7, completionTokens: 3, totalTokens: 10 });
   });
 
+  it('tolerates provider-added keys on tool calls (e.g. DeepSeek index) and drops them', async () => {
+    const profile = llmProfileSchema.parse({ profileId: 'default', providerId: 'openai', model: 'gpt-4.1' });
+    // DeepSeek returns a streaming-style `index` on each non-stream tool_call, and
+    // extra keys elsewhere. Upstream Python normalizes these via LiteLLM; here we
+    // must accept and strip them rather than reject the whole response.
+    const fetchImpl = async () => ({
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          choices: [
+            {
+              index: 0,
+              finish_reason: 'tool_calls',
+              message: {
+                role: 'assistant',
+                content: null,
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: 'call_1',
+                    type: 'function',
+                    function: { name: 'grep', arguments: '{"pattern":"x"}', extra: 'ignored' },
+                  },
+                  {
+                    index: 1,
+                    id: 'call_2',
+                    type: 'function',
+                    function: { name: 'read', arguments: '{"path":"/tmp/a"}' },
+                  },
+                ],
+              },
+            },
+          ],
+          usage: { prompt_tokens: 5, completion_tokens: 2, total_tokens: 7 },
+        };
+      },
+      async text() {
+        return JSON.stringify(await this.json());
+      },
+    });
+    const client = new OpenAIChatClient(profile, 'openai-key', fetchImpl);
+
+    const result = await client.complete([{ role: 'user', content: [textContent('go')] }]);
+
+    expect(result.message.tool_calls).toEqual([
+      { id: 'call_1', responses_item_id: null, name: 'grep', arguments: '{"pattern":"x"}', origin: 'completion' },
+      { id: 'call_2', responses_item_id: null, name: 'read', arguments: '{"path":"/tmp/a"}', origin: 'completion' },
+    ]);
+    // The stray `index`/`extra` keys must not survive onto the typed tool call.
+    expect(result.message.tool_calls?.[0]).not.toHaveProperty('index');
+  });
+
   it('posts OpenAI Responses requests and parses response output text', async () => {
     const profile = llmProfileSchema.parse({
       profileId: 'responses',
