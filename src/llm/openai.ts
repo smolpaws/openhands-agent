@@ -488,13 +488,18 @@ async function defaultFetch(
   return globalThis.fetch(url, init);
 }
 
-const openAIChatToolCallSchema = z
-  .object({
-    id: z.string(),
-    type: z.literal('function').default('function'),
-    function: z.object({ name: z.string(), arguments: z.string() }).strict(),
-  })
-  .strict();
+// Providers add fields we don't consume on tool calls — e.g. DeepSeek returns a
+// streaming-style `index` on each non-stream tool_call. Upstream Python routes
+// through LiteLLM, which normalizes these away; this transpilation talks to
+// providers directly, so we tolerate unknown keys here instead of rejecting the
+// whole response. We strip (not passthrough): unknown keys are accepted and
+// dropped, so nothing extra rides on the typed object. The untouched response is
+// still preserved as `raw` by parseChatCompletionsResponse.
+const openAIChatToolCallSchema = z.object({
+  id: z.string(),
+  type: z.literal('function').default('function'),
+  function: z.object({ name: z.string(), arguments: z.string() }),
+});
 
 type OpenAIChatToolCall = z.infer<typeof openAIChatToolCallSchema>;
 
