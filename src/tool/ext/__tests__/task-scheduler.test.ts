@@ -28,13 +28,14 @@ function assistantToolCall(name: string, args: Record<string, unknown>) {
 }
 
 describe('task-scheduler tools', () => {
-  it('exposes the five scheduling tools with the expected names', () => {
+  it('exposes the scheduling tools with the expected names', () => {
     expect(Object.values(TASK_SCHEDULER_TOOL_FACTORIES).map((make) => make().name)).toEqual([
       'schedule_task',
       'list_tasks',
       'pause_task',
       'resume_task',
       'cancel_task',
+      'update_task',
     ]);
   });
 

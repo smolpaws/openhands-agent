@@ -113,7 +113,9 @@ export class Agent {
       ];
     }
 
-    const observation = await tool.execute(action.action);
+    const observation = tool.meta?.smolpaws_execution_context === true
+      ? await tool.execute(action.action, { actionEventId: action.id, toolCallId: action.tool_call_id })
+      : await tool.execute(action.action);
     return [
       observationEventSchema.parse({
         action_id: action.id,

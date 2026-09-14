@@ -110,11 +110,17 @@ SmolPaws builds product-specific agent tools (outbound messaging, task schedulin
 
 ### EXT-SDK-001 — outbound message tool
 
-The SDK may define a `send_message` tool that lets the agent emit a mid-turn outbound message as an ordinary `ActionEvent`. The tool only records intent on the EventLog; it performs no delivery and does not end the turn. Delivery is owned by the SmolPaws coordinator, which projects the action into its durable outbox.
+The SDK may define `send_message` and `send_media` tools that lets the agent emit a mid-turn outbound message as an ordinary `ActionEvent`. The tool only records intent on the EventLog; it performs no delivery and does not end the turn. Delivery is owned by the SmolPaws coordinator, which projects the action into its durable outbox.
 
 ### EXT-SDK-002 — task-scheduler tools
 
-The SDK may define smolpaws' cross-conversation scheduling tools (`schedule_task`, `list_tasks`, `cancel_task`, `pause_task`, `resume_task`) as ordinary tools that emit `ActionEvent`s. This is distinct from the upstream-parity `task_tracker` tool (a per-conversation checklist). The scheduling engine and turn enqueue live outside the SDK; these tools only express the request as durable events.
+The SDK may define smolpaws' cross-conversation scheduling tools (`schedule_task`, `list_tasks`, `update_task`, `cancel_task`, `pause_task`, `resume_task`) as ordinary tools that emit `ActionEvent`s. This is distinct from the upstream-parity `task_tracker` tool (a per-conversation checklist). The scheduling engine and turn enqueue live outside the SDK; these tools only express the request as durable events.
+
+Hosts can bind these extension tools to real executors through `ToolDefinition`. An executor opting in
+with `meta.smolpaws_execution_context: true` receives `{ actionEventId, toolCallId }` as its second
+argument, allowing durable command deduplication. Ordinary tools retain their existing invocation.
+This opt-in belongs to EXT-SDK-001/002: it adds no fields to wire events, no scheduling/delivery engine,
+and no confirmation or queue semantics to the agent loop.
 
 ## LLM/provider rule
 

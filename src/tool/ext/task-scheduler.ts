@@ -195,11 +195,31 @@ export class CancelTaskTool {
   }
 }
 
-/** All five task-scheduler tool factories, in a stable order. */
+/** All task-scheduler tool factories, in a stable order. */
 export const TASK_SCHEDULER_TOOL_FACTORIES = {
   ScheduleTaskTool: () => ScheduleTaskTool.create(),
   ListTasksTool: () => ListTasksTool.create(),
   PauseTaskTool: () => PauseTaskTool.create(),
   ResumeTaskTool: () => ResumeTaskTool.create(),
   CancelTaskTool: () => CancelTaskTool.create(),
+  UpdateTaskTool: () => UpdateTaskTool.create(),
 } as const;
+
+
+/** EXT-SDK-002: edit an existing task using the same schedule validation as creation. */
+export const updateTaskActionSchema = z.object({
+  task_id: z.string().min(1),
+  prompt: z.string().min(1).optional(),
+  schedule_type: z.enum(['cron', 'interval', 'once']).optional(),
+  schedule_value: z.string().min(1).optional(),
+}).strict();
+export class UpdateTaskTool {
+  static readonly className = 'UpdateTaskTool';
+  static create(): ToolDefinition<typeof updateTaskActionSchema, typeof taskObservationSchema> {
+    return new ToolDefinition({ name: 'update_task', description: 'Update the prompt or schedule of a task visible to this scope.',
+      inputSchema: updateTaskActionSchema, outputSchema: taskObservationSchema,
+      annotations: toolAnnotationsSchema.parse({ ...mutatingAnnotations, title: 'update_task' }),
+      executor: () => ({ text: 'Task update requested.', is_error: false }),
+    });
+  }
+}
