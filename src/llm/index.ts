@@ -18,6 +18,8 @@ export const llmProfileSchema = z
     profileId: llmProfileIdSchema,
     providerId: llmProviderIdSchema,
     model: z.string().min(1),
+    authType: z.enum(['api_key', 'subscription']).default('api_key'),
+    subscriptionVendor: z.literal('openai').nullable().default(null),
     baseUrl: z.string().url().nullable().default(null),
     openAiApiMode: openAiApiModeSchema.default('chat_completions'),
     temperature: z.number().min(0).nullable().default(null),

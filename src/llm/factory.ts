@@ -14,6 +14,9 @@ export async function createClientFromProfile(
   store: SecretStore,
   options: CreateLlmClientOptions = {},
 ): Promise<LLMClient> {
+  if (profile.authType === 'subscription') {
+    return createOpenAIResponsesClientFromProfile(profile, store, options);
+  }
   const provider = resolveProviderFromProfile(profile);
   if (provider === 'anthropic') {
     return createAnthropicClientFromProfile(profile, store, options);

@@ -4,6 +4,7 @@ import type { ToolDefinition } from '../tool/index.js';
 import { messageSchema, type LLMProfile, type Message } from './index.js';
 
 export interface FetchResponseLike {
+  readonly body?: { getReader(): { read(): Promise<{ done: boolean; value?: Uint8Array }>; cancel(): Promise<void> } } | null;
   readonly ok: boolean;
   readonly status: number;
   json(): Promise<unknown>;

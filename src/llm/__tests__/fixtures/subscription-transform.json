@@ -1,0 +1,110 @@
+{
+  "upstream": "50080b58d35b4824fda25fca2345d80bcd08aeff",
+  "cases": [
+    {
+      "system": [
+        "one",
+        "two"
+      ],
+      "input": [
+        {
+          "type": "message",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "hello"
+            }
+          ]
+        },
+        {
+          "type": "function_call_output",
+          "call_id": "c",
+          "output": "done"
+        }
+      ],
+      "expected": [
+        "You are OpenHands agent, a helpful AI assistant that can interact with a computer to solve tasks.",
+        [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "Context (system prompt):\none\n\n---\n\ntwo\n\n"
+              },
+              {
+                "type": "input_text",
+                "text": "hello"
+              }
+            ]
+          },
+          {
+            "type": "function_call_output",
+            "call_id": "c",
+            "output": "done"
+          }
+        ]
+      ]
+    },
+    {
+      "system": [
+        "system"
+      ],
+      "input": [
+        {
+          "type": "message",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "hello"
+            }
+          ]
+        }
+      ],
+      "expected": [
+        "You are OpenHands agent, a helpful AI assistant that can interact with a computer to solve tasks.",
+        [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "Context (system prompt):\nsystem\n\n"
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "hello"
+              }
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "system": [],
+      "input": [
+        {
+          "type": "message",
+          "role": "user",
+          "content": null
+        }
+      ],
+      "expected": [
+        "You are OpenHands agent, a helpful AI assistant that can interact with a computer to solve tasks.",
+        [
+          {
+            "role": "user",
+            "content": []
+          }
+        ]
+      ]
+    }
+  ]
+}

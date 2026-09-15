@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { platform, arch } from 'node:os';
+import { OpenAISubscriptionAuth, OPENAI_CODEX_MODELS, CODEX_API_ENDPOINT, transformForSubscription } from './auth/index.js';
+import { readSubscriptionResponse } from './auth/stream.js';
 
 import { getLlmApiKey } from '../secrets/index.js';
 import type { SecretStore } from '../secrets/index.js';
@@ -24,6 +27,7 @@ const DEFAULT_OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
 export interface CreateLlmClientOptions {
   readonly fetch?: FetchLike;
+  readonly subscriptionAuth?: OpenAISubscriptionAuth;
 }
 
 export class OpenAIChatClient implements LLMClient {
@@ -56,32 +60,37 @@ export class OpenAIChatClient implements LLMClient {
 }
 
 export class OpenAIResponsesClient implements LLMClient {
-  readonly profile: LLMProfile;
-  private readonly apiKey: string;
-  private readonly fetchImpl: FetchLike;
-
-  constructor(profile: LLMProfile, apiKey: string, fetchImpl: FetchLike = defaultFetch) {
-    this.profile = profile;
-    this.apiKey = apiKey;
-    this.fetchImpl = fetchImpl;
-  }
+  constructor(
+    readonly profile: LLMProfile,
+    private readonly apiKey: string,
+    private readonly fetchImpl: FetchLike = defaultFetch,
+    private readonly subscriptionAuth?: OpenAISubscriptionAuth,
+  ) {}
 
   async complete(messages: readonly Message[], tools?: readonly ToolDefinition[]): Promise<LLMCompletionResponse> {
+    let apiKey = this.apiKey;
+    const headers = Object.fromEntries(Object.entries(this.profile.headers).filter(([name]) => !this.subscriptionAuth || !['authorization', 'chatgpt-account-id'].includes(name.toLowerCase())));
+    if (this.subscriptionAuth) {
+      const credentials = await this.subscriptionAuth.refreshIfNeeded();
+      if (!credentials) throw new Error('OpenAI subscription login is required');
+      apiKey = credentials.access_token;
+      const accountId = await this.subscriptionAuth.extractChatGPTAccountId(credentials);
+      Object.assign(headers, { originator: 'codex_cli_rs', 'OpenAI-Beta': 'responses=experimental', 'User-Agent': `openhands-sdk (${platform()}; ${arch()})` });
+      if (accountId) headers['chatgpt-account-id'] = accountId;
+    }
     const response = await this.fetchImpl(`${resolveBaseUrl(this.profile)}/responses`, {
       method: 'POST',
-      headers: buildHeaders(this.profile, this.apiKey),
+      headers: buildHeaders({ ...this.profile, headers }, apiKey),
       body: JSON.stringify(buildOpenAIResponsesBody(this.profile, messages, tools)),
     });
-
     if (!response.ok) {
+      if (this.subscriptionAuth) throw new Error(`OpenAI subscription completion failed with HTTP ${response.status}`);
       const text = await response.text();
       throw new Error(`OpenAI Responses completion failed with HTTP ${response.status}: ${text}`);
     }
-
-    return parseOpenAIResponsesResponse(await response.json());
+    return parseOpenAIResponsesResponse(this.subscriptionAuth ? await readSubscriptionResponse(response) : await response.json());
   }
 }
-
 
 export async function createOpenAIChatClientFromProfile(
   profile: LLMProfile,
@@ -109,6 +118,15 @@ export async function createOpenAIResponsesClientFromProfile(
   store: SecretStore,
   options: CreateLlmClientOptions = {},
 ): Promise<OpenAIResponsesClient> {
+  if (profile.authType === 'subscription') {
+    if (profile.providerId !== 'openai' || (profile.subscriptionVendor !== null && profile.subscriptionVendor !== 'openai')) throw new Error('Unsupported subscription vendor');
+    const model = profile.model.replace(/^openai\//u, '');
+    if (!OPENAI_CODEX_MODELS.includes(model)) throw new Error(`Model '${model}' is not supported for subscription access`);
+    const auth = options.subscriptionAuth ?? new OpenAISubscriptionAuth();
+    if (!await auth.refreshIfNeeded()) throw new Error('OpenAI subscription login is required');
+    const runtimeProfile: LLMProfile = { ...profile, model, baseUrl: CODEX_API_ENDPOINT.slice(0, -'/responses'.length), openAiApiMode: 'responses', temperature: null, maxOutputTokens: null, subscriptionVendor: 'openai' };
+    return new OpenAIResponsesClient(runtimeProfile, '', options.fetch ?? defaultFetch, auth);
+  }
   const apiKey = await getLlmApiKey(
     {
       providerId: profile.providerId,
@@ -204,6 +222,16 @@ export function buildOpenAIResponsesBody(
       ...(normalizedProfile.reasoningEffort === null ? {} : { effort: normalizedProfile.reasoningEffort }),
       ...(normalizedProfile.reasoningSummary === null ? {} : { summary: normalizedProfile.reasoningSummary }),
     };
+  }
+  if (profile.authType === 'subscription') {
+    const [subscriptionInstructions, input] = transformForSubscription(instructions, (body.input as Record<string, unknown>[]).filter(item => item.type !== 'reasoning'));
+    body.instructions = subscriptionInstructions;
+    body.input = input;
+    body.stream = true;
+    delete body.temperature;
+    delete body.max_output_tokens;
+    delete body.include;
+    delete body.reasoning;
   }
   applyOpenAIPromptCacheOptions(body, normalizedProfile);
   return body;

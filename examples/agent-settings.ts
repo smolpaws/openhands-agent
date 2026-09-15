@@ -27,7 +27,7 @@ const profileSelectedLlm = clearRawLlmFieldsWhenProfileSelected({
 
 console.log({
   defaultKind: defaultAgentSettings('daily-driver').agent_kind,
-  openHandsToolCount: openHandsSettings.agent_kind === 'openhands' ? openHandsSettings.tools.length : 0,
+  openHandsToolCount: openHandsSettings.agent_kind === 'openhands' ? (openHandsSettings.tools?.length ?? 0) : 0,
   acpServer: acpProfile.agent_kind === 'acp' ? acpProfile.acp_server : null,
   rawModelCleared: profileSelectedLlm.model === undefined,
 });
