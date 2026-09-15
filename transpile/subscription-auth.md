@@ -1,6 +1,6 @@
 # OpenAI subscription auth port evidence
 
-Classification: **PORT**. This closes the acknowledged SDK OAuth deferral (`smolpaws-zlo.1`) at the existing canonical pin in `upstream.json`; no pin advance or moving HEAD interval is involved. Historical interval reviews remain frozen.
+Classification: **PORT**. Subscription support is implemented in both the SDK and the new SmolPaws agent-server. [SDK PR #31](https://github.com/smolpaws/openhands-agent/pull/31) (`775869e`) and [server PR #173](https://github.com/smolpaws/smolpaws/pull/173) (`e634d0b`) merged on 2026-09-15, closing `smolpaws-zlo.1` and `smolpaws-zlo.2`. This completed the acknowledged OAuth deferral at the existing canonical pin in `upstream.json`; no pin advance or moving HEAD interval was involved. Historical interval reviews remain frozen.
 
 Sources reviewed at that pin:
 
@@ -15,6 +15,14 @@ Sources reviewed at that pin:
 
 Observable credentials and device challenges retain upstream snake_case fields. The profile boundary uses existing idiomatic camelCase (`authType`, `subscriptionVendor`) under DEV-SDK-004. Runtime-only credentials never enter profile/event serialization. The host owns display/consent callbacks in place of Python's terminal helper. Atomic private writes and coalesced refresh preserve the upstream lifecycle while preventing partial files and same-instance refresh races.
 
-The server's curated discovery policy is separately owned as DEV-SERVER-006; this SDK registers its canonical policy ID and supplies exact pinned `VERIFIED_MODELS` data. API subscription routing is implemented in the server repository after this SDK is merged and re-vendored.
+The server's curated discovery policy is separately owned as DEV-SERVER-006; this SDK registers its canonical policy ID and supplies exact pinned `VERIFIED_MODELS` data. The server has re-vendored the SDK and implemented all five `/api/llm/subscription/openai/*` routes, profile preflight, and new/restored conversation execution. Its [subscription contract](https://github.com/smolpaws/smolpaws/blob/main/packages/openhands-agent-server/TRANSPILE_RULES.md#subscription-authentication) records completion of `DEFER-SERVER-001`; its [architecture notes](https://github.com/smolpaws/smolpaws/blob/main/packages/openhands-agent-server/docs/ARCHITECTURE.md#chatgpt-subscription-profiles) record the successful 2026-09-15 live profile-validation and two-turn `gpt-5.5` check. That isolated check did not switch a running bridge's profile.
 
 Differential evidence: `scripts/parity/generate-subscription-fixtures.py` extracts and executes the pinned Python's pure transformation functions, producing `src/llm/__tests__/fixtures/subscription-transform.json`. The TypeScript test compares the same inputs against those generated outputs, including a synthetic first user message. The verified model generator also reads the immutable canonical SHA rather than checkout HEAD.
+
+## What future transpilation runs must preserve
+
+- SDK-owned OAuth credentials in `OH_PERSISTENCE_DIR/auth` (default `~/.openhands/auth`), separate from profiles/events and the Codex CLI credential store. Device/browser login, refresh and logout are implemented, not excluded by the profile-first or secret-storage policies.
+- Explicit subscription profiles restored through the same factory/auth path, with fresh credentials before requests and provider-specific Responses transport, option exclusions and streamed-output preservation. Server login/status/preflight/execution share that SDK lifecycle.
+- The source-derived and generated Python differential regressions described above. Keep server device-session, logout-race and restored-profile tests alongside them; a live request supplements rather than replaces those checks.
+
+The [older `56ac317..54dfbc5` review](updates/56ac317..54dfbc5.md) describes `2c993a1d895f:sdk` as having no subscription-credential runtime. That premise was superseded by SDK PR #31. The server's historical `3896f1869363:server` preflight classification was likewise superseded by server PR #173, as its current contract explains. Those frozen records describe what was believed at that earlier review; they do not authorize removing subscription support or treating it as still deferred. Use the current [subscription contract](../docs/TRANSPILE_CONTRACT.md#subscription-oauth-authentication), code and regression tests when reviewing new upstream changes.
