@@ -73,9 +73,9 @@ describe('actionEventsFromMessage', () => {
         ],
         tool_call_id: null,
         name: null,
-        reasoning_content: null,
-        thinking_blocks: [],
-        responses_reasoning_item: null,
+        reasoning_content: 'reasoning',
+        thinking_blocks: [{ type: 'thinking', thinking: 'reasoning', signature: 'sig' }],
+        responses_reasoning_item: { id: 'rs-test', encrypted_content: 'encrypted-test' },
       },
       'response-1',
     );
@@ -85,6 +85,10 @@ describe('actionEventsFromMessage', () => {
     expect(actions.map((action) => action.tool_call_id)).toEqual(['call-1', 'call-2']);
     expect(actions[0]?.action).toEqual({ thought: 'one' });
     expect(actions[1]?.llm_response_id).toBe('response-1');
+    expect(actions[0]).toMatchObject({ thought: [textContent('thinking')], reasoning_content: 'reasoning',
+      thinking_blocks: [{ type: 'thinking', thinking: 'reasoning', signature: 'sig' }],
+      responses_reasoning_item: { id: 'rs-test', encrypted_content: 'encrypted-test' } });
+    expect(actions[1]).toMatchObject({ thought: [], reasoning_content: null, thinking_blocks: [], responses_reasoning_item: null });
     expect(queue.drain().map((action) => action.tool_call.id)).toEqual(['call-1', 'call-2']);
   });
 });

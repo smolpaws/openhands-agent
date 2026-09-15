@@ -166,17 +166,19 @@ function appendMissingEventsIndividually(eventLog: EventLog, events: readonly Ev
 
 export function actionEventsFromMessage(message: Message, llmResponseId: string | null = null): ActionEvent[] {
   const parsed = messageSchema.parse(message);
-  return (parsed.tool_calls ?? []).map((toolCall) =>
+  return (parsed.tool_calls ?? []).map((toolCall, index) =>
     actionEventSchema.parse({
-      thought: parsed.content,
+      // A batch reconstructs one assistant message. Upstream response dispatch assigns
+      // response-level thought/reasoning only to its first action.
+      thought: index === 0 ? parsed.content : [],
       action: parseToolArguments(toolCall.arguments),
       tool_name: toolCall.name,
       tool_call_id: toolCall.id,
       tool_call: toolCall,
       llm_response_id: llmResponseId,
-      reasoning_content: parsed.reasoning_content,
-      thinking_blocks: parsed.thinking_blocks,
-      responses_reasoning_item: parsed.responses_reasoning_item,
+      reasoning_content: index === 0 ? parsed.reasoning_content : null,
+      thinking_blocks: index === 0 ? parsed.thinking_blocks : [],
+      responses_reasoning_item: index === 0 ? parsed.responses_reasoning_item : null,
     }),
   );
 }

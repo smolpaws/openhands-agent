@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { observationEventSchema } from '../../event/index.js';
+import { eventsToMessages, observationEventSchema, type LLMConvertibleEvent } from '../../event/index.js';
 import { textContent } from '../../llm/index.js';
 import { ConversationState } from '../../conversation/index.js';
 import { classifyResponse, dispatchLlmResponse } from '../response-dispatch.js';
@@ -52,6 +52,13 @@ describe('dispatchLlmResponse', () => {
 
     expect(state.events.map((event) => event.kind)).toEqual(['ActionEvent', 'ActionEvent', 'ObservationEvent', 'ObservationEvent']);
     expect(ConversationState.getUnmatchedActions(state.events)).toHaveLength(0);
+    // Port of Python test_batch_action_events_are_emitted_consecutively: only the first
+    // action owns the response thought, so the batch can become the next LLM history.
+    expect(state.events[0]).toMatchObject({ thought: [textContent('thinking')] });
+    expect(state.events[1]).toMatchObject({ thought: [] });
+    const messages = eventsToMessages(state.events as LLMConvertibleEvent[]);
+    expect(messages.map(message => message.role)).toEqual(['assistant', 'tool', 'tool']);
+    expect(messages[0]?.tool_calls?.map(call => call.id)).toEqual(['call-1', 'call-2']);
   });
 
   it('appends visible assistant content and finishes the turn', async () => {
