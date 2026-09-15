@@ -1,3 +1,4 @@
+import { orderCompletedToolResults } from './tool-result-order.js';
 import { z } from 'zod';
 import { platform, arch } from 'node:os';
 import { OpenAISubscriptionAuth, OPENAI_CODEX_MODELS, CODEX_API_ENDPOINT, transformForSubscription } from './auth/index.js';
@@ -164,7 +165,7 @@ export function buildChatCompletionsBody(
   const sendReasoningContent = isReasoningModel(normalizedProfile);
   const body: Record<string, unknown> = {
     model: normalizedProfile.model,
-    messages: messages.map((message) => toOpenAIChatMessage(messageSchema.parse(message), sendReasoningContent)),
+    messages: orderCompletedToolResults(messages.map((message) => messageSchema.parse(message))).map((message) => toOpenAIChatMessage(message, sendReasoningContent)),
   };
   if (tools.length > 0) {
     body.tools = tools.map(toOpenAIChatTool);
@@ -194,7 +195,7 @@ export function buildOpenAIResponsesBody(
   tools: readonly ToolDefinition[] = [],
 ): Record<string, unknown> {
   const normalizedProfile = normalizeGenerationParamsForModel(profile);
-  const parsedMessages = messages.map((message) => messageSchema.parse(message));
+  const parsedMessages = orderCompletedToolResults(messages.map((message) => messageSchema.parse(message)));
   const instructions = parsedMessages.filter((message) => message.role === 'system').flatMap((message) => contentToString(message.content));
   const body: Record<string, unknown> = {
     model: normalizedProfile.model,

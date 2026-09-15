@@ -1,3 +1,4 @@
+import { orderCompletedToolResults } from './tool-result-order.js';
 import { z } from 'zod';
 
 import { getLlmApiKey } from '../secrets/index.js';
@@ -69,7 +70,7 @@ export function buildGeminiInteractionsBody(
   tools: readonly ToolDefinition[] = [],
 ): Record<string, unknown> {
   assertSupportedGenerationParams(profile);
-  const parsedMessages = messages.map((message) => messageSchema.parse(message));
+  const parsedMessages = orderCompletedToolResults(messages.map((message) => messageSchema.parse(message)));
   const systemInstruction = parsedMessages
     .filter((message) => message.role === 'system')
     .flatMap((message) => contentToString(message.content))

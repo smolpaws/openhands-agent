@@ -1,3 +1,4 @@
+import { orderCompletedToolResults } from './tool-result-order.js';
 import { z } from 'zod';
 
 import { getLlmApiKey } from '../secrets/index.js';
@@ -74,7 +75,7 @@ export async function createAnthropicClientFromProfile(
 
 export function buildAnthropicMessagesBody(profile: LLMProfile, messages: readonly Message[], tools?: readonly ToolDefinition[]): Record<string, unknown> {
   const normalizedProfile = normalizeGenerationParamsForModel(profile);
-  const parsedMessages = messages.map((message) => messageSchema.parse(message));
+  const parsedMessages = orderCompletedToolResults(messages.map((message) => messageSchema.parse(message)));
   const systemMessages = parsedMessages.filter((message) => message.role === 'system');
   const system = systemMessages.flatMap((message) => contentToString(message.content));
   const shouldCacheSystem = supportsPromptCaching(normalizedProfile) && systemMessages.some((message) => message.content.some((content) => content.cache_prompt));

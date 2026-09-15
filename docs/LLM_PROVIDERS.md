@@ -47,3 +47,13 @@ Hosts can inject `{subscriptionAuth}` into `createClientFromProfile` to share th
 Each completion rechecks expiry with the upstream 60-second buffer, preserves a refresh token when a refresh omits its replacement, verifies account claims against OpenAI's cached JWKS, and computes request headers afresh. Concurrent calls sharing an auth instance coalesce refreshes; logout/new login prevents a late refresh from overwriting credentials. Errors omit token response bodies.
 
 The subscription endpoint requires `stream: true` and `store: false`. It omits temperature, output limits, reasoning/include and cache-retention fields. Long system context moves into the first user message behind the upstream minimal instruction. Previous reasoning references are omitted, because the endpoint does not persist them. The SSE reader retains `response.output_item.done` items when the final response has empty output, preserving text and tool calls. These quirks belong here because the TypeScript client implements the protocol directly rather than inheriting LiteLLM's behavior.
+
+### User messages arriving during tool execution
+
+A host may persist an incoming user message before an outstanding tool observation. Provider
+request builders use `tool-result-order.ts` to keep a completed assistant/tool exchange adjacent,
+then include intervening user messages in their original relative order. This changes only the
+request view: durable arrival order, message contents and completed side effects remain intact.
+Only complete batches are reordered; missing results are never invented. See
+[`transpile/interleaved-tool-results.md`](../transpile/interleaved-tool-results.md) for source
+comparison and regression evidence.
