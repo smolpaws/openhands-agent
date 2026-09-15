@@ -34,6 +34,7 @@
     "live:gemini-tools": "npm run build && tsx examples/native-gemini-tools.ts",
     "live:openai-responses-reasoning": "npm run build && tsx scripts/live/openai-responses-reasoning.ts",
     "live:anthropic-cache-smoke": "npm run build && tsx scripts/live/anthropic-cache-smoke.ts",
+    "live:deepseek-flash": "npm run build && tsx --test scripts/live/deepseek-flash.ts",
     "live:provider-smokes": "npm run live:openai-responses-reasoning && npm run live:anthropic-cache-smoke",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:drift": "tsc -p tsconfig.drift.json --noEmit",

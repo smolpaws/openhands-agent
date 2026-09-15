@@ -50,6 +50,10 @@ The subscription endpoint requires `stream: true` and `store: false`. It omits t
 
 ### User messages arriving during tool execution
 
+Run `npm run live:deepseek-flash` for real-provider overlap and restored-history
+coverage. See [live test setup](../scripts/live/README.md) for the GitHub `LLM`
+environment and local credentials. This is separate from deterministic parity tests.
+
 A host may persist an incoming user message before an outstanding tool observation. Provider
 request builders use `tool-result-order.ts` to keep a completed assistant/tool exchange adjacent,
 then include intervening user messages in their original relative order. This changes only the
