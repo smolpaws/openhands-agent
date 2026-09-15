@@ -1,7 +1,7 @@
 import type { FetchResponseLike } from '../client.js';
 
 /** Codex requires SSE even when callers want one completed SDK response. */
-export async function readSubscriptionResponse(response: FetchResponseLike): Promise<unknown> {
+export async function readSubscriptionResponse(response: FetchResponseLike, onTerminalResponse?: (response: unknown) => void): Promise<unknown> {
   const reader = response.body?.getReader();
   let pending = '';
   const outputItems: unknown[] = [];
@@ -24,6 +24,8 @@ export async function readSubscriptionResponse(response: FetchResponseLike): Pro
       throw new Error('Invalid OpenAI subscription stream event');
     }
     if (event.type === 'response.output_item.done' && event.item !== undefined) outputItems.push(event.item);
+    if (event.response && ['response.completed', 'response.failed', 'response.incomplete'].includes(event.type ?? ''))
+      onTerminalResponse?.(event.response);
     if (event.type === 'response.completed') {
       if (!event.response) throw new Error('Invalid OpenAI subscription completed response');
       return event.response.output?.length ? event.response : { ...event.response, output: outputItems };

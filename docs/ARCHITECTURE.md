@@ -28,6 +28,8 @@ eventsToMessages                 │
   ↓                              │
 LLMClient.complete(messages, usable tools)
   ↓ provider client serializes ToolDefinition schemas
+ConversationStateUpdateEvent(llm_usage)
+  ↓ persists one accounting delta before dispatch
 dispatchLlmResponse              │
   ├─ content/reasoning → MessageEvent
   └─ tool_calls → ActionEvent(s) → ToolDefinition.execute → ObservationEvent(s)
@@ -87,11 +89,14 @@ A step performs:
 2. optionally condense the view;
 3. render context/system prompt suffixes;
 4. call `LLMClient.complete(messages, tools)` with the agent's usable `ToolDefinition`s;
-5. dispatch the result with `dispatchLlmResponse()`.
+5. persist one `llm_usage` record from the returned usage, identity and timing;
+6. dispatch the result with `dispatchLlmResponse()`.
 
 This matches the pinned Python Agent, which passes its resolved `tools_map` values through `make_llm_completion()`. The TypeScript `LLMClient` remains a thin transport boundary: it receives executable tool definitions but does not reshape them. Provider clients that support native tools own their wire format and derive schemas from `ToolDefinition` helpers; Agent and server code must not construct provider-specific tool DTOs.
 
 `LocalConversation` owns the local run loop around an `Agent` and `ConversationState`. `RemoteConversation` mirrors the public shape for an agent-server-backed runtime. `ConversationState` is the append-only event log plus execution status.
+
+`ConversationState.stats` derives per-usage metrics from immutable accounting deltas. Raw provider usage and cost provenance remain on each record; compact snapshots omit history lists. Unknown fields and unmeasured historical responses remain visible. [LLM metrics](LLM_METRICS.md) describes the native persistence contract, upstream differences and auxiliary-call limits.
 
 `dispatchLlmResponse()` preserves every returned tool call as an `ActionEvent`. `ParallelToolExecutor` then runs pending batches with a configurable concurrency limit, so adding tool definitions to completion does not collapse or bypass multi-tool dispatch. This is distinct from Python's confirmation gates: pending/parallel actions are core execution machinery and are retained; confirmation/security policy execution is deliberately not ported.
 

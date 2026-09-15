@@ -7,6 +7,7 @@ import {
 } from '../event/index.js';
 import { AGENT_OUTCOME } from '../event/error-classification.js';
 import { messageSchema, type Message } from '../llm/index.js';
+import { statsForEvents, type ConversationStats } from '../llm/metrics.js';
 import { DuplicateEventError, type EventLog } from './event-log.js';
 
 export const conversationExecutionStatus = {
@@ -31,6 +32,10 @@ export class ConversationState {
   readonly events: Event[];
   readonly eventLog: EventLog | null;
   executionStatus: ConversationExecutionStatus;
+
+  get stats(): ConversationStats {
+    return statsForEvents(this.events);
+  }
 
   constructor(options: ConversationStateOptions = {}) {
     this.eventLog = options.eventLog ?? null;

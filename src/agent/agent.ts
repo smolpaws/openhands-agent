@@ -10,7 +10,8 @@ import {
 import { AGENT_OUTCOME } from '../event/error-classification.js';
 import { View, type Condenser } from '../context/index.js';
 import type { AgentContext } from '../context/index.js';
-import type { LLMClient } from '../llm/client.js';
+import { LLMResponseError, type LLMClient } from '../llm/client.js';
+import { createLlmUsageEvent } from '../llm/metrics.js';
 import { isContentPolicyViolation } from '../llm/exceptions.js';
 import { textContent, type Message } from '../llm/index.js';
 import type { ToolDefinition } from '../tool/index.js';
@@ -26,6 +27,7 @@ export interface AgentOptions {
   readonly context?: AgentContext | null;
   readonly condenser?: Condenser | null;
   readonly systemPrompt?: string | null;
+  readonly usageId?: string;
 }
 
 export class Agent {
@@ -35,6 +37,7 @@ export class Agent {
   readonly context: AgentContext | null;
   readonly condenser: Condenser | null;
   readonly systemPrompt: string | null;
+  readonly usageId: string | undefined;
 
   constructor(options: AgentOptions) {
     this.llm = options.llm;
@@ -43,6 +46,7 @@ export class Agent {
     this.context = options.context ?? null;
     this.condenser = options.condenser ?? null;
     this.systemPrompt = options.systemPrompt ?? null;
+    this.usageId = options.usageId;
   }
 
   async step(state: ConversationState): Promise<readonly Event[]> {
@@ -51,10 +55,16 @@ export class Agent {
       return [state.events.at(-1)].filter((event): event is Event => event !== undefined);
     }
     let response;
+    const startedAt = Date.now();
     try {
       response = await this.llm.complete(messages, this.tools.filter((tool) => tool.usable));
     } catch (error) {
-      if (isContentPolicyViolation(error)) {
+      if (error instanceof LLMResponseError) {
+        await state.appendEventAsync(createLlmUsageEvent(this.llm.profile, error.metadata, {
+          startedAt, completedAt: Date.now(), ...(this.usageId === undefined ? {} : { usageId: this.usageId }),
+        }));
+      }
+      if (isContentPolicyViolation(error instanceof LLMResponseError ? error.cause : error)) {
         // Content-policy blocks are deterministic; nudge the model and let the
         // run loop continue instead of emitting a fatal error.
         return [
@@ -71,7 +81,12 @@ export class Agent {
       }
       throw error;
     }
+    const accounting = createLlmUsageEvent(this.llm.profile, response, {
+      startedAt, completedAt: Date.now(), ...(this.usageId === undefined ? {} : { usageId: this.usageId }),
+    });
+    await state.appendEventAsync(accounting);
     return dispatchLlmResponse(response, state, (action) => this.runTool(action), {
+      llmResponseId: response.responseId ?? accounting.id,
       maxConcurrency: this.toolConcurrencyLimit,
     });
   }

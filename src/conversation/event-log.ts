@@ -299,6 +299,11 @@ export class EventLog {
 }
 
 function serializeEvent(event: Event): string {
+  // Accounting is a JSON payload, not an optional model field. Its nulls mean
+  // unknown, and native provider usage must survive persistence unchanged.
+  if (event.kind === 'ConversationStateUpdateEvent' && event.key === 'llm_usage') {
+    return `${JSON.stringify(event)}\n`;
+  }
   return `${JSON.stringify(event, (_key, value: unknown) => {
     if (value instanceof Set) {
       return [...(value as Set<unknown>)];

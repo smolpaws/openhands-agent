@@ -49,7 +49,10 @@ describe('profile-resolved Anthropic Messages client', () => {
     });
     expect(result.message.role).toBe('assistant');
     expect(result.message.content).toEqual([textContent('pong')]);
-    expect(result.usage).toEqual({ promptTokens: 11, completionTokens: 5, totalTokens: 16 });
+    expect(result.usage).toEqual({
+      promptTokens: 11, completionTokens: 5, totalTokens: 16, cacheReadTokens: 0, cacheWriteTokens: 0,
+      providerUsage: { input_tokens: 11, output_tokens: 5, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
+    });
   });
 
   it('requires a keyring-backed API key', async () => {

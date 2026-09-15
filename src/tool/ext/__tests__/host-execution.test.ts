@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import { z } from 'zod';
+import { llmProfileSchema } from '../../../llm/index.js';
 import { Agent } from '../../../agent/agent.js';
 import { ConversationState } from '../../../conversation/index.js';
 import { ToolDefinition } from '../../index.js';
@@ -11,7 +12,7 @@ it('opted-in tools receive the durable action identity; ordinary executors remai
     let received: unknown;
     const tool = new ToolDefinition({ name: 'test', description: 'test', inputSchema: z.object({}),
       ...(enabled ? { meta: { smolpaws_execution_context: true } } : {}), executor: (_action, context) => { received = context; return { ok: true }; } });
-    const agent = new Agent({ tools: [tool], llm: { complete: async () => ({ message: {
+    const agent = new Agent({ tools: [tool], llm: { profile: llmProfileSchema.parse({ profileId: 'test', providerId: 'test', model: 'test' }), complete: async () => ({ message: {
       role: 'assistant', content: [], tool_calls: [{ id: 'call-1', name: 'test', arguments: '{}', origin: 'completion' }],
       tool_call_id: null, name: null, reasoning_content: null, thinking_blocks: [], responses_reasoning_item: null,
     }, usage: null }) } });

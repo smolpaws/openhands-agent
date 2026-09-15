@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Agent } from '../agent.js';
-import { ConversationState, messageEventSchema, textContent, type LLMClient } from '../../index.js';
+import { ConversationState, llmProfileSchema, messageEventSchema, textContent, type LLMClient } from '../../index.js';
 import { LLMContentPolicyViolationError } from '../../llm/exceptions.js';
 import { AgentContext, type Condenser } from '../../context/index.js';
 import { condensationSchema } from '../../event/index.js';
@@ -60,6 +60,7 @@ describe('Agent context and condenser integration', () => {
 function recordingLlm(): LLMClient & { messages: Parameters<LLMClient['complete']>[0] } {
   const messages: Parameters<LLMClient['complete']>[0] = [];
   return {
+    profile: llmProfileSchema.parse({ profileId: 'test', providerId: 'test', model: 'test' }),
     messages,
     async complete(input) {
       messages.splice(0, messages.length, ...input);

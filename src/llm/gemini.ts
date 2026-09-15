@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { getLlmApiKey } from '../secrets/index.js';
 import type { SecretStore } from '../secrets/index.js';
 import type { JsonObject, ToolDefinition } from '../tool/index.js';
-import { llmCompletionResponseSchema, type FetchLike, type LLMClient, type LLMCompletionResponse } from './client.js';
+import { llmCompletionResponseSchema, llmResponseMetadataSchema, parseLlmResponseWithMetadata, type FetchLike, type LLMClient, type LLMCompletionResponse, type LLMResponseMetadata } from './client.js';
 import { contentToString, messageSchema, type Content, type LLMProfile, type Message, type MessageToolCall } from './index.js';
 
 export { llmProfileSchema } from './index.js';
@@ -227,6 +227,30 @@ function parseFunctionCallArguments(toolCall: MessageToolCall): JsonObject {
 }
 
 function parseGeminiInteractionResponse(raw: unknown): LLMCompletionResponse {
+  return parseLlmResponseWithMetadata(raw, parseGeminiMetadata, parseGeminiContent);
+}
+
+function parseGeminiMetadata(raw: unknown): LLMResponseMetadata {
+  const parsed = geminiInteractionResponseSchema.pick({ id: true, model: true, usage: true }).parse(raw);
+  return llmResponseMetadataSchema.parse({
+    // Interactions reports thoughts separately from visible output. Cache reads
+    // are already in input; internal tool prompts remain a separate category.
+    usage: parsed.usage === null ? null : Object.fromEntries(Object.entries({
+      promptTokens: parsed.usage.total_input_tokens,
+      completionTokens: parsed.usage.total_output_tokens === undefined || parsed.usage.total_thought_tokens === undefined
+        ? undefined : parsed.usage.total_output_tokens + parsed.usage.total_thought_tokens,
+      totalTokens: parsed.usage.total_tokens,
+      cacheReadTokens: parsed.usage.total_cached_tokens,
+      reasoningTokens: parsed.usage.total_thought_tokens,
+      toolUsePromptTokens: parsed.usage.total_tool_use_tokens,
+      providerUsage: parsed.usage,
+    }).filter(([, value]) => value !== undefined)),
+    ...(parsed.id === undefined ? {} : { responseId: parsed.id }),
+    ...(parsed.model === undefined ? {} : { model: parsed.model }),
+  });
+}
+
+function parseGeminiContent(raw: unknown, metadata: LLMResponseMetadata): LLMCompletionResponse {
   const parsed = geminiInteractionResponseSchema.parse(raw);
   const modelOutputSteps = parsed.steps.filter((step): step is GeminiModelOutputStep => step.type === 'model_output');
   const text = modelOutputSteps
@@ -255,11 +279,7 @@ function parseGeminiInteractionResponse(raw: unknown): LLMCompletionResponse {
       reasoning_content: reasoningContent.length > 0 ? reasoningContent : null,
       thinking_blocks: thinkingBlocks,
     },
-    usage: parsed.usage === null ? null : {
-      promptTokens: parsed.usage.total_input_tokens,
-      completionTokens: parsed.usage.total_output_tokens,
-      totalTokens: parsed.usage.total_tokens,
-    },
+    ...metadata,
     raw,
   });
 }
@@ -332,13 +352,18 @@ const geminiStepSchema = z.union([
 ]);
 const geminiUsageSchema = z
   .object({
-    total_input_tokens: z.number().int().min(0).default(0),
-    total_output_tokens: z.number().int().min(0).default(0),
-    total_tokens: z.number().int().min(0).default(0),
+    total_input_tokens: z.number().int().min(0).optional(),
+    total_output_tokens: z.number().int().min(0).optional(),
+    total_tokens: z.number().int().min(0).optional(),
+    total_cached_tokens: z.number().int().min(0).optional(),
+    total_thought_tokens: z.number().int().min(0).optional(),
+    total_tool_use_tokens: z.number().int().min(0).optional(),
   })
   .passthrough();
 const geminiInteractionResponseSchema = z
   .object({
+    id: z.string().optional(),
+    model: z.string().optional(),
     steps: z.array(geminiStepSchema).default([]),
     usage: geminiUsageSchema.nullable().default(null),
   })

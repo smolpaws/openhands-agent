@@ -18,10 +18,19 @@ in-memory `SecretStore`; they are never written to profiles or snapshots.
 The test checks an exact text response, a real tool call with concurrent user input,
 and continuation from a JSON-restored event history. It asserts the latest requested
 answer, preserved arrival order, and exactly one tool execution across restoration.
+Each Agent completion is also compared with the provider's actual usage, ID, and
+returned model: exactly one durable accounting record per call, matching token/cache
+counts, correct accumulated totals, and no double counting on restore. Cache hits
+may legitimately be zero. Missing counters and costs remain explicitly unknown;
+calculated costs retain their pricing source. The initial direct text call is outside
+the conversation and is excluded from its accumulated usage. Response IDs are checked
+per call rather than assumed unique. This adds no API calls to the existing flow.
 Only a synthetic in-memory echo tool and `finish` are exposed to the model.
 Missing credentials fail the test rather than reporting a skipped success. Requests
 are bounded by a 45-second timeout, 4,096 output tokens, 12 calls and a 3-minute test
-deadline. Logs contain only assertions and model/request/effect counts.
+deadline. The fetch wrapper keeps only usage/ID/model metadata; it never logs response
+bodies, request content, or headers. Summary logs contain model/request/effect counts
+and the number of recorded completions, calculated costs, and unknown costs.
 
 On canonical `smolpaws/openhands-agent`, dispatch **Live LLM** from `main`:
 

@@ -22,7 +22,7 @@ describe('TestLLM', () => {
 
     await expect(llm.complete([{ role: 'user', content: [textContent('hello')] }])).resolves.toMatchObject({
       message: { role: 'assistant', content: [textContent('first')] },
-      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      usage: {},
     });
     await expect(llm.complete([{ role: 'user', content: [textContent('again')] }])).resolves.toMatchObject({
       message: { role: 'assistant', content: [textContent('second')] },

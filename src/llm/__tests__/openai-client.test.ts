@@ -85,7 +85,14 @@ describe('profile-resolved OpenAI-compatible chat client', () => {
     });
     expect(result.message.role).toBe('assistant');
     expect(result.message.content).toEqual([textContent('pong')]);
-    expect(result.usage).toEqual({ promptTokens: 7, completionTokens: 3, totalTokens: 10 });
+    expect(result.usage).toEqual({
+      promptTokens: 7, completionTokens: 3, totalTokens: 10, cacheReadTokens: 0, reasoningTokens: 0,
+      providerUsage: {
+        prompt_tokens: 7, completion_tokens: 3, total_tokens: 10,
+        prompt_tokens_details: { cached_tokens: 0, audio_tokens: 0 },
+        completion_tokens_details: { reasoning_tokens: 0, audio_tokens: 0, accepted_prediction_tokens: 0, rejected_prediction_tokens: 0 },
+      },
+    });
   });
 
   it('tolerates provider-added keys on tool calls (e.g. DeepSeek index) and drops them', async () => {
@@ -196,7 +203,13 @@ describe('profile-resolved OpenAI-compatible chat client', () => {
     });
     expect(result.message.role).toBe('assistant');
     expect(result.message.content).toEqual([textContent('response pong')]);
-    expect(result.usage).toEqual({ promptTokens: 17, completionTokens: 9, totalTokens: 26 });
+    expect(result.usage).toEqual({
+      promptTokens: 17, completionTokens: 9, totalTokens: 26, cacheReadTokens: 0, reasoningTokens: 0,
+      providerUsage: {
+        input_tokens: 17, output_tokens: 9, total_tokens: 26,
+        input_tokens_details: { cached_tokens: 0 }, output_tokens_details: { reasoning_tokens: 0 },
+      },
+    });
     expect(result.message.responses_reasoning_item).toEqual({
       id: 'rs_123',
       summary: ['short summary'],

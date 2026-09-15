@@ -7,7 +7,7 @@ import { readSubscriptionResponse } from './auth/stream.js';
 import { getLlmApiKey } from '../secrets/index.js';
 import type { SecretStore } from '../secrets/index.js';
 import type { ToolDefinition } from '../tool/index.js';
-import { llmCompletionResponseSchema, type FetchLike, type FetchResponseLike, type LLMClient, type LLMCompletionResponse } from './client.js';
+import { llmCompletionResponseSchema, llmResponseMetadataSchema, parseLlmResponseWithMetadata, type FetchLike, type FetchResponseLike, type LLMClient, type LLMCompletionResponse, type LLMResponseMetadata } from './client.js';
 import {
   contentToString,
   messageSchema,
@@ -56,7 +56,7 @@ export class OpenAIChatClient implements LLMClient {
     }
 
 
-    return parseChatCompletionsResponse(await response.json());
+    return parseChatCompletionsResponse(await response.json(), this.profile);
   }
 }
 
@@ -89,7 +89,19 @@ export class OpenAIResponsesClient implements LLMClient {
       const text = await response.text();
       throw new Error(`OpenAI Responses completion failed with HTTP ${response.status}: ${text}`);
     }
-    return parseOpenAIResponsesResponse(this.subscriptionAuth ? await readSubscriptionResponse(response) : await response.json());
+    let raw: unknown;
+    let terminalResponse: unknown;
+    try {
+      raw = this.subscriptionAuth
+        ? await readSubscriptionResponse(response, received => { terminalResponse = received; })
+        : await response.json();
+    } catch (error) {
+      if (terminalResponse !== undefined) {
+        return parseLlmResponseWithMetadata(terminalResponse, parseOpenAIResponsesMetadata, () => { throw error; });
+      }
+      throw error;
+    }
+    return parseOpenAIResponsesResponse(raw);
   }
 }
 
@@ -387,7 +399,35 @@ function toOpenAIChatToolCall(toolCall: MessageToolCall): Record<string, unknown
   };
 }
 
-function parseChatCompletionsResponse(raw: unknown): LLMCompletionResponse {
+function parseChatCompletionsResponse(raw: unknown, profile: LLMProfile): LLMCompletionResponse {
+  return parseLlmResponseWithMetadata(raw, value => parseChatCompletionsMetadata(value, profile), parseChatCompletionsContent);
+}
+
+function parseChatCompletionsMetadata(raw: unknown, profile: LLMProfile): LLMResponseMetadata {
+  const parsed = openAIChatCompletionResponseSchema.pick({ id: true, model: true, usage: true }).parse(raw);
+  const usage = parsed.usage;
+  const isOpenRouter = profile.providerId === 'openrouter' || new URL(resolveBaseUrl(profile)).hostname === 'openrouter.ai';
+  return llmResponseMetadataSchema.parse({
+    // Input/output totals already include their cache/reasoning breakdowns.
+    // DeepSeek's two cached-token fields are aliases, not separate usage.
+    usage: usage === null ? null : Object.fromEntries(Object.entries({
+      promptTokens: usage.prompt_tokens,
+      completionTokens: usage.completion_tokens,
+      totalTokens: usage.total_tokens,
+      cacheReadTokens: usage.prompt_cache_hit_tokens ?? usage.prompt_tokens_details?.cached_tokens,
+      cacheWriteTokens: usage.prompt_tokens_details?.cache_write_tokens,
+      cacheMissTokens: usage.prompt_cache_miss_tokens,
+      reasoningTokens: usage.completion_tokens_details?.reasoning_tokens,
+      reportedCost: isOpenRouter && typeof usage.cost === 'number' && Number.isFinite(usage.cost) && usage.cost >= 0
+        ? { amount: usage.cost, currency: 'credits' } : undefined,
+      providerUsage: usage,
+    }).filter(([, value]) => value !== undefined)),
+    ...(parsed.id === undefined ? {} : { responseId: parsed.id }),
+    ...(parsed.model === undefined ? {} : { model: parsed.model }),
+  });
+}
+
+function parseChatCompletionsContent(raw: unknown, metadata: LLMResponseMetadata): LLMCompletionResponse {
   const parsed = openAIChatCompletionResponseSchema.parse(raw);
   const firstChoice = parsed.choices[0];
   if (firstChoice === undefined) {
@@ -405,11 +445,7 @@ function parseChatCompletionsResponse(raw: unknown): LLMCompletionResponse {
 
   return llmCompletionResponseSchema.parse({
     message,
-    usage: parsed.usage === null ? null : {
-      promptTokens: parsed.usage.prompt_tokens,
-      completionTokens: parsed.usage.completion_tokens,
-      totalTokens: parsed.usage.total_tokens,
-    },
+    ...metadata,
     raw,
   });
 }
@@ -425,6 +461,27 @@ function fromOpenAIChatToolCall(toolCall: OpenAIChatToolCall): MessageToolCall {
 }
 
 function parseOpenAIResponsesResponse(raw: unknown): LLMCompletionResponse {
+  return parseLlmResponseWithMetadata(raw, parseOpenAIResponsesMetadata, parseOpenAIResponsesContent);
+}
+
+function parseOpenAIResponsesMetadata(raw: unknown): LLMResponseMetadata {
+  const parsed = openAIResponsesResponseSchema.pick({ id: true, model: true, usage: true }).parse(raw);
+  return llmResponseMetadataSchema.parse({
+    usage: parsed.usage === null ? null : Object.fromEntries(Object.entries({
+      promptTokens: parsed.usage.input_tokens,
+      completionTokens: parsed.usage.output_tokens,
+      totalTokens: parsed.usage.total_tokens,
+      cacheReadTokens: parsed.usage.input_tokens_details?.cached_tokens,
+      cacheWriteTokens: parsed.usage.input_tokens_details?.cache_write_tokens,
+      reasoningTokens: parsed.usage.output_tokens_details?.reasoning_tokens,
+      providerUsage: parsed.usage,
+    }).filter(([, value]) => value !== undefined)),
+    ...(parsed.id === undefined ? {} : { responseId: parsed.id }),
+    ...(parsed.model === undefined ? {} : { model: parsed.model }),
+  });
+}
+
+function parseOpenAIResponsesContent(raw: unknown, metadata: LLMResponseMetadata): LLMCompletionResponse {
   const parsed = openAIResponsesResponseSchema.parse(raw);
   const text = parsed.output
     .filter((item): item is OpenAIResponsesMessageItem => item.type === 'message')
@@ -450,11 +507,7 @@ function parseOpenAIResponsesResponse(raw: unknown): LLMCompletionResponse {
         status: reasoningItem.status ?? null,
       },
     },
-    usage: parsed.usage === null ? null : {
-      promptTokens: parsed.usage.input_tokens,
-      completionTokens: parsed.usage.output_tokens,
-      totalTokens: parsed.usage.total_tokens,
-    },
+    ...metadata,
     raw,
   });
 }
@@ -534,6 +587,8 @@ type OpenAIChatToolCall = z.infer<typeof openAIChatToolCallSchema>;
 
 const openAIChatCompletionResponseSchema = z
   .object({
+    id: z.string().optional(),
+    model: z.string().optional(),
     choices: z.array(
       z
         .object({
@@ -550,9 +605,18 @@ const openAIChatCompletionResponseSchema = z
     ),
     usage: z
       .object({
-        prompt_tokens: z.number().int().min(0).default(0),
-        completion_tokens: z.number().int().min(0).default(0),
-        total_tokens: z.number().int().min(0).default(0),
+        prompt_tokens: z.number().int().min(0).optional(),
+        completion_tokens: z.number().int().min(0).optional(),
+        total_tokens: z.number().int().min(0).optional(),
+        prompt_cache_hit_tokens: z.number().int().min(0).optional(),
+        prompt_cache_miss_tokens: z.number().int().min(0).optional(),
+        prompt_tokens_details: z.object({
+          cached_tokens: z.number().int().min(0).optional(),
+          cache_write_tokens: z.number().int().min(0).optional(),
+        }).passthrough().nullish(),
+        completion_tokens_details: z.object({
+          reasoning_tokens: z.number().int().min(0).optional(),
+        }).passthrough().nullish(),
       })
       .passthrough()
       .nullable()
@@ -617,12 +681,21 @@ type OpenAIResponsesFunctionCallItem = z.infer<typeof openAIResponsesFunctionCal
 
 const openAIResponsesResponseSchema = z
   .object({
+    id: z.string().optional(),
+    model: z.string().optional(),
     output: z.array(openAIResponsesOutputItemSchema).default([]),
     usage: z
       .object({
-        input_tokens: z.number().int().min(0).default(0),
-        output_tokens: z.number().int().min(0).default(0),
-        total_tokens: z.number().int().min(0).default(0),
+        input_tokens: z.number().int().min(0).optional(),
+        output_tokens: z.number().int().min(0).optional(),
+        total_tokens: z.number().int().min(0).optional(),
+        input_tokens_details: z.object({
+          cached_tokens: z.number().int().min(0).optional(),
+          cache_write_tokens: z.number().int().min(0).optional(),
+        }).passthrough().nullish(),
+        output_tokens_details: z.object({
+          reasoning_tokens: z.number().int().min(0).optional(),
+        }).passthrough().nullish(),
       })
       .passthrough()
       .nullable()

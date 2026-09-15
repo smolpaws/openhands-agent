@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { getLlmApiKey } from '../secrets/index.js';
 import type { SecretStore } from '../secrets/index.js';
 import type { ToolDefinition } from '../tool/index.js';
-import { llmCompletionResponseSchema, type FetchLike, type LLMClient, type LLMCompletionResponse } from './client.js';
+import { llmCompletionResponseSchema, llmResponseMetadataSchema, parseLlmResponseWithMetadata, type FetchLike, type LLMClient, type LLMCompletionResponse, type LLMResponseMetadata } from './client.js';
 import { isContentPolicyViolation, LLMContentPolicyViolationError } from './exceptions.js';
 import { contentToString, messageSchema, reduceTextContent, type Content, type LLMProfile, type Message, type MessageToolCall } from './index.js';
 import { getAnthropicThinkingBudget, normalizeGenerationParamsForModel, supportsPromptCaching } from './provider-quirks.js';
@@ -224,6 +224,33 @@ function parseToolArguments(toolCall: MessageToolCall): Record<string, unknown> 
 }
 
 function parseAnthropicMessagesResponse(raw: unknown): LLMCompletionResponse {
+  return parseLlmResponseWithMetadata(raw, parseAnthropicMetadata, parseAnthropicContent);
+}
+
+function parseAnthropicMetadata(raw: unknown): LLMResponseMetadata {
+  const parsed = anthropicMessagesResponseSchema.pick({ id: true, model: true, usage: true }).parse(raw);
+  const usage = parsed.usage;
+  // Unlike OpenAI, Anthropic's base input count excludes reads and writes.
+  // TTL-specific cache_creation counters only subdivide the write count.
+  // An absent optional category is unreported, not an assertion of zero usage.
+  const promptTokens = usage?.input_tokens === undefined || usage.cache_read_input_tokens === undefined || usage.cache_creation_input_tokens === undefined
+    ? undefined : usage.input_tokens + usage.cache_read_input_tokens + usage.cache_creation_input_tokens;
+  return llmResponseMetadataSchema.parse({
+    usage: usage === null ? null : Object.fromEntries(Object.entries({
+      promptTokens,
+      completionTokens: usage.output_tokens,
+      totalTokens: promptTokens === undefined || usage.output_tokens === undefined
+        ? undefined : promptTokens + usage.output_tokens,
+      cacheReadTokens: usage.cache_read_input_tokens,
+      cacheWriteTokens: usage.cache_creation_input_tokens,
+      providerUsage: usage,
+    }).filter(([, value]) => value !== undefined)),
+    ...(parsed.id === undefined ? {} : { responseId: parsed.id }),
+    ...(parsed.model === undefined ? {} : { model: parsed.model }),
+  });
+}
+
+function parseAnthropicContent(raw: unknown, metadata: LLMResponseMetadata): LLMCompletionResponse {
   const parsed = anthropicMessagesResponseSchema.parse(raw);
   const text = parsed.content
     .filter((block): block is AnthropicTextBlock => block.type === 'text')
@@ -250,11 +277,7 @@ function parseAnthropicMessagesResponse(raw: unknown): LLMCompletionResponse {
         ? { type: 'thinking', thinking: block.thinking, signature: block.signature ?? null }
         : { type: 'redacted_thinking', data: block.data }),
     },
-    usage: parsed.usage === null ? null : {
-      promptTokens: parsed.usage.input_tokens,
-      completionTokens: parsed.usage.output_tokens,
-      totalTokens: parsed.usage.input_tokens + parsed.usage.output_tokens,
-    },
+    ...metadata,
     raw,
   });
 }
@@ -323,12 +346,16 @@ type AnthropicToolUseBlock = z.infer<typeof anthropicToolUseBlockSchema>;
 
 const anthropicMessagesResponseSchema = z
   .object({
+    id: z.string().optional(),
+    model: z.string().optional(),
     role: z.literal('assistant').default('assistant'),
     content: z.array(anthropicContentBlockSchema),
     usage: z
       .object({
-        input_tokens: z.number().int().min(0).default(0),
-        output_tokens: z.number().int().min(0).default(0),
+        input_tokens: z.number().int().min(0).optional(),
+        output_tokens: z.number().int().min(0).optional(),
+        cache_read_input_tokens: z.number().int().min(0).optional(),
+        cache_creation_input_tokens: z.number().int().min(0).optional(),
       })
       .passthrough()
       .nullable()

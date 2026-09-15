@@ -51,7 +51,10 @@ describe('profile-resolved Gemini Interactions client', () => {
       generation_config: { max_output_tokens: 2048 },
     });
     expect(result.message.content).toEqual([textContent('pong')]);
-    expect(result.usage).toEqual({ promptTokens: 13, completionTokens: 8, totalTokens: 21 });
+    expect(result.usage).toEqual({
+      promptTokens: 13, completionTokens: 8, reasoningTokens: 0, totalTokens: 21,
+      providerUsage: { total_input_tokens: 13, total_output_tokens: 8, total_thought_tokens: 0, total_tokens: 21 },
+    });
   });
 
   it('requires a keyring-backed API key', async () => {
@@ -126,7 +129,10 @@ describe('Gemini Interactions native tool calling', () => {
       { id: 'call_1', responses_item_id: null, name: 'get_weather', arguments: '{"location":"Boston"}', origin: 'completion' },
       { id: 'call_2', responses_item_id: null, name: 'get_weather', arguments: '{"location":"Paris"}', origin: 'completion' },
     ]);
-    expect(result.usage).toEqual({ promptTokens: 20, completionTokens: 9, totalTokens: 35 });
+    expect(result.usage).toEqual({
+      promptTokens: 20, totalTokens: 35,
+      providerUsage: { total_input_tokens: 20, total_output_tokens: 9, total_tokens: 35 },
+    });
   });
 
   it('replays thought signatures, function calls, and tool results as stateless steps', () => {
@@ -231,7 +237,7 @@ function interactionWithText(text: string): Record<string, unknown> {
     id: 'interaction_text',
     status: 'completed',
     steps: [{ type: 'model_output', content: [{ type: 'text', text }] }],
-    usage: { total_input_tokens: 13, total_output_tokens: 8, total_tokens: 21 },
+    usage: { total_input_tokens: 13, total_output_tokens: 8, total_thought_tokens: 0, total_tokens: 21 },
   };
 }
 

@@ -14,6 +14,9 @@ The shared interface is [`LLMClient.complete(messages, tools)`](../src/llm/clien
 | Gemini Interactions protocol | [`gemini.ts`](../src/llm/gemini.ts) |
 | Reusable model/endpoint capability decisions | Pure helpers in [`provider-quirks.ts`](../src/llm/provider-quirks.ts) |
 | Typed messages and metadata that must survive conversation persistence/replay | [`index.ts`](../src/llm/index.ts), with provider serializers consuming those fields |
+| Per-response usage normalization and raw usage detail | The owning provider response parser |
+| Per-call accounting records, coverage and accumulated projections | [`metrics.ts`](../src/llm/metrics.ts), persisted by `Agent.step` |
+| Dated native price estimates | Pure [`pricing.ts`](../src/llm/pricing.ts) helper |
 
 Keep a normalization specific to one wire protocol beside its parser or builder. Use a small named pure helper when a capability decision has real reuse or enough behavior to test separately. `provider-quirks.ts` is for those decisions, not a registry of arbitrary hooks, network calls, or whole response parsers. Split helpers by provider when actual coupling or size warrants it; a new quirk does not require a new class, plugin, or public configuration switch.
 
@@ -26,6 +29,8 @@ The DeepSeek `tool_calls[].index` regression is the concrete example: the Chat C
 This is targeted tolerance at provider ingress, not a reason to loosen all schemas. Required fields and consumed values remain validated. Keep internal message/profile schemas strict. Do not silently discard a tool call, suppress a provider error, change tool arguments, or guess a fallback model to make a response parse.
 
 Some provider fields are semantically necessary: reasoning content, signed thinking blocks, and response-item IDs may be needed on the next request. Preserve and replay them through the existing typed message fields. An ignored field and a continuation field need different treatment. The completion's `raw` response is diagnostic data; it does not substitute for durable typed replay metadata. Sanitize captured fixtures and never add credentials or private conversation data to the repository.
+
+Usage needs the same care. Preserve missing versus zero counters, retain `providerUsage`, and normalize inclusive input/output totals without adding cache/reasoning subsets twice. Provider-reported cost keeps its unit and takes precedence over any dated estimate. Usage records, accumulated totals, coverage gaps and the attribution boundary are documented in [LLM metrics](LLM_METRICS.md).
 
 ## Evidence for a quirk
 

@@ -23,8 +23,8 @@ describe('LocalConversation', () => {
     await conversation.run();
 
     expect(conversation.state.executionStatus).toBe(conversationExecutionStatus.FINISHED);
-    expect(conversation.state.events.map((event) => event.kind)).toEqual(['MessageEvent', 'ActionEvent', 'ObservationEvent']);
-    expect(conversation.state.events[2]).toMatchObject({ kind: 'ObservationEvent', tool_name: 'finish', observation: { text: 'done' } });
+    expect(conversation.state.events.map((event) => event.kind)).toEqual(['MessageEvent', 'ConversationStateUpdateEvent', 'ActionEvent', 'ObservationEvent']);
+    expect(conversation.state.events[3]).toMatchObject({ kind: 'ObservationEvent', tool_name: 'finish', observation: { text: 'done' } });
     expect(llm.requests[0]?.map((message) => message.role)).toEqual(['user']);
   });
 
@@ -37,7 +37,7 @@ describe('LocalConversation', () => {
     await conversation.run();
 
     expect(conversation.state.executionStatus).toBe(conversationExecutionStatus.FINISHED);
-    expect(conversation.state.events.map((event) => event.kind)).toEqual(['MessageEvent', 'MessageEvent']);
+    expect(conversation.state.events.map((event) => event.kind)).toEqual(['MessageEvent', 'ConversationStateUpdateEvent', 'MessageEvent']);
     expect(conversation.state.events.at(-1)).toMatchObject({ kind: 'MessageEvent', source: 'agent' });
     expect(llm.requests).toHaveLength(1);
   });
