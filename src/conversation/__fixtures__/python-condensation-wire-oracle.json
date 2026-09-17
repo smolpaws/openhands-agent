@@ -1,0 +1,3221 @@
+{
+  "upstream_commit": "50080b58d35b4824fda25fca2345d80bcd08aeff",
+  "source_sha256": {
+    "openhands-sdk/openhands/sdk/context/view/view.py": "3d31709f284b40e41bf1d12ef53d34662339757902ce06df3765be272531b45f",
+    "openhands-sdk/openhands/sdk/conversation/event_store.py": "af721391c46a1979c45e0e414c45a82dfc42d8a92d62ac2ccea0242f725450b0",
+    "openhands-sdk/openhands/sdk/event/base.py": "0d90758757329bbd0d1301586b87612e7746e14e6d2bb3e272e2d58f16fbb60d",
+    "openhands-sdk/openhands/sdk/event/condenser.py": "1b172330b5270e29c6bf12a8a61818009b9b252fd497c51ad3eac51a3deb5c1e",
+    "openhands-sdk/openhands/sdk/event/llm_convertible/action.py": "d3a6e8ba116595668ba3cc2bb667d8bdc1d39fdf935f36dbb83894dcbfcdf1d9",
+    "openhands-sdk/openhands/sdk/event/llm_convertible/observation.py": "14eb6d888914a8d6a5ea205b7b4edd95b98c454d20d218256df3f0f26ac7e159"
+  },
+  "cases": [
+    {
+      "name": "pending-request",
+      "events": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 2"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 3"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000005",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "parent_id": null,
+          "kind": "CondensationRequest"
+        }
+      ],
+      "files": [
+        {
+          "path": "events/event-00000-00000000-0000-4000-8000-000000000001.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 1"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00001-00000000-0000-4000-8000-000000000002.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 2"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00002-00000000-0000-4000-8000-000000000003.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 3"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00003-00000000-0000-4000-8000-000000000004.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00004-00000000-0000-4000-8000-000000000005.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000005",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "environment",
+            "kind": "CondensationRequest"
+          }
+        }
+      ],
+      "restored": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 2"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 3"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000005",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "kind": "CondensationRequest"
+        }
+      ],
+      "null_action_ids": [],
+      "view": {
+        "events": [
+          {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 1"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 2"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 3"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        ],
+        "unhandled_condensation_request": true,
+        "manipulation_indices": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "name": "set-deduplication-and-middle-offset",
+      "events": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 2"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 3"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000005",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "parent_id": null,
+          "kind": "CondensationRequest"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000006",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "parent_id": null,
+          "forgotten_event_ids": [
+            "00000000-0000-4000-8000-000000000001",
+            "00000000-0000-4000-8000-000000000002"
+          ],
+          "summary": "Earlier work",
+          "summary_offset": 1,
+          "llm_response_id": "response-6",
+          "kind": "Condensation"
+        }
+      ],
+      "files": [
+        {
+          "path": "events/event-00000-00000000-0000-4000-8000-000000000001.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 1"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00001-00000000-0000-4000-8000-000000000002.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 2"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00002-00000000-0000-4000-8000-000000000003.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 3"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00003-00000000-0000-4000-8000-000000000004.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00004-00000000-0000-4000-8000-000000000005.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000005",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "environment",
+            "kind": "CondensationRequest"
+          }
+        },
+        {
+          "path": "events/event-00005-00000000-0000-4000-8000-000000000006.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000006",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "environment",
+            "forgotten_event_ids": [
+              "00000000-0000-4000-8000-000000000001",
+              "00000000-0000-4000-8000-000000000002"
+            ],
+            "summary": "Earlier work",
+            "summary_offset": 1,
+            "llm_response_id": "response-6",
+            "kind": "Condensation"
+          }
+        }
+      ],
+      "restored": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 2"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 3"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000005",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "kind": "CondensationRequest"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000006",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "forgotten_event_ids": [
+            "00000000-0000-4000-8000-000000000001",
+            "00000000-0000-4000-8000-000000000002"
+          ],
+          "summary": "Earlier work",
+          "summary_offset": 1,
+          "llm_response_id": "response-6",
+          "kind": "Condensation"
+        }
+      ],
+      "null_action_ids": [],
+      "view": {
+        "events": [
+          {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 3"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000006-summary",
+            "source": "environment",
+            "summary": "Earlier work",
+            "kind": "CondensationSummaryEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        ],
+        "unhandled_condensation_request": false,
+        "manipulation_indices": [
+          0,
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "name": "empty-summary-at-zero",
+      "events": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 2"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 3"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000006",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "parent_id": null,
+          "forgotten_event_ids": [
+            "00000000-0000-4000-8000-000000000001"
+          ],
+          "summary": "",
+          "summary_offset": 0,
+          "llm_response_id": "response-6",
+          "kind": "Condensation"
+        }
+      ],
+      "files": [
+        {
+          "path": "events/event-00000-00000000-0000-4000-8000-000000000001.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 1"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00001-00000000-0000-4000-8000-000000000002.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 2"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00002-00000000-0000-4000-8000-000000000003.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 3"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00003-00000000-0000-4000-8000-000000000004.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00004-00000000-0000-4000-8000-000000000006.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000006",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "environment",
+            "forgotten_event_ids": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "summary": "",
+            "summary_offset": 0,
+            "llm_response_id": "response-6",
+            "kind": "Condensation"
+          }
+        }
+      ],
+      "restored": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 2"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 3"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000006",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "forgotten_event_ids": [
+            "00000000-0000-4000-8000-000000000001"
+          ],
+          "summary": "",
+          "summary_offset": 0,
+          "llm_response_id": "response-6",
+          "kind": "Condensation"
+        }
+      ],
+      "null_action_ids": [],
+      "view": {
+        "events": [
+          {
+            "id": "00000000-0000-4000-8000-000000000006-summary",
+            "source": "environment",
+            "summary": "",
+            "kind": "CondensationSummaryEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 2"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 3"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        ],
+        "unhandled_condensation_request": false,
+        "manipulation_indices": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "name": "missing-summary-removes-without-inserting",
+      "events": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 2"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 3"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000006",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "parent_id": null,
+          "forgotten_event_ids": [
+            "00000000-0000-4000-8000-000000000001"
+          ],
+          "summary": null,
+          "summary_offset": 0,
+          "llm_response_id": "response-6",
+          "kind": "Condensation"
+        }
+      ],
+      "files": [
+        {
+          "path": "events/event-00000-00000000-0000-4000-8000-000000000001.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 1"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00001-00000000-0000-4000-8000-000000000002.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 2"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00002-00000000-0000-4000-8000-000000000003.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 3"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00003-00000000-0000-4000-8000-000000000004.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00004-00000000-0000-4000-8000-000000000006.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000006",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "environment",
+            "forgotten_event_ids": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "summary_offset": 0,
+            "llm_response_id": "response-6",
+            "kind": "Condensation"
+          }
+        }
+      ],
+      "restored": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 2"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 3"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000006",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "forgotten_event_ids": [
+            "00000000-0000-4000-8000-000000000001"
+          ],
+          "summary_offset": 0,
+          "llm_response_id": "response-6",
+          "kind": "Condensation"
+        }
+      ],
+      "null_action_ids": [],
+      "view": {
+        "events": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 2"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 3"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        ],
+        "unhandled_condensation_request": false,
+        "manipulation_indices": [
+          0,
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "name": "missing-offset-removes-without-inserting",
+      "events": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 2"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 3"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000006",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "parent_id": null,
+          "forgotten_event_ids": [
+            "00000000-0000-4000-8000-000000000001"
+          ],
+          "summary": "No insertion offset",
+          "summary_offset": null,
+          "llm_response_id": "response-6",
+          "kind": "Condensation"
+        }
+      ],
+      "files": [
+        {
+          "path": "events/event-00000-00000000-0000-4000-8000-000000000001.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 1"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00001-00000000-0000-4000-8000-000000000002.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 2"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00002-00000000-0000-4000-8000-000000000003.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 3"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00003-00000000-0000-4000-8000-000000000004.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00004-00000000-0000-4000-8000-000000000006.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000006",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "environment",
+            "forgotten_event_ids": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "summary": "No insertion offset",
+            "llm_response_id": "response-6",
+            "kind": "Condensation"
+          }
+        }
+      ],
+      "restored": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 2"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 3"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000006",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "forgotten_event_ids": [
+            "00000000-0000-4000-8000-000000000001"
+          ],
+          "summary": "No insertion offset",
+          "llm_response_id": "response-6",
+          "kind": "Condensation"
+        }
+      ],
+      "null_action_ids": [],
+      "view": {
+        "events": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 2"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 3"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        ],
+        "unhandled_condensation_request": false,
+        "manipulation_indices": [
+          0,
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "name": "offset-past-tail-appends",
+      "events": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 2"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 3"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000006",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "parent_id": null,
+          "forgotten_event_ids": [
+            "00000000-0000-4000-8000-000000000001"
+          ],
+          "summary": "Append summary",
+          "summary_offset": 99,
+          "llm_response_id": "response-6",
+          "kind": "Condensation"
+        }
+      ],
+      "files": [
+        {
+          "path": "events/event-00000-00000000-0000-4000-8000-000000000001.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 1"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00001-00000000-0000-4000-8000-000000000002.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 2"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00002-00000000-0000-4000-8000-000000000003.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 3"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00003-00000000-0000-4000-8000-000000000004.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00004-00000000-0000-4000-8000-000000000006.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000006",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "environment",
+            "forgotten_event_ids": [
+              "00000000-0000-4000-8000-000000000001"
+            ],
+            "summary": "Append summary",
+            "summary_offset": 99,
+            "llm_response_id": "response-6",
+            "kind": "Condensation"
+          }
+        }
+      ],
+      "restored": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 2"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 3"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000006",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "forgotten_event_ids": [
+            "00000000-0000-4000-8000-000000000001"
+          ],
+          "summary": "Append summary",
+          "summary_offset": 99,
+          "llm_response_id": "response-6",
+          "kind": "Condensation"
+        }
+      ],
+      "null_action_ids": [],
+      "view": {
+        "events": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 2"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 3"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000006-summary",
+            "source": "environment",
+            "summary": "Append summary",
+            "kind": "CondensationSummaryEvent"
+          }
+        ],
+        "unhandled_condensation_request": false,
+        "manipulation_indices": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "name": "multiple-summaries-and-later-request",
+      "events": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 2"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 3"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000006",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "parent_id": null,
+          "forgotten_event_ids": [
+            "00000000-0000-4000-8000-000000000001",
+            "00000000-0000-4000-8000-000000000002"
+          ],
+          "summary": "Earlier work",
+          "summary_offset": 1,
+          "llm_response_id": "response-6",
+          "kind": "Condensation"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000007",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "parent_id": null,
+          "kind": "CondensationRequest"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000008",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "parent_id": null,
+          "forgotten_event_ids": [
+            "00000000-0000-4000-8000-000000000003",
+            "00000000-0000-4000-8000-000000000006-summary"
+          ],
+          "summary": "Combined progress",
+          "summary_offset": 0,
+          "llm_response_id": "response-8",
+          "kind": "Condensation"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000009",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "parent_id": null,
+          "kind": "CondensationRequest"
+        }
+      ],
+      "files": [
+        {
+          "path": "events/event-00000-00000000-0000-4000-8000-000000000001.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 1"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00001-00000000-0000-4000-8000-000000000002.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 2"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00002-00000000-0000-4000-8000-000000000003.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 3"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00003-00000000-0000-4000-8000-000000000004.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00004-00000000-0000-4000-8000-000000000006.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000006",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "environment",
+            "forgotten_event_ids": [
+              "00000000-0000-4000-8000-000000000001",
+              "00000000-0000-4000-8000-000000000002"
+            ],
+            "summary": "Earlier work",
+            "summary_offset": 1,
+            "llm_response_id": "response-6",
+            "kind": "Condensation"
+          }
+        },
+        {
+          "path": "events/event-00005-00000000-0000-4000-8000-000000000007.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000007",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "environment",
+            "kind": "CondensationRequest"
+          }
+        },
+        {
+          "path": "events/event-00006-00000000-0000-4000-8000-000000000008.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000008",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "environment",
+            "forgotten_event_ids": [
+              "00000000-0000-4000-8000-000000000003",
+              "00000000-0000-4000-8000-000000000006-summary"
+            ],
+            "summary": "Combined progress",
+            "summary_offset": 0,
+            "llm_response_id": "response-8",
+            "kind": "Condensation"
+          }
+        },
+        {
+          "path": "events/event-00007-00000000-0000-4000-8000-000000000009.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000009",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "environment",
+            "kind": "CondensationRequest"
+          }
+        }
+      ],
+      "restored": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 2"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 3"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000006",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "forgotten_event_ids": [
+            "00000000-0000-4000-8000-000000000001",
+            "00000000-0000-4000-8000-000000000002"
+          ],
+          "summary": "Earlier work",
+          "summary_offset": 1,
+          "llm_response_id": "response-6",
+          "kind": "Condensation"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000007",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "kind": "CondensationRequest"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000008",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "forgotten_event_ids": [
+            "00000000-0000-4000-8000-000000000003",
+            "00000000-0000-4000-8000-000000000006-summary"
+          ],
+          "summary": "Combined progress",
+          "summary_offset": 0,
+          "llm_response_id": "response-8",
+          "kind": "Condensation"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000009",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "kind": "CondensationRequest"
+        }
+      ],
+      "null_action_ids": [],
+      "view": {
+        "events": [
+          {
+            "id": "00000000-0000-4000-8000-000000000008-summary",
+            "source": "environment",
+            "summary": "Combined progress",
+            "kind": "CondensationSummaryEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        ],
+        "unhandled_condensation_request": true,
+        "manipulation_indices": [
+          0,
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "name": "materialized-summary",
+      "events": [
+        {
+          "id": "00000000-0000-4000-8000-00000000000c",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "parent_id": null,
+          "summary": "Imported summary",
+          "kind": "CondensationSummaryEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        }
+      ],
+      "files": [
+        {
+          "path": "events/event-00000-00000000-0000-4000-8000-00000000000c.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-00000000000c",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "environment",
+            "summary": "Imported summary",
+            "kind": "CondensationSummaryEvent"
+          }
+        },
+        {
+          "path": "events/event-00001-00000000-0000-4000-8000-000000000004.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        }
+      ],
+      "restored": [
+        {
+          "id": "00000000-0000-4000-8000-00000000000c",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "environment",
+          "summary": "Imported summary",
+          "kind": "CondensationSummaryEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 4"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        }
+      ],
+      "null_action_ids": [],
+      "view": {
+        "events": [
+          {
+            "id": "00000000-0000-4000-8000-00000000000c",
+            "source": "environment",
+            "summary": "Imported summary",
+            "kind": "CondensationSummaryEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 4"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        ],
+        "unhandled_condensation_request": false,
+        "manipulation_indices": [
+          0,
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "name": "null-action-and-matching-error",
+      "events": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "parent_id": null,
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "tool_calls": null,
+            "tool_call_id": null,
+            "name": null,
+            "reasoning_content": null,
+            "thinking_blocks": [],
+            "responses_reasoning_item": null
+          },
+          "llm_response_id": null,
+          "activated_skills": [],
+          "extended_content": [],
+          "sender": null,
+          "critic_result": null,
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-00000000000a",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "agent",
+          "parent_id": null,
+          "thought": [],
+          "reasoning_content": null,
+          "thinking_blocks": [],
+          "responses_reasoning_item": null,
+          "action": null,
+          "tool_name": "terminal",
+          "tool_call_id": "invalid-call",
+          "tool_call": {
+            "id": "invalid-call",
+            "responses_item_id": null,
+            "name": "terminal",
+            "arguments": "{invalid",
+            "origin": "completion"
+          },
+          "llm_response_id": "response-invalid",
+          "security_risk": "UNKNOWN",
+          "critic_result": null,
+          "summary": null,
+          "kind": "ActionEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-00000000000b",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "agent",
+          "parent_id": null,
+          "tool_name": "terminal",
+          "tool_call_id": "invalid-call",
+          "error": "Invalid arguments",
+          "classification": {
+            "kind": "unknown",
+            "retryable": false,
+            "user_action": "none",
+            "error_id": null
+          },
+          "kind": "AgentErrorEvent"
+        }
+      ],
+      "files": [
+        {
+          "path": "events/event-00000-00000000-0000-4000-8000-000000000001.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 1"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          }
+        },
+        {
+          "path": "events/event-00001-00000000-0000-4000-8000-00000000000a.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-00000000000a",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "agent",
+            "thought": [],
+            "thinking_blocks": [],
+            "tool_name": "terminal",
+            "tool_call_id": "invalid-call",
+            "tool_call": {
+              "id": "invalid-call",
+              "name": "terminal",
+              "arguments": "{invalid",
+              "origin": "completion"
+            },
+            "llm_response_id": "response-invalid",
+            "security_risk": "UNKNOWN",
+            "kind": "ActionEvent"
+          }
+        },
+        {
+          "path": "events/event-00002-00000000-0000-4000-8000-00000000000b.json",
+          "event": {
+            "id": "00000000-0000-4000-8000-00000000000b",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "source": "agent",
+            "tool_name": "terminal",
+            "tool_call_id": "invalid-call",
+            "error": "Invalid arguments",
+            "classification": {
+              "kind": "unknown",
+              "retryable": false,
+              "user_action": "none"
+            },
+            "kind": "AgentErrorEvent"
+          }
+        }
+      ],
+      "restored": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "user",
+          "llm_message": {
+            "role": "user",
+            "content": [
+              {
+                "cache_prompt": false,
+                "type": "text",
+                "text": "Work 1"
+              }
+            ],
+            "thinking_blocks": []
+          },
+          "activated_skills": [],
+          "extended_content": [],
+          "kind": "MessageEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-00000000000a",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "agent",
+          "thought": [],
+          "thinking_blocks": [],
+          "tool_name": "terminal",
+          "tool_call_id": "invalid-call",
+          "tool_call": {
+            "id": "invalid-call",
+            "name": "terminal",
+            "arguments": "{invalid",
+            "origin": "completion"
+          },
+          "llm_response_id": "response-invalid",
+          "security_risk": "UNKNOWN",
+          "kind": "ActionEvent"
+        },
+        {
+          "id": "00000000-0000-4000-8000-00000000000b",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "source": "agent",
+          "tool_name": "terminal",
+          "tool_call_id": "invalid-call",
+          "error": "Invalid arguments",
+          "classification": {
+            "kind": "unknown",
+            "retryable": false,
+            "user_action": "none"
+          },
+          "kind": "AgentErrorEvent"
+        }
+      ],
+      "null_action_ids": [
+        "00000000-0000-4000-8000-00000000000a"
+      ],
+      "view": {
+        "events": [
+          {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "source": "user",
+            "llm_message": {
+              "role": "user",
+              "content": [
+                {
+                  "cache_prompt": false,
+                  "type": "text",
+                  "text": "Work 1"
+                }
+              ],
+              "thinking_blocks": []
+            },
+            "activated_skills": [],
+            "extended_content": [],
+            "kind": "MessageEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-00000000000a",
+            "source": "agent",
+            "thought": [],
+            "thinking_blocks": [],
+            "tool_name": "terminal",
+            "tool_call_id": "invalid-call",
+            "tool_call": {
+              "id": "invalid-call",
+              "name": "terminal",
+              "arguments": "{invalid",
+              "origin": "completion"
+            },
+            "llm_response_id": "response-invalid",
+            "security_risk": "UNKNOWN",
+            "kind": "ActionEvent"
+          },
+          {
+            "id": "00000000-0000-4000-8000-00000000000b",
+            "source": "agent",
+            "tool_name": "terminal",
+            "tool_call_id": "invalid-call",
+            "error": "Invalid arguments",
+            "classification": {
+              "kind": "unknown",
+              "retryable": false,
+              "user_action": "none"
+            },
+            "kind": "AgentErrorEvent"
+          }
+        ],
+        "unhandled_condensation_request": false,
+        "manipulation_indices": [
+          0,
+          1,
+          3
+        ]
+      }
+    }
+  ]
+}

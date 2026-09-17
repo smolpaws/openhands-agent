@@ -308,7 +308,7 @@ function isTerminalAction(event: Event): event is ActionEvent { return event.kin
 
 function assertFinish(events: readonly Event[], expected?: string): void {
   const action = events.filter((event): event is ActionEvent => event.kind === 'ActionEvent' && event.tool_name === 'finish').at(-1);
-  assert.ok(action !== undefined, 'a finish tool action is required; ordinary assistant text is insufficient');
+  assert.ok(action !== undefined && action.action !== null, 'an executable finish tool action is required; ordinary assistant text is insufficient');
   if (expected !== undefined) assert.ok(action.action.message === expected, 'finish must contain the exact requested answer');
   assert.ok(events.some(event => event.kind === 'ObservationEvent' && event.tool_name === 'finish'
     && event.action_id === action.id && event.tool_call_id === action.tool_call_id && event.observation.is_error !== true),

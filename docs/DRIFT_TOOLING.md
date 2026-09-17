@@ -1,6 +1,6 @@
 # Upstream Drift Tooling
 
-> Status: control plane and weekly watcher implemented; differential oracles remain follow-up work.
+> Status: control plane and weekly watcher implemented. Focused projection, View, condensation/persistence and token-count oracles provide bounded differential evidence; broader wire coverage remains follow-up work.
 
 This document describes the machinery that keeps the two TypeScript transpiles in a deliberate relationship with `OpenHands/software-agent-sdk`:
 
@@ -246,6 +246,8 @@ Run Python and TypeScript over language-neutral deterministic fixtures for:
 - conversation restore;
 - remote protocol payloads;
 - deterministic condenser/view transformations.
+
+The condensation port adds committed, manifest-bound View, prompt and real EventLog fixtures under `src/context/__tests__/fixtures/` and `src/conversation/__fixtures__/`. The corresponding `scripts/parity/generate-python-{view,condenser,condensation-wire}-oracle.py` programs verify the pinned source before generating expected results. Native input-budget fixtures additionally verify the locked LiteLLM dependency and tokenizer version. See [condensation evidence](../transpile/condensation.md). These focused cases do not make the older standalone event/tool oracle scaffolds a complete wire suite.
 
 ### Server scenario differential
 

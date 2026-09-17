@@ -1,3 +1,4 @@
+import { providerResponseError } from '../exceptions.js';
 import type { FetchResponseLike } from '../client.js';
 
 /** Codex requires SSE even when callers want one completed SDK response. */
@@ -15,7 +16,8 @@ export async function readSubscriptionResponse(response: FetchResponseLike, onTe
     if (!data || data === '[DONE]') return undefined;
     let event: {
       type?: string;
-      response?: { output?: unknown[] };
+      response?: { output?: unknown[]; error?: unknown; incomplete_details?: unknown };
+      error?: unknown;
       item?: unknown;
     };
     try {
@@ -31,7 +33,7 @@ export async function readSubscriptionResponse(response: FetchResponseLike, onTe
       return event.response.output?.length ? event.response : { ...event.response, output: outputItems };
     }
     if (event.type === 'error' || event.type === 'response.failed' || event.type === 'response.incomplete')
-      throw new Error('OpenAI subscription response failed or was incomplete');
+      throw providerResponseError('OpenAI subscription', 200, event.response?.error ?? event.error ?? event);
     return undefined;
   };
   try {

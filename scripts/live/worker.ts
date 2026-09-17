@@ -3,15 +3,24 @@ import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { InMemorySecretStore, llmProfileSchema, llmProviderSecretRef } from '@smolpaws/openhands-agent';
+import { parseCondensationOption } from './condensation-options.js';
 import { readConfig, selectTargets, type LiveTarget } from './config.js';
 
 const target = selectTargets(await readConfig(), process.argv[2])[0]!;
-const base = { target: target.id, model: target.profile.model, route: target.route, scenario: target.scenario };
+const condensation = parseCondensationOption(['--target', target.id, ...process.argv.slice(3)]);
+const base = { target: target.id, model: target.profile.model, route: target.route, scenario: condensation ? `condensation-${condensation}` : target.scenario };
 try {
   const key = process.env[target.credential.env];
   if (!key) throw new Error('missing-credential');
   let evidence: unknown;
-  if (target.scenario === 'conversation') {
+  if (condensation) {
+    const { runCondensationRegression } = await import('./condensation-regression.js');
+    evidence = await runCondensationRegression({
+      profile: llmProfileSchema.parse({ profileId: target.id, maxOutputTokens: 4096, ...target.profile }),
+      store: new InMemorySecretStore([[llmProviderSecretRef(target.profile.providerId), key]]),
+      scenario: condensation, signal: AbortSignal.timeout(220_000), maxRequests: 20,
+    });
+  } else if (target.scenario === 'conversation') {
     const { runConversationRegression } = await import('./conversation-regression.js');
     evidence = await runConversationRegression({
       profile: llmProfileSchema.parse({ profileId: target.id, maxOutputTokens: 4096, ...target.profile }),
@@ -28,11 +37,12 @@ try {
   const message = error instanceof Error ? error.message : '';
   const http = /HTTP\s+(\d{3})/u.exec(message)?.[1];
   const providerCategory = /unavailable:(insufficient-credit|exhausted-quota|model-unavailable)/u.exec(message)?.[1];
-  const unavailable = providerCategory || (http && ['401', '403', '404', '429', '500', '502', '503', '504'].includes(http));
+  const prerequisite = /^unavailable:(thinking|token-count)$/u.exec(message)?.[1];
+  const unavailable = prerequisite || providerCategory || (http && ['401', '403', '404', '429', '500', '502', '503', '504'].includes(http));
   const name = error instanceof Error ? error.name : '';
   const phase = error instanceof Error && 'regressionPhase' in error && typeof error.regressionPhase === 'string'
     && ['setup', 'read', 'edit', 'parallel', 'restore', 'plain'].includes(error.regressionPhase) ? error.regressionPhase : undefined;
-  const reason = providerCategory ? `provider-${providerCategory}` : http ? `provider-http-${http}`
+  const reason = prerequisite ? `condensation-${prerequisite}-unavailable` : providerCategory ? `provider-${providerCategory}` : http ? `provider-http-${http}`
     : phase ? `conversation-${phase}`
     : name === 'AssertionError' ? `assertion:${message.split('\n')[0]!.replace(/[^a-zA-Z0-9 .,;:()_/-]/gu, '').slice(0, 180)}`
     : ['AbortError', 'TimeoutError'].includes(name) ? 'request-deadline-exceeded'

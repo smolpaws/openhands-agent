@@ -49,6 +49,7 @@
     "test:live-harness": "node --import tsx --test scripts/live/*.node-test.ts"
   },
   "dependencies": {
+    "js-tiktoken": "^1.0.21",
     "zod": "^4.4.3"
   },
   "devDependencies": {

@@ -121,7 +121,7 @@ export const actionEventSchema = eventObject({
   kind: z.literal('ActionEvent').default('ActionEvent'),
   source: z.literal('agent').default('agent'),
   thought: z.array(contentSchema).default([]),
-  action: recordSchema,
+  action: recordSchema.nullable().default(null),
   tool_name: z.string(),
   tool_call_id: z.string(),
   tool_call: messageToolCallSchema,

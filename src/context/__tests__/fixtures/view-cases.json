@@ -1,0 +1,1411 @@
+[
+  {
+    "name": "empty",
+    "source": "tests/sdk/context/view/test_view_manipulation_indices.py::test_empty_list",
+    "events": []
+  },
+  {
+    "name": "independent messages",
+    "source": "tests/sdk/context/view/test_view_manipulation_indices.py::test_multiple_message_events",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m1"
+      },
+      {
+        "kind": "message",
+        "id": "m2"
+      },
+      {
+        "kind": "message",
+        "id": "m3"
+      }
+    ]
+  },
+  {
+    "name": "matched observation",
+    "source": "tests/sdk/context/view/properties/test_tool_call_matching.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "before"
+      },
+      {
+        "kind": "action",
+        "id": "a",
+        "call": "a",
+        "batch": "a",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o",
+        "call": "a"
+      },
+      {
+        "kind": "message",
+        "id": "after"
+      }
+    ]
+  },
+  {
+    "name": "unmatched observation",
+    "source": "tests/sdk/context/view/properties/test_tool_call_matching.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "observation",
+        "id": "o",
+        "call": "missing"
+      }
+    ]
+  },
+  {
+    "name": "duplicate after observation",
+    "source": "tests/sdk/context/view/properties/test_observation_uniqueness.py",
+    "events": [
+      {
+        "kind": "action",
+        "id": "a",
+        "call": "a",
+        "batch": "a",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "first",
+        "call": "a"
+      },
+      {
+        "kind": "observation",
+        "id": "late",
+        "call": "a"
+      }
+    ]
+  },
+  {
+    "name": "matched error",
+    "source": "tests/sdk/context/view/properties/test_tool_call_matching.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "before"
+      },
+      {
+        "kind": "action",
+        "id": "a",
+        "call": "a",
+        "batch": "a",
+        "thinking": false
+      },
+      {
+        "kind": "error",
+        "id": "o",
+        "call": "a"
+      },
+      {
+        "kind": "message",
+        "id": "after"
+      }
+    ]
+  },
+  {
+    "name": "unmatched error",
+    "source": "tests/sdk/context/view/properties/test_tool_call_matching.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "error",
+        "id": "o",
+        "call": "missing"
+      }
+    ]
+  },
+  {
+    "name": "duplicate after error",
+    "source": "tests/sdk/context/view/properties/test_observation_uniqueness.py",
+    "events": [
+      {
+        "kind": "action",
+        "id": "a",
+        "call": "a",
+        "batch": "a",
+        "thinking": false
+      },
+      {
+        "kind": "error",
+        "id": "first",
+        "call": "a"
+      },
+      {
+        "kind": "observation",
+        "id": "late",
+        "call": "a"
+      }
+    ]
+  },
+  {
+    "name": "matched reject",
+    "source": "tests/sdk/context/view/properties/test_tool_call_matching.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "before"
+      },
+      {
+        "kind": "action",
+        "id": "a",
+        "call": "a",
+        "batch": "a",
+        "thinking": false
+      },
+      {
+        "kind": "reject",
+        "id": "o",
+        "call": "a"
+      },
+      {
+        "kind": "message",
+        "id": "after"
+      }
+    ]
+  },
+  {
+    "name": "unmatched reject",
+    "source": "tests/sdk/context/view/properties/test_tool_call_matching.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "reject",
+        "id": "o",
+        "call": "missing"
+      }
+    ]
+  },
+  {
+    "name": "duplicate after reject",
+    "source": "tests/sdk/context/view/properties/test_observation_uniqueness.py",
+    "events": [
+      {
+        "kind": "action",
+        "id": "a",
+        "call": "a",
+        "batch": "a",
+        "thinking": false
+      },
+      {
+        "kind": "reject",
+        "id": "first",
+        "call": "a"
+      },
+      {
+        "kind": "observation",
+        "id": "late",
+        "call": "a"
+      }
+    ]
+  },
+  {
+    "name": "unmatched action",
+    "source": "tests/sdk/context/view/properties/test_tool_call_matching.py::TestToolCallMatchingPropertyEnforcement::test_unmatched_action",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "action",
+        "id": "a",
+        "call": "a",
+        "batch": "a",
+        "thinking": false
+      }
+    ]
+  },
+  {
+    "name": "parallel batch",
+    "source": "tests/sdk/context/view/test_view_manipulation_indices.py::test_three_action_batch",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "action",
+        "id": "a3",
+        "call": "a3",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "observation",
+        "id": "o3",
+        "call": "a3"
+      },
+      {
+        "kind": "message",
+        "id": "after"
+      }
+    ]
+  },
+  {
+    "name": "partial batch forget a1",
+    "source": "tests/sdk/context/view/test_view_condensation_batch_atomicity.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "action",
+        "id": "a3",
+        "call": "a3",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "observation",
+        "id": "o3",
+        "call": "a3"
+      },
+      {
+        "kind": "message",
+        "id": "after"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "a1"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "partial batch forget a1,a2",
+    "source": "tests/sdk/context/view/test_view_condensation_batch_atomicity.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "action",
+        "id": "a3",
+        "call": "a3",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "observation",
+        "id": "o3",
+        "call": "a3"
+      },
+      {
+        "kind": "message",
+        "id": "after"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "a1",
+          "a2"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "partial batch forget o1",
+    "source": "tests/sdk/context/view/test_view_condensation_batch_atomicity.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "action",
+        "id": "a3",
+        "call": "a3",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "observation",
+        "id": "o3",
+        "call": "a3"
+      },
+      {
+        "kind": "message",
+        "id": "after"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "o1"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "partial batch forget o1,o2",
+    "source": "tests/sdk/context/view/test_view_condensation_batch_atomicity.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "action",
+        "id": "a3",
+        "call": "a3",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "observation",
+        "id": "o3",
+        "call": "a3"
+      },
+      {
+        "kind": "message",
+        "id": "after"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "o1",
+          "o2"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "partial batch forget a1,a2,a3",
+    "source": "tests/sdk/context/view/test_view_condensation_batch_atomicity.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "action",
+        "id": "a3",
+        "call": "a3",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "observation",
+        "id": "o3",
+        "call": "a3"
+      },
+      {
+        "kind": "message",
+        "id": "after"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "a1",
+          "a2",
+          "a3"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "independent batches after cascade",
+    "source": "tests/sdk/context/view/test_view_condensation_batch_atomicity.py::test_batch_atomicity_different_batches_independent",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "action",
+        "id": "a3",
+        "call": "a3",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "observation",
+        "id": "o3",
+        "call": "a3"
+      },
+      {
+        "kind": "message",
+        "id": "after"
+      },
+      {
+        "kind": "action",
+        "id": "a4",
+        "call": "a4",
+        "batch": "b2",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o4",
+        "call": "a4"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "o1"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "interleaved same batch",
+    "source": "tests/sdk/context/view/test_view_batch_atomicity.py::test_batch_atomicity_no_thinking_blocks",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "a1"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "late result spans user message",
+    "source": "tests/sdk/context/view/test_view_manipulation_indices.py::test_complex_interleaved_scenario",
+    "events": [
+      {
+        "kind": "message",
+        "id": "before"
+      },
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "message",
+        "id": "middle"
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "message",
+        "id": "after"
+      }
+    ]
+  },
+  {
+    "name": "thinking loop across batches",
+    "source": "tests/sdk/context/view/test_view_tool_loop_boundaries.py::test_tool_loop_multiple_batches",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "a1",
+        "thinking": true
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "a2",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "action",
+        "id": "a3",
+        "call": "a3",
+        "batch": "a3",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o3",
+        "call": "a3"
+      },
+      {
+        "kind": "message",
+        "id": "after"
+      }
+    ]
+  },
+  {
+    "name": "partial loop forget a1,o1",
+    "source": "tests/sdk/context/view/properties/test_tool_loop_atomicity.py::TestToolLoopAtomicityPropertyEnforcement::test_partial_tool_loop_forgotten",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "a1",
+        "thinking": true
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "a2",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "action",
+        "id": "a3",
+        "call": "a3",
+        "batch": "a3",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o3",
+        "call": "a3"
+      },
+      {
+        "kind": "message",
+        "id": "after"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "a1",
+          "o1"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "partial loop forget a2,o2",
+    "source": "tests/sdk/context/view/properties/test_tool_loop_atomicity.py::TestToolLoopAtomicityPropertyEnforcement::test_partial_tool_loop_forgotten",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "a1",
+        "thinking": true
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "a2",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "action",
+        "id": "a3",
+        "call": "a3",
+        "batch": "a3",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o3",
+        "call": "a3"
+      },
+      {
+        "kind": "message",
+        "id": "after"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "a2",
+          "o2"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "partial loop forget o3",
+    "source": "tests/sdk/context/view/properties/test_tool_loop_atomicity.py::TestToolLoopAtomicityPropertyEnforcement::test_partial_tool_loop_forgotten",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "a1",
+        "thinking": true
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "a2",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "action",
+        "id": "a3",
+        "call": "a3",
+        "batch": "a3",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o3",
+        "call": "a3"
+      },
+      {
+        "kind": "message",
+        "id": "after"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "o3"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "new thinking starts loop",
+    "source": "tests/sdk/context/view/properties/test_tool_loop_atomicity.py",
+    "events": [
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "a1",
+        "thinking": true
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "a2",
+        "thinking": true
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "action",
+        "id": "a3",
+        "call": "a3",
+        "batch": "a3",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o3",
+        "call": "a3"
+      }
+    ]
+  },
+  {
+    "name": "new thinking isolates forgotten earlier loop",
+    "source": "tests/sdk/context/view/properties/test_tool_loop_atomicity.py",
+    "events": [
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "a1",
+        "thinking": true
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "a2",
+        "thinking": true
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "action",
+        "id": "a3",
+        "call": "a3",
+        "batch": "a3",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o3",
+        "call": "a3"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "o1"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "parallel within thinking loop",
+    "source": "tests/sdk/context/view/test_view_tool_loop_boundaries.py::test_parallel_tool_calls_in_tool_loop",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "b",
+        "thinking": true
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "b",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "action",
+        "id": "a3",
+        "call": "a3",
+        "batch": "a3",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o3",
+        "call": "a3"
+      },
+      {
+        "kind": "message",
+        "id": "end"
+      }
+    ]
+  },
+  {
+    "name": "user message ends thinking loop",
+    "source": "tests/sdk/context/view/test_view_tool_loop_boundaries.py::test_tool_loop_ends_at_non_batch_event",
+    "events": [
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "a1",
+        "thinking": true
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "a2",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "o1"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "internal state ends full-log loop",
+    "source": "openhands-sdk/openhands/sdk/context/view/properties/tool_loop_atomicity.py::_tool_loops",
+    "events": [
+      {
+        "kind": "action",
+        "id": "a1",
+        "call": "a1",
+        "batch": "a1",
+        "thinking": true
+      },
+      {
+        "kind": "observation",
+        "id": "o1",
+        "call": "a1"
+      },
+      {
+        "kind": "state",
+        "id": "state"
+      },
+      {
+        "kind": "action",
+        "id": "a2",
+        "call": "a2",
+        "batch": "a2",
+        "thinking": false
+      },
+      {
+        "kind": "observation",
+        "id": "o2",
+        "call": "a2"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "o1"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "old summary retained",
+    "source": "tests/sdk/context/view/test_view_multi_summary.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m1"
+      },
+      {
+        "kind": "message",
+        "id": "m2"
+      },
+      {
+        "kind": "condensation",
+        "id": "c1",
+        "forget": [
+          "m1"
+        ],
+        "summary": "First",
+        "offset": 0
+      },
+      {
+        "kind": "message",
+        "id": "m3"
+      },
+      {
+        "kind": "condensation",
+        "id": "c2",
+        "forget": [
+          "m3"
+        ],
+        "summary": "Second",
+        "offset": 2
+      }
+    ]
+  },
+  {
+    "name": "old summary replaced",
+    "source": "tests/sdk/context/view/test_view_multi_summary.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m1"
+      },
+      {
+        "kind": "message",
+        "id": "m2"
+      },
+      {
+        "kind": "condensation",
+        "id": "c1",
+        "forget": [
+          "m1"
+        ],
+        "summary": "First",
+        "offset": 0
+      },
+      {
+        "kind": "message",
+        "id": "m3"
+      },
+      {
+        "kind": "condensation",
+        "id": "c2",
+        "forget": [
+          "c1-summary",
+          "m2"
+        ],
+        "summary": "Replacement",
+        "offset": 0
+      }
+    ]
+  },
+  {
+    "name": "same-offset summaries",
+    "source": "tests/sdk/context/view/test_view_multi_summary.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "condensation",
+        "id": "c1",
+        "forget": [],
+        "summary": "First",
+        "offset": 1
+      },
+      {
+        "kind": "condensation",
+        "id": "c2",
+        "forget": [],
+        "summary": "Second",
+        "offset": 1
+      },
+      {
+        "kind": "condensation",
+        "id": "c3",
+        "forget": [],
+        "summary": "Third",
+        "offset": 1
+      }
+    ]
+  },
+  {
+    "name": "summary beyond end",
+    "source": "tests/sdk/context/view/test_view_multi_summary.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [],
+        "summary": "Summary",
+        "offset": 100
+      }
+    ]
+  },
+  {
+    "name": "summary requires offset",
+    "source": "tests/sdk/context/view/test_view_append_event.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "m"
+        ],
+        "summary": "Missing offset"
+      }
+    ]
+  },
+  {
+    "name": "offset requires summary",
+    "source": "tests/sdk/context/view/test_view_append_event.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "m"
+        ],
+        "offset": 0
+      }
+    ]
+  },
+  {
+    "name": "summary empty string",
+    "source": "tests/sdk/context/view/test_view_append_event.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": [
+          "m"
+        ],
+        "summary": "",
+        "offset": 0
+      }
+    ]
+  },
+  {
+    "name": "unhandled request",
+    "source": "tests/sdk/context/view/test_view_append_event.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "request",
+        "id": "r1"
+      },
+      {
+        "kind": "request",
+        "id": "r2"
+      },
+      {
+        "kind": "state",
+        "id": "s"
+      }
+    ]
+  },
+  {
+    "name": "handled request",
+    "source": "tests/sdk/context/view/test_view_append_event.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "request",
+        "id": "r1"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": []
+      }
+    ]
+  },
+  {
+    "name": "new request after condensation",
+    "source": "tests/sdk/context/view/test_view_append_event.py",
+    "events": [
+      {
+        "kind": "message",
+        "id": "m"
+      },
+      {
+        "kind": "request",
+        "id": "r1"
+      },
+      {
+        "kind": "condensation",
+        "id": "c",
+        "forget": []
+      },
+      {
+        "kind": "request",
+        "id": "r2"
+      }
+    ]
+  }
+]

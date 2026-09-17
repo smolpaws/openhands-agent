@@ -15,13 +15,14 @@ export async function ensureLlmHistoryOrigin(state: ConversationState, profile: 
 
 /** Project copies for the selected LLM. The EventLog remains an unmodified record of each response. */
 export function historyForProfile(
-  view: readonly LLMConvertibleEvent[], history: readonly Event[], profile: LLMProfile,
+  view: readonly LLMConvertibleEvent[], history: readonly Event[], profile: LLMProfile, legacyProfile?: LLMProfile,
 ): LLMConvertibleEvent[] {
   if (!view.some(event => event.kind === 'ActionEvent'
     ? event.thinking_blocks.length > 0 || event.responses_reasoning_item !== null
     : event.kind === 'MessageEvent' && (event.llm_message.thinking_blocks.length > 0 || event.llm_message.responses_reasoning_item !== null))) return [...view];
   const current = llmHistoryOrigin(profile);
-  const legacy = legacyOrigin(history);
+  // Auxiliary completions know the main binding that owns unanchored legacy history.
+  const legacy = legacyOrigin(history) ?? (legacyProfile === undefined ? null : llmHistoryOrigin(legacyProfile));
   const legacyMatches = legacy === null || legacy === current;
   const responses = new Map<string, boolean>();
   const compatible = new Map<string, boolean>();

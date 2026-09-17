@@ -52,3 +52,25 @@ test('legacy network, timeout, and unexpected fetch failures send only fixed saf
     }
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
+
+
+test('optional SDK model discovery failure does not report a failed completion', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'legacy-metadata-'));
+  try {
+    const script = join(dir, 'script.mjs');
+    await writeFile(script, `try { await fetch('https://proxy.invalid/v1/model/info', { method: 'GET', redirect: 'error' }); } catch {} `);
+    for (const source of ["throw new TypeError('fetch failed')", "return new Response('{}', { status: 404 })"]) {
+      const mock = join(dir, 'mock.mjs');
+      await writeFile(mock, `globalThis.fetch = async () => { ${source}; };`);
+      const messages: unknown[] = [];
+      const code = await new Promise<number | null>((resolve, reject) => {
+        const child = spawn(process.execPath, ['--import', 'tsx', '--import', mock, '--import', './scripts/live/legacy-transport.ts', script], { stdio: ['ignore', 'ignore', 'ignore', 'ipc'] });
+        child.on('message', value => messages.push(value));
+        child.on('error', reject);
+        child.on('close', resolve);
+      });
+      assert.equal(code, 0);
+      assert.deepEqual(messages, []);
+    }
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});

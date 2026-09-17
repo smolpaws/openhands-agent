@@ -8,6 +8,11 @@ const count = z.number().int().nonnegative();
 const checks = z.array(z.string().min(1).max(100).regex(/^[a-zA-Z0-9 -]+$/u)).max(30);
 const evidence = z.union([
   z.object({
+    profileId: identifier, requestedModel: identifier, scenario: z.enum(['size', 'tokens', 'thinking', 'forced']),
+    requests: count, reactiveRequests: count, summaryCompletions: count, condensations: count, eventsForgotten: count,
+    continuations: count, executedTools: count, thinkingActions: count, checks,
+  }).strict(),
+  z.object({
     profileId: identifier, requestedModel: identifier, sourceCommit: z.string().regex(/^[a-f0-9]{40,64}$/u),
     returnedModels: z.array(identifier).max(20), requests: count, recordedCompletions: count,
     parallelToolExecutions: count, wireRequestsChecked: count, plainResponseWireRequestsChecked: count.optional(), checks,
@@ -71,6 +76,7 @@ export function waitForWorker(worker: ChildProcess, identity: Identity, timeoutM
 }
 
 function safeReason(reason: string): string {
+  if (/^condensation-(thinking|token-count)-unavailable$/u.test(reason)) return reason;
   if (/^provider-http-\d{3}$/u.test(reason)) return reason;
   if (/^provider-(insufficient-credit|exhausted-quota|model-unavailable)$/u.test(reason)) return reason;
   if (/^conversation-(setup|read|edit|parallel|restore|plain)$/u.test(reason)) return reason;

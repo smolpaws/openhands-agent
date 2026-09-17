@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+import { condenserSettingsSchema } from './condenser-settings.js';
+export * from './condenser-settings.js';
+
 import {
   acpServerKindSchema,
   profileVerificationSettingsSchema,
@@ -78,7 +81,7 @@ export const openHandsAgentSettingsSchema = z
     enable_sub_agents: z.boolean().default(false),
     enable_switch_llm_tool: z.boolean().default(true),
     tool_concurrency_limit: z.number().int().min(1).default(1),
-    condenser: z.unknown().default({ condenser_kind: 'llm_summarizing', enabled: true }),
+    condenser: condenserSettingsSchema.prefault({}),
     verification: profileVerificationSettingsSchema.default(defaultVerificationSettings),
   })
   .strict();

@@ -193,3 +193,42 @@ available for focused local investigation.
 `llm-smoke.mjs` remains a minimal OS-keyring diagnostic for a single completion;
 the new conversation suite covers that basic provider viability along with actual
 tools, concurrent input, serialization, restoration, and accounting assertions.
+
+## Explicit condensation scenarios (2026-09-18)
+
+After building, select a configured target and one scenario:
+
+```sh
+node --import tsx scripts/live/run.ts --target native-deepseek-v4-pro --condensation forced
+# Optional --keychain uses the same existing per-target credential rules.
+```
+
+`--condensation size|tokens|thinking|forced` requires `--target`; it does not
+change `--all`, the model matrix, or disabled routes. Reports go under
+`artifacts/llm/condensation-<scenario>/` using the existing status, credential,
+worker deadline, and sanitized report handling.
+
+These bounded adaptations of pinned Python integration tests use three public
+in-memory `terminal` echo fixtures plus the real finish tool. They assert real
+condensation, continued tool execution, preserved summaries/accounting on restore,
+and no replayed tools. They do not execute arbitrary shell commands. Summary
+completions use a separate profile/client on the selected target's same model and
+route. Each run permits at most 20 provider completions.
+
+- `size` adapts c05 event pressure with `maxSize=10`.
+- `tokens` adapts c04 with longer public tool output and `maxTokens=1100`.
+  Local token estimates are not provider-exact counts. An unknown counter is
+  unavailable coverage, including histories with unsupported opaque reasoning.
+- `thinking` adapts c01's static custom condenser, forgetting an old signed tool
+  loop while preserving a later one. It requires native Anthropic thinking blocks;
+  unsupported routes or responses report unavailable, never a successful skip.
+  Actual outgoing native requests must omit forgotten signatures and retain later
+  signatures. This scenario makes no LLM summary calls.
+- `forced` adapts c02 with a manual full-view reset at offset zero, later manual
+  normal condensation at a positive offset, and retention of the first summary.
+
+The deterministic `condensation-integration.test.ts` also covers c03's safe-range
+soft deferral and reactive small-context overflow. Its delayed-cut fixture uses
+20% minimum progress to avoid repeated one-event replacements when its deliberately
+protected prefix exceeds the size threshold. The production/source default is 10%.
+The existing Python unit oracles, not paid live results, establish source parity.

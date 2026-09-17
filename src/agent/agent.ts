@@ -1,9 +1,11 @@
 import {
   agentErrorEventSchema,
+  condensationRequestSchema,
   eventsToMessages,
   messageEventSchema,
   observationEventSchema,
   type ActionEvent,
+  type Condensation,
   type Event,
   type LLMConvertibleEvent,
 } from '../event/index.js';
@@ -14,7 +16,7 @@ import { LLMResponseError, type LLMClient } from '../llm/client.js';
 import { createLlmUsageEvent } from '../llm/metrics.js';
 import { historyForProfile } from '../llm/history.js';
 import { historyForRequests } from '../llm/request-history.js';
-import { isContentPolicyViolation } from '../llm/exceptions.js';
+import { isContentPolicyViolation, LLMContextWindowExceedError, LLMMalformedConversationHistoryError } from '../llm/exceptions.js';
 import { textContent, type Message, type TextContent } from '../llm/index.js';
 import type { ToolDefinition } from '../tool/index.js';
 import { ConversationState } from '../conversation/state.js';
@@ -54,10 +56,10 @@ export class Agent {
   async step(state: ConversationState): Promise<readonly Event[]> {
     const history = [...state.events];
     const inputEventId = history.at(-1)?.id ?? null;
-    const messages = this.messagesForState(state, history);
-    if (messages === null) {
-      return [state.events.at(-1)].filter((event): event is Event => event !== undefined);
-    }
+    const system = this.renderSystemPrompt();
+    await this.llm.resolveRuntimeMetadata?.();
+    const messages = await this.messagesForState(state, history, system);
+    if (!Array.isArray(messages)) return [messages];
     let response;
     const startedAt = Date.now();
     try {
@@ -68,7 +70,13 @@ export class Agent {
           startedAt, completedAt: Date.now(), ...(this.usageId === undefined ? {} : { usageId: this.usageId }),
         }));
       }
-      if (isContentPolicyViolation(error instanceof LLMResponseError ? error.cause : error)) {
+      const cause = error instanceof LLMResponseError ? error.cause : error;
+      if ((cause instanceof LLMContextWindowExceedError || cause instanceof LLMMalformedConversationHistoryError)
+        && this.condenser?.handlesCondensationRequests?.() === true) {
+        // Views are rebuilt with property enforcement at the beginning of every step.
+        return [await state.appendEventAsync(condensationRequestSchema.parse({}))];
+      }
+      if (isContentPolicyViolation(cause)) {
         // Content-policy blocks are deterministic; nudge the model and let the
         // run loop continue instead of emitting a fatal error.
         return [
@@ -96,19 +104,30 @@ export class Agent {
     });
   }
 
-  private messagesForState(state: ConversationState, history: readonly Event[]): Message[] | null {
+  private async messagesForState(state: ConversationState, history: readonly Event[], system: TextContent[] | null): Promise<Message[] | Condensation> {
     const view = View.fromEvents(history);
-    const condensed = this.condenser?.condense(view, this.llm) ?? view;
+    const projectEvents = (events: readonly LLMConvertibleEvent[], profile: typeof this.llm.profile) =>
+      historyForProfile(historyForRequests(events, history), history, profile, this.llm.profile);
+    const messagesForEvents = (events: readonly LLMConvertibleEvent[]): Message[] => {
+      const messages = eventsToMessages(projectEvents(events, this.llm.profile));
+      return system === null ? messages : [systemMessage(system), ...messages];
+    };
+    const condensed = await (this.condenser?.condense(view, this.llm, {
+      tools: this.tools.filter(tool => tool.usable),
+      messagesForEvents,
+      projectEvents,
+      onCompletion: async attempt => {
+        const metadata = attempt.response ?? (attempt.error instanceof LLMResponseError ? attempt.error.metadata : { usage: null });
+        await state.appendEventAsync(createLlmUsageEvent(attempt.llm.profile, metadata, {
+          startedAt: attempt.startedAt, completedAt: attempt.completedAt, usageId: 'condenser',
+        }));
+      },
+    }) ?? view);
     if (!(condensed instanceof View)) {
-      state.appendEvent(condensed);
-      return null;
+      await state.appendEventAsync(condensed);
+      return condensed;
     }
-    const messages = eventsToMessages(historyForProfile(historyForRequests(condensed.events.filter(isLlmConvertibleEvent), history), history, this.llm.profile));
-    const system = this.renderSystemPrompt();
-    if (system !== null) {
-      return [systemMessage(system), ...messages];
-    }
-    return messages;
+    return messagesForEvents(condensed.events.filter(isLlmConvertibleEvent));
   }
 
   private renderSystemPrompt(): TextContent[] | null {

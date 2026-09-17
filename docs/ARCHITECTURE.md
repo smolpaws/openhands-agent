@@ -85,9 +85,9 @@ Important event families:
 
 A step performs:
 
-1. build a `View` from `ConversationState.events`;
-2. optionally condense the view;
-3. render context/system prompt suffixes;
+1. capture the input boundary and render fixed context, then resolve available model metadata;
+2. rebuild a `View` with tool-history property enforcement;
+3. await optional condensation, persisting its event and returning before another main completion when a summary is produced;
 4. call `LLMClient.complete(messages, tools)` with the agent's usable `ToolDefinition`s;
 5. persist one `llm_usage` record from the returned usage, identity and timing;
 6. dispatch the result with `dispatchLlmResponse()`.
@@ -192,7 +192,13 @@ Workspaces in `src/workspace/` separate execution substrate from agent logic:
 
 Explicit non-AgentSkills skills with `trigger: null` include their complete body in `REPO_CONTEXT`; hosts can use this for durable instruction files. Automatic upstream memory-index loading (`load_memory` / `memory_context`) is a separate, deferred feature. See [context and memory evidence](../transpile/context-memory.md) for the current limits, persistence distinction, and tracking.
 
-Condensers operate on `View` objects. A condenser either returns a smaller `View` or a `Condensation` event. `PipelineCondenser` runs condensers in sequence and short-circuits when one emits a condensation.
+Condensers operate on `View` objects while the complete event log remains unchanged. `View.fromEvents()` replays summaries and enforces observation uniqueness, complete parallel batches, tool-call/result matching and whole thinking tool loops to a fixed point. Its manipulation indices identify safe summary boundaries. Incomplete tool exchanges are excluded from the model View, not deleted from the log.
+
+`LLMSummarizingCondenser` implements the pinned Python request/event/token triggers, safe-range selection, minimum progress and full-context reset fallback. It uses its own LLM client without tools. Class/settings defaults are 240 events and 2 retained first events; `defaultCondenser(llm)` retains the upstream agent factory's 80/4 defaults. Thresholds are strict greater-than. Event-only condensation is soft: if no safe cut exists, another step may create one. Requests and token overflow are hard: a failed safe cut attempts whole-view reset up to five times, progressively shortening rendered previews. There is no detached background summary task.
+
+A condenser returns a View or a Condensation, synchronously or asynchronously. `PipelineCondenser` preserves synchronous callers when its members are synchronous and awaits asynchronous members in order. `Agent.step` provides the actual fixed system/context and usable tools to token counting, projects summary history for the selected condenser profile, and persists each summary attempt under usage ID `condenser`. Typed context-window or malformed-history failures append a `CondensationRequest`; a later step condenses, and a subsequent step retries the main model with the reduced View. Unsupported condensers propagate the original failure.
+
+`LocalConversation.condense()` serializes one forced step with ordinary run steps. `RemoteConversation.condense()` posts through the existing authenticated conversation endpoint. Settings materialization validates the supported condenser variants and resolves a separate explicit profile reference through a host callback. [Condensation port evidence](../transpile/condensation.md) records source mapping, generated Python oracles and remaining limits.
 
 Hooks are lifecycle-sidecar processes. Hook results can allow/block and attach additional context. They are represented as hook execution results/events rather than as confirmation gates.
 

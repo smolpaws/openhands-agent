@@ -1,0 +1,618 @@
+{
+  "upstream_commit": "50080b58d35b4824fda25fca2345d80bcd08aeff",
+  "cases": [
+    {
+      "name": "empty",
+      "event_ids": [],
+      "summaries": [],
+      "manipulation_indices": [
+        0
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "independent messages",
+      "event_ids": [
+        "m1",
+        "m2",
+        "m3"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "matched observation",
+      "event_ids": [
+        "before",
+        "a",
+        "o",
+        "after"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        3,
+        4
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "unmatched observation",
+      "event_ids": [
+        "m"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "duplicate after observation",
+      "event_ids": [
+        "a",
+        "first"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        2
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "matched error",
+      "event_ids": [
+        "before",
+        "a",
+        "o",
+        "after"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        3,
+        4
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "unmatched error",
+      "event_ids": [
+        "m"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "duplicate after error",
+      "event_ids": [
+        "a",
+        "first"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        2
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "matched reject",
+      "event_ids": [
+        "before",
+        "a",
+        "o",
+        "after"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        3,
+        4
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "unmatched reject",
+      "event_ids": [
+        "m"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "duplicate after reject",
+      "event_ids": [
+        "a",
+        "first"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        2
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "unmatched action",
+      "event_ids": [
+        "m"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "parallel batch",
+      "event_ids": [
+        "m",
+        "a1",
+        "a2",
+        "a3",
+        "o1",
+        "o2",
+        "o3",
+        "after"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        7,
+        8
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "partial batch forget a1",
+      "event_ids": [
+        "m",
+        "after"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        2
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "partial batch forget a1,a2",
+      "event_ids": [
+        "m",
+        "after"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        2
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "partial batch forget o1",
+      "event_ids": [
+        "m",
+        "after"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        2
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "partial batch forget o1,o2",
+      "event_ids": [
+        "m",
+        "after"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        2
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "partial batch forget a1,a2,a3",
+      "event_ids": [
+        "m",
+        "after"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        2
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "independent batches after cascade",
+      "event_ids": [
+        "m",
+        "after",
+        "a4",
+        "o4"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        2,
+        4
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "interleaved same batch",
+      "event_ids": [
+        "m"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "late result spans user message",
+      "event_ids": [
+        "before",
+        "a1",
+        "a2",
+        "o1",
+        "middle",
+        "o2",
+        "after"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        6,
+        7
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "thinking loop across batches",
+      "event_ids": [
+        "m",
+        "a1",
+        "o1",
+        "a2",
+        "o2",
+        "a3",
+        "o3",
+        "after"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        7,
+        8
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "partial loop forget a1,o1",
+      "event_ids": [
+        "m",
+        "after"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        2
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "partial loop forget a2,o2",
+      "event_ids": [
+        "m",
+        "after"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        2
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "partial loop forget o3",
+      "event_ids": [
+        "m",
+        "after"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        2
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "new thinking starts loop",
+      "event_ids": [
+        "a1",
+        "o1",
+        "a2",
+        "o2",
+        "a3",
+        "o3"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        2,
+        6
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "new thinking isolates forgotten earlier loop",
+      "event_ids": [
+        "a2",
+        "o2",
+        "a3",
+        "o3"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        4
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "parallel within thinking loop",
+      "event_ids": [
+        "m",
+        "a1",
+        "a2",
+        "o1",
+        "o2",
+        "a3",
+        "o3",
+        "end"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        7,
+        8
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "user message ends thinking loop",
+      "event_ids": [
+        "m",
+        "a2",
+        "o2"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1,
+        3
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "internal state ends full-log loop",
+      "event_ids": [
+        "a2",
+        "o2"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        2
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "old summary retained",
+      "event_ids": [
+        "c1-summary",
+        "m2",
+        "c2-summary"
+      ],
+      "summaries": [
+        {
+          "id": "c1-summary",
+          "summary": "First"
+        },
+        {
+          "id": "c2-summary",
+          "summary": "Second"
+        }
+      ],
+      "manipulation_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "old summary replaced",
+      "event_ids": [
+        "c2-summary",
+        "m3"
+      ],
+      "summaries": [
+        {
+          "id": "c2-summary",
+          "summary": "Replacement"
+        }
+      ],
+      "manipulation_indices": [
+        0,
+        1,
+        2
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "same-offset summaries",
+      "event_ids": [
+        "m",
+        "c3-summary",
+        "c2-summary",
+        "c1-summary"
+      ],
+      "summaries": [
+        {
+          "id": "c3-summary",
+          "summary": "Third"
+        },
+        {
+          "id": "c2-summary",
+          "summary": "Second"
+        },
+        {
+          "id": "c1-summary",
+          "summary": "First"
+        }
+      ],
+      "manipulation_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "summary beyond end",
+      "event_ids": [
+        "m",
+        "c-summary"
+      ],
+      "summaries": [
+        {
+          "id": "c-summary",
+          "summary": "Summary"
+        }
+      ],
+      "manipulation_indices": [
+        0,
+        1,
+        2
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "summary requires offset",
+      "event_ids": [],
+      "summaries": [],
+      "manipulation_indices": [
+        0
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "offset requires summary",
+      "event_ids": [],
+      "summaries": [],
+      "manipulation_indices": [
+        0
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "summary empty string",
+      "event_ids": [
+        "c-summary"
+      ],
+      "summaries": [
+        {
+          "id": "c-summary",
+          "summary": ""
+        }
+      ],
+      "manipulation_indices": [
+        0,
+        1
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "unhandled request",
+      "event_ids": [
+        "m"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1
+      ],
+      "unhandled_condensation_request": true
+    },
+    {
+      "name": "handled request",
+      "event_ids": [
+        "m"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1
+      ],
+      "unhandled_condensation_request": false
+    },
+    {
+      "name": "new request after condensation",
+      "event_ids": [
+        "m"
+      ],
+      "summaries": [],
+      "manipulation_indices": [
+        0,
+        1
+      ],
+      "unhandled_condensation_request": true
+    }
+  ]
+}

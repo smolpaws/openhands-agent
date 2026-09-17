@@ -21,7 +21,6 @@ const unsupportedStateFields = new Set([
 const unsupportedEventFields = new Set([
   'critic_result',
   'security_risk',
-  'summary',
 ]);
 
 export function restoreConversationState(payload: unknown): ConversationRestoreResult {
@@ -42,6 +41,8 @@ export function restoreConversationState(payload: unknown): ConversationRestoreR
 function migrateEvent(payload: unknown, index: number, droppedEventFields: DroppedEventFields[]): Event {
   const event = { ...recordOrThrow(payload, `event ${index}`) };
   const dropped = sortedKeys(event, unsupportedEventFields);
+  if (event.kind === 'ActionEvent' && Object.hasOwn(event, 'summary')) dropped.push('summary');
+  dropped.sort();
   for (const field of dropped) {
     delete event[field];
   }
@@ -53,10 +54,6 @@ function migrateEvent(payload: unknown, index: number, droppedEventFields: Dropp
       dropped.push('tool_call.security_risk');
     }
     event.tool_call = toolCall;
-  }
-
-  if (event.kind === 'ActionEvent' && !isRecord(event.action)) {
-    event.action = actionFromToolCall(event.tool_call);
   }
 
   if (dropped.length > 0) {
@@ -71,21 +68,6 @@ function parseExecutionStatus(value: unknown): ConversationExecutionStatus {
     return value as ConversationExecutionStatus;
   }
   return conversationExecutionStatus.IDLE;
-}
-
-function actionFromToolCall(toolCall: unknown): Record<string, unknown> {
-  if (!isRecord(toolCall) || typeof toolCall.arguments !== 'string') {
-    return {};
-  }
-  try {
-    const parsed = JSON.parse(toolCall.arguments) as unknown;
-    if (isRecord(parsed)) {
-      return parsed;
-    }
-  } catch {
-    return { arguments: toolCall.arguments };
-  }
-  return { arguments: toolCall.arguments };
 }
 
 function sortedKeys(record: Readonly<Record<string, unknown>>, fields: ReadonlySet<string>): string[] {

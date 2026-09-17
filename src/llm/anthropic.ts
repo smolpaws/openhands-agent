@@ -1,11 +1,13 @@
+import { LLMContextBudget, type MetadataFetchLike } from './context-budget.js';
+import type { LLMTokenCountTool } from './client.js';
 import { orderCompletedToolResults } from './tool-result-order.js';
 import { z } from 'zod';
 
 import { getLlmApiKey } from '../secrets/index.js';
 import type { SecretStore } from '../secrets/index.js';
 import type { ToolDefinition } from '../tool/index.js';
-import { llmCompletionResponseSchema, llmResponseMetadataSchema, parseLlmResponseWithMetadata, type FetchLike, type LLMClient, type LLMCompletionResponse, type LLMResponseMetadata } from './client.js';
-import { isContentPolicyViolation, LLMContentPolicyViolationError } from './exceptions.js';
+import { llmCompletionResponseSchema, llmResponseMetadataSchema, parseLlmResponseWithMetadata, throwProviderErrorWithMetadata, type FetchLike, type LLMClient, type LLMCompletionResponse, type LLMResponseMetadata } from './client.js';
+import { providerResponseError, mapProviderException } from './exceptions.js';
 import { messageSchema, reduceTextContent, type Content, type LLMProfile, type Message, type MessageToolCall } from './index.js';
 import { getAnthropicThinkingBudget, normalizeGenerationParamsForModel } from './provider-quirks.js';
 import { ANTHROPIC_CACHE_CONTROL, prepareAnthropicPromptCaching, finalizeAnthropicCacheBreakpoints } from './anthropic-prompt-cache.js';
@@ -19,6 +21,7 @@ const DEFAULT_MAX_TOKENS = 4096;
 
 export interface CreateAnthropicClientOptions {
   readonly fetch?: FetchLike;
+  readonly metadataFetch?: MetadataFetchLike;
 }
 
 export class AnthropicMessagesClient implements LLMClient {
@@ -26,11 +29,18 @@ export class AnthropicMessagesClient implements LLMClient {
   private readonly apiKey: string;
   private readonly fetchImpl: FetchLike;
 
-  constructor(profile: LLMProfile, apiKey: string, fetchImpl: FetchLike = defaultFetch) {
+  constructor(profile: LLMProfile, apiKey: string, fetchImpl: FetchLike = defaultFetch, metadataFetch?: MetadataFetchLike) {
     this.profile = profile;
     this.apiKey = apiKey;
     this.fetchImpl = fetchImpl;
+    this.contextBudget = new LLMContextBudget(profile, { ...(metadataFetch ? { fetch: metadataFetch } : {}), headers: buildHeaders(profile, apiKey) });
   }
+
+  private readonly contextBudget: LLMContextBudget;
+  readonly tokenCountAccuracy = 'estimate' as const;
+  get effectiveMaxInputTokens(): number | null { return this.contextBudget.effectiveMaxInputTokens; }
+  getTokenCount(messages: readonly Message[], tools?: readonly LLMTokenCountTool[]): Promise<number | null> { return this.contextBudget.getTokenCount(messages, tools); }
+  resolveRuntimeMetadata(): Promise<void> { return this.contextBudget.resolveRuntimeMetadata(); }
 
   async complete(messages: readonly Message[], tools?: readonly ToolDefinition[]): Promise<LLMCompletionResponse> {
     const body = buildAnthropicMessagesBody(this.profile, messages, tools);
@@ -38,15 +48,11 @@ export class AnthropicMessagesClient implements LLMClient {
       method: 'POST',
       headers: buildHeaders(this.profile, this.apiKey),
       body: JSON.stringify(body),
-    });
+    }).catch(error => { throw mapProviderException(error); });
 
     if (!response.ok) {
       const text = await response.text();
-      const error = new Error(`Anthropic messages completion failed with HTTP ${response.status}: ${text}`);
-      if (isContentPolicyViolation(error)) {
-        throw new LLMContentPolicyViolationError(text);
-      }
-      throw error;
+      throwProviderErrorWithMetadata(text, providerResponseError('Anthropic messages', response.status, text), parseAnthropicMetadata);
     }
 
     return parseAnthropicMessagesResponse(await response.json());
@@ -71,7 +77,7 @@ export async function createAnthropicClientFromProfile(
       `Missing API key for Anthropic LLM profile '${profile.profileId}'. Set provider key '${profile.providerId}' or enable and set a profile override.`,
     );
   }
-  return new AnthropicMessagesClient(profile, apiKey, options.fetch ?? defaultFetch);
+  return new AnthropicMessagesClient(profile, apiKey, options.fetch ?? defaultFetch, options.metadataFetch);
 }
 
 export function buildAnthropicMessagesBody(profile: LLMProfile, messages: readonly Message[], tools?: readonly ToolDefinition[]): Record<string, unknown> {

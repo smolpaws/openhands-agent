@@ -1,3 +1,6 @@
+import { LLMContextBudget, type MetadataFetchLike } from './context-budget.js';
+import type { LLMTokenCountTool } from './client.js';
+import { providerResponseError, mapProviderException } from './exceptions.js';
 import { orderCompletedToolResults } from './tool-result-order.js';
 import { z } from 'zod';
 import { platform, arch } from 'node:os';
@@ -7,7 +10,7 @@ import { readSubscriptionResponse } from './auth/stream.js';
 import { getLlmApiKey } from '../secrets/index.js';
 import type { SecretStore } from '../secrets/index.js';
 import type { ToolDefinition } from '../tool/index.js';
-import { llmCompletionResponseSchema, llmResponseMetadataSchema, parseLlmResponseWithMetadata, type FetchLike, type FetchResponseLike, type LLMClient, type LLMCompletionResponse, type LLMResponseMetadata } from './client.js';
+import { llmCompletionResponseSchema, llmResponseMetadataSchema, parseLlmResponseWithMetadata, throwProviderErrorWithMetadata, type FetchLike, type FetchResponseLike, type LLMClient, type LLMCompletionResponse, type LLMResponseMetadata } from './client.js';
 import {
   contentToString,
   messageSchema,
@@ -29,6 +32,7 @@ const DEFAULT_OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
 export interface CreateLlmClientOptions {
   readonly fetch?: FetchLike;
+  readonly metadataFetch?: MetadataFetchLike;
   readonly subscriptionAuth?: OpenAISubscriptionAuth;
 }
 
@@ -37,11 +41,18 @@ export class OpenAIChatClient implements LLMClient {
   private readonly apiKey: string;
   private readonly fetchImpl: FetchLike;
 
-  constructor(profile: LLMProfile, apiKey: string, fetchImpl: FetchLike = defaultFetch) {
+  constructor(profile: LLMProfile, apiKey: string, fetchImpl: FetchLike = defaultFetch, metadataFetch?: MetadataFetchLike) {
     this.profile = profile;
     this.apiKey = apiKey;
     this.fetchImpl = fetchImpl;
+    this.contextBudget = new LLMContextBudget(profile, { ...(metadataFetch ? { fetch: metadataFetch } : {}), headers: buildHeaders(profile, apiKey) });
   }
+
+  private readonly contextBudget: LLMContextBudget;
+  readonly tokenCountAccuracy = 'estimate' as const;
+  get effectiveMaxInputTokens(): number | null { return this.contextBudget.effectiveMaxInputTokens; }
+  getTokenCount(messages: readonly Message[], tools?: readonly LLMTokenCountTool[]): Promise<number | null> { return this.contextBudget.getTokenCount(messages, tools); }
+  resolveRuntimeMetadata(): Promise<void> { return this.contextBudget.resolveRuntimeMetadata(); }
 
   async complete(messages: readonly Message[], tools?: readonly ToolDefinition[]): Promise<LLMCompletionResponse> {
     const body = buildChatCompletionsBody(this.profile, messages, tools);
@@ -49,11 +60,11 @@ export class OpenAIChatClient implements LLMClient {
       method: 'POST',
       headers: buildHeaders(this.profile, this.apiKey),
       body: JSON.stringify(body),
-    });
+    }).catch(error => { throw mapProviderException(error); });
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`OpenAI-compatible completion failed with HTTP ${response.status}: ${text}`);
+      throwProviderErrorWithMetadata(text, providerResponseError('OpenAI-compatible', response.status, text), raw => parseChatCompletionsMetadata(raw, this.profile));
     }
 
 
@@ -67,7 +78,14 @@ export class OpenAIResponsesClient implements LLMClient {
     private readonly apiKey: string,
     private readonly fetchImpl: FetchLike = defaultFetch,
     private readonly subscriptionAuth?: OpenAISubscriptionAuth,
-  ) {}
+    metadataFetch?: MetadataFetchLike,
+  ) { this.contextBudget = new LLMContextBudget(profile, { ...(metadataFetch ? { fetch: metadataFetch } : {}), headers: buildHeaders(profile, apiKey) }); }
+
+  private readonly contextBudget: LLMContextBudget;
+  readonly tokenCountAccuracy = 'estimate' as const;
+  get effectiveMaxInputTokens(): number | null { return this.contextBudget.effectiveMaxInputTokens; }
+  getTokenCount(messages: readonly Message[], tools?: readonly LLMTokenCountTool[]): Promise<number | null> { return this.contextBudget.getTokenCount(messages, tools); }
+  resolveRuntimeMetadata(): Promise<void> { return this.contextBudget.resolveRuntimeMetadata(); }
 
   async complete(messages: readonly Message[], tools?: readonly ToolDefinition[]): Promise<LLMCompletionResponse> {
     let apiKey = this.apiKey;
@@ -84,11 +102,10 @@ export class OpenAIResponsesClient implements LLMClient {
       method: 'POST',
       headers: buildHeaders({ ...this.profile, headers }, apiKey),
       body: JSON.stringify(buildOpenAIResponsesBody(this.profile, messages, tools)),
-    });
+    }).catch(error => { throw mapProviderException(error); });
     if (!response.ok) {
-      if (this.subscriptionAuth) throw new Error(`OpenAI subscription completion failed with HTTP ${response.status}`);
       const text = await response.text();
-      throw new Error(`OpenAI Responses completion failed with HTTP ${response.status}: ${text}`);
+      throwProviderErrorWithMetadata(text, providerResponseError(this.subscriptionAuth ? 'OpenAI subscription' : 'OpenAI Responses', response.status, text), parseOpenAIResponsesMetadata);
     }
     let raw: unknown;
     let terminalResponse: unknown;
@@ -98,7 +115,7 @@ export class OpenAIResponsesClient implements LLMClient {
         : await response.json();
     } catch (error) {
       if (terminalResponse !== undefined) {
-        return parseLlmResponseWithMetadata(terminalResponse, parseOpenAIResponsesMetadata, () => { throw error; });
+        throwProviderErrorWithMetadata(terminalResponse, error, parseOpenAIResponsesMetadata);
       }
       throw error;
     }
@@ -124,7 +141,7 @@ export async function createOpenAIChatClientFromProfile(
       `Missing API key for LLM profile '${profile.profileId}'. Set provider key '${profile.providerId}' or enable and set a profile override.`,
     );
   }
-  return new OpenAIChatClient(profile, apiKey, options.fetch ?? defaultFetch);
+  return new OpenAIChatClient(profile, apiKey, options.fetch ?? defaultFetch, options.metadataFetch);
 }
 
 export async function createOpenAIResponsesClientFromProfile(
@@ -139,7 +156,7 @@ export async function createOpenAIResponsesClientFromProfile(
     const auth = options.subscriptionAuth ?? new OpenAISubscriptionAuth();
     if (!await auth.refreshIfNeeded()) throw new Error('OpenAI subscription login is required');
     const runtimeProfile: LLMProfile = { ...profile, model, baseUrl: CODEX_API_ENDPOINT.slice(0, -'/responses'.length), openAiApiMode: 'responses', temperature: null, maxOutputTokens: null, subscriptionVendor: 'openai' };
-    return new OpenAIResponsesClient(runtimeProfile, '', options.fetch ?? defaultFetch, auth);
+    return new OpenAIResponsesClient(runtimeProfile, '', options.fetch ?? defaultFetch, auth, options.metadataFetch);
   }
   const apiKey = await getLlmApiKey(
     {
@@ -154,7 +171,7 @@ export async function createOpenAIResponsesClientFromProfile(
       `Missing API key for LLM profile '${profile.profileId}'. Set provider key '${profile.providerId}' or enable and set a profile override.`,
     );
   }
-  return new OpenAIResponsesClient(profile, apiKey, options.fetch ?? defaultFetch);
+  return new OpenAIResponsesClient(profile, apiKey, options.fetch ?? defaultFetch, undefined, options.metadataFetch);
 }
 
 function applyOpenAIPromptCacheOptions(body: Record<string, unknown>, profile: LLMProfile): void {
@@ -477,6 +494,11 @@ function fromOpenAIChatToolCall(toolCall: OpenAIChatToolCall): MessageToolCall {
 }
 
 function parseOpenAIResponsesResponse(raw: unknown): LLMCompletionResponse {
+  if (typeof raw === 'object' && raw !== null) {
+    const response = raw as Record<string, unknown>;
+    if (response.status === 'failed' || response.status === 'incomplete' || response.error)
+      throwProviderErrorWithMetadata(raw, providerResponseError('OpenAI Responses', 200, response.error ?? response.incomplete_details), parseOpenAIResponsesMetadata);
+  }
   return parseLlmResponseWithMetadata(raw, parseOpenAIResponsesMetadata, parseOpenAIResponsesContent);
 }
 

@@ -64,6 +64,10 @@ export class RemoteConversation {
     await this.waitForRunCompletion(options.pollIntervalMs ?? 1000, options.timeoutMs ?? 3_600_000);
   }
 
+  async condense(): Promise<void> {
+    await this.request('POST', `${this.actionBasePath}/condense`);
+  }
+
   async pause(): Promise<void> {
     await this.request('POST', `${this.actionBasePath}/pause`);
     this.state.executionStatus = conversationExecutionStatus.PAUSED;

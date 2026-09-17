@@ -71,6 +71,7 @@ test('the actual cache worker preserves an omitted TTL and an explicit one-hour 
       import { llmProfileSchema } from ${JSON.stringify(pathToFileURL(join(process.cwd(), 'dist/index.mjs')).href)};
       let calls = 0;
       globalThis.fetch = async (_url, init) => {
+        if (init.method === 'GET') return new Response(JSON.stringify({ data: [] }), { status: 200 });
         const selected = JSON.parse(process.env.LLM_TEST_PROFILE);
         const explicit = Object.hasOwn(selected, 'anthropicCacheTtl');
         assert.equal(Object.hasOwn(process.env, 'ANTHROPIC_CACHE_TTL'), explicit, 'worker must not invent a TTL environment override');

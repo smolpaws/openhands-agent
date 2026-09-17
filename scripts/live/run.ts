@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MacOSKeychainSecretStore } from '@smolpaws/openhands-agent';
 import { readConfig, resultExitCode, selectTargets, type LiveTarget, type Status } from './config.js';
+import { parseCondensationOption } from './condensation-options.js';
 import { waitForWorker } from './worker-lifecycle.js';
 
 export interface LiveResult {
@@ -13,13 +14,14 @@ export interface LiveResult {
 }
 
 const args = process.argv.slice(2);
-const allowed = new Set(['--all', '--target', '--list', '--matrix', '--keychain']);
+const allowed = new Set(['--all', '--target', '--list', '--matrix', '--keychain', '--condensation']);
 for (let i = 0; i < args.length; i++) {
   if (!allowed.has(args[i]!)) throw new Error('Use --all, --target ID, --list, or --matrix; optionally --keychain.');
-  if (args[i] === '--target') {
+  if (args[i] === '--target' || args[i] === '--condensation') {
     if (!args[++i] || args[i]!.startsWith('--')) throw new Error('--target requires an ID');
   }
 }
+const condensation = parseCondensationOption(args);
 const config = await readConfig();
 const id = args.includes('--target') ? args[args.indexOf('--target') + 1] : undefined;
 const modes = [args.includes('--all'), !!id, args.includes('--list'), args.includes('--matrix')].filter(Boolean);
@@ -31,14 +33,14 @@ if (args.includes('--list')) {
 } else {
   const targets = selectTargets(config, id);
   const results: LiveResult[] = [];
-  const out = resolve('artifacts/llm');
+  const out = resolve('artifacts/llm', ...(condensation ? [`condensation-${condensation}`] : []));
   await mkdir(out, { recursive: true });
   const keychain = args.includes('--keychain') ? new MacOSKeychainSecretStore() : null;
   await writeReports();
   for (const target of targets) {
     const start = Date.now();
     let result: LiveResult;
-    const base = { target: target.id, model: target.profile.model, route: target.route, scenario: target.scenario };
+    const base = { target: target.id, model: target.profile.model, route: target.route, scenario: condensation ? `condensation-${condensation}` : target.scenario };
     if (!target.enabled) {
       result = { ...base, status: 'disabled', reason: target.reason, durationMs: 0 };
     } else {
@@ -80,10 +82,10 @@ if (args.includes('--list')) {
 }
 
 function runTarget(target: LiveTarget, key: string): Promise<LiveResult> {
-  const base = { target: target.id, model: target.profile.model, route: target.route, scenario: target.scenario };
+  const base = { target: target.id, model: target.profile.model, route: target.route, scenario: condensation ? `condensation-${condensation}` : target.scenario };
   // Only this target's key enters the child; output from providers and legacy
   // examples is discarded. Reports travel over IPC as safe metadata only.
-  const worker = fork(fileURLToPath(new URL('./worker.ts', import.meta.url)), [target.id], {
+  const worker = fork(fileURLToPath(new URL('./worker.ts', import.meta.url)), [target.id, ...(condensation ? ['--condensation', condensation] : [])], {
     execArgv: ['--import', 'tsx'], detached: process.platform !== 'win32',
     env: { PATH: process.env.PATH, TMPDIR: process.env.TMPDIR, [target.credential.env]: key },
     stdio: ['ignore', 'ignore', 'ignore', 'ipc'],

@@ -1,0 +1,80 @@
+import { z } from 'zod';
+
+import { NoOpCondenser, type Condenser } from '../context/condenser.js';
+import { LLMSummarizingCondenser } from '../context/llm-summarizing-condenser.js';
+import type { LLMClient } from '../llm/client.js';
+
+const profileReferenceSchema = z.string().trim().min(1);
+
+export const llmSummarizingCondenserSettingsSchema = z.object({
+  condenser_kind: z.literal('llm_summarizing').default('llm_summarizing'),
+  enabled: z.boolean().default(true),
+  llm_profile_ref: profileReferenceSchema.optional(),
+  max_size: z.number().int().min(20).default(240),
+  // Absence inherits the agent limit at materialization; explicit null does not.
+  max_tokens: z.number().int().positive().nullable().optional(),
+  keep_first: z.number().int().nonnegative().default(2),
+  minimum_progress: z.number().gt(0).lt(1).default(0.1),
+  hard_context_reset_max_retries: z.number().int().positive().default(5),
+  hard_context_reset_context_scaling: z.number().gt(0).lt(1).default(0.8),
+}).strict();
+
+export const noOpCondenserSettingsSchema = z.object({
+  condenser_kind: z.literal('no_op'),
+  enabled: z.boolean().default(true),
+}).strict();
+
+export const condenserSettingsSchema = z.preprocess((value) => {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value) &&
+    'condenser_kind' in value && value.condenser_kind === 'noop') {
+    return { ...value, condenser_kind: 'no_op' };
+  }
+  return value;
+}, z.union([llmSummarizingCondenserSettingsSchema, noOpCondenserSettingsSchema]));
+
+export type LLMSummarizingCondenserSettings = z.infer<typeof llmSummarizingCondenserSettingsSchema>;
+export type NoOpCondenserSettings = z.infer<typeof noOpCondenserSettingsSchema>;
+export type CondenserSettings = z.infer<typeof condenserSettingsSchema>;
+
+export interface MaterializeCondenserOptions {
+  /** Resolve a saved condenser profile using the host's profile and secret stores. */
+  readonly resolveClient: (profileRef: string) => LLMClient | Promise<LLMClient>;
+  /** Explicit host selection used only when the saved settings omit a profile. */
+  readonly defaultProfileRef?: string;
+  /** Used only to inherit the input-token limit, never as the summarizing client. */
+  readonly agentLlm?: LLMClient | null;
+}
+
+/** Materialize profile-first condenser settings without choosing a store or a main-LLM fallback. */
+export async function materializeCondenser(
+  data: unknown,
+  options: MaterializeCondenserOptions,
+): Promise<Condenser | null> {
+  const settings = condenserSettingsSchema.parse(data);
+  if (!settings.enabled) return null;
+  if (settings.condenser_kind === 'no_op') return new NoOpCondenser();
+  if (Math.floor(settings.max_size / 2) - settings.keep_first - 1 <= 0) {
+    throw new RangeError('keep_first must be less than max_size // 2 to leave room for condensation');
+  }
+
+  const selectedRef = settings.llm_profile_ref ?? options.defaultProfileRef;
+  if (selectedRef === undefined) {
+    throw new Error('Enabled LLM condenser requires llm_profile_ref or an explicit host defaultProfileRef.');
+  }
+  const profileRef = profileReferenceSchema.parse(selectedRef);
+  const llm = await options.resolveClient(profileRef);
+  let maxTokens = settings.max_tokens;
+  if (maxTokens === undefined) {
+    await options.agentLlm?.resolveRuntimeMetadata?.();
+    maxTokens = options.agentLlm?.effectiveMaxInputTokens ?? null;
+  }
+  return new LLMSummarizingCondenser({
+    llm,
+    maxSize: settings.max_size,
+    maxTokens,
+    keepFirst: settings.keep_first,
+    minimumProgress: settings.minimum_progress,
+    hardContextResetMaxRetries: settings.hard_context_reset_max_retries,
+    hardContextResetContextScaling: settings.hard_context_reset_context_scaling,
+  });
+}

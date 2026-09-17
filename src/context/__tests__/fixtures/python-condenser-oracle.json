@@ -1,0 +1,340 @@
+{
+  "upstream_commit": "50080b58d35b4824fda25fca2345d80bcd08aeff",
+  "cases": [
+    {
+      "name": "0-MessageEvent",
+      "event": {
+        "id": "fixture-0",
+        "timestamp": "2026-01-01T00:00:00Z",
+        "source": "user",
+        "parent_id": null,
+        "llm_message": {
+          "role": "user",
+          "content": [
+            {
+              "cache_prompt": false,
+              "type": "text",
+              "text": "User requirements"
+            }
+          ],
+          "tool_calls": null,
+          "tool_call_id": null,
+          "name": null,
+          "reasoning_content": null,
+          "thinking_blocks": [],
+          "responses_reasoning_item": null
+        },
+        "llm_response_id": null,
+        "activated_skills": [
+          "skill-one"
+        ],
+        "extended_content": [
+          {
+            "cache_prompt": false,
+            "type": "text",
+            "text": "Context extension"
+          }
+        ],
+        "sender": null,
+        "critic_result": null,
+        "kind": "MessageEvent"
+      },
+      "text": "MessageEvent (user)\n  user: User requirements Context extension [Skills: skill-one]"
+    },
+    {
+      "name": "1-MessageEvent",
+      "event": {
+        "id": "fixture-1",
+        "timestamp": "2026-01-01T00:00:00Z",
+        "source": "agent",
+        "parent_id": null,
+        "llm_message": {
+          "role": "assistant",
+          "content": [
+            {
+              "cache_prompt": false,
+              "type": "text",
+              "text": "🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂"
+            }
+          ],
+          "tool_calls": null,
+          "tool_call_id": null,
+          "name": null,
+          "reasoning_content": null,
+          "thinking_blocks": [
+            {
+              "type": "thinking",
+              "thinking": "private thinking",
+              "signature": "opaque-signature"
+            }
+          ],
+          "responses_reasoning_item": null
+        },
+        "llm_response_id": null,
+        "activated_skills": [],
+        "extended_content": [],
+        "sender": null,
+        "critic_result": null,
+        "kind": "MessageEvent"
+      },
+      "text": "MessageEvent (agent)\n  assistant: 🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂... [Thinking blocks: 1]"
+    },
+    {
+      "name": "2-MessageEvent",
+      "event": {
+        "id": "fixture-2",
+        "timestamp": "2026-01-01T00:00:00Z",
+        "source": "agent",
+        "parent_id": null,
+        "llm_message": {
+          "role": "assistant",
+          "content": [],
+          "tool_calls": null,
+          "tool_call_id": null,
+          "name": null,
+          "reasoning_content": null,
+          "thinking_blocks": [],
+          "responses_reasoning_item": null
+        },
+        "llm_response_id": null,
+        "activated_skills": [],
+        "extended_content": [],
+        "sender": null,
+        "critic_result": null,
+        "kind": "MessageEvent"
+      },
+      "text": "MessageEvent (agent)\n  assistant: [no text content]"
+    },
+    {
+      "name": "3-MessageEvent",
+      "event": {
+        "id": "fixture-3",
+        "timestamp": "2026-01-01T00:00:00Z",
+        "source": "user",
+        "parent_id": null,
+        "llm_message": {
+          "role": "user",
+          "content": [
+            {
+              "cache_prompt": false,
+              "type": "image",
+              "image_urls": [
+                "https://example.com/image"
+              ]
+            }
+          ],
+          "tool_calls": null,
+          "tool_call_id": null,
+          "name": null,
+          "reasoning_content": null,
+          "thinking_blocks": [],
+          "responses_reasoning_item": null
+        },
+        "llm_response_id": null,
+        "activated_skills": [],
+        "extended_content": [],
+        "sender": null,
+        "critic_result": null,
+        "kind": "MessageEvent"
+      },
+      "text": "MessageEvent (user)\n  user: [Image: 1 URLs]"
+    },
+    {
+      "name": "4-SystemPromptEvent",
+      "event": {
+        "id": "fixture-4",
+        "timestamp": "2026-01-01T00:00:00Z",
+        "source": "agent",
+        "parent_id": null,
+        "system_prompt": {
+          "cache_prompt": false,
+          "type": "text",
+          "text": "System xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        "tools": [],
+        "dynamic_context": {
+          "cache_prompt": false,
+          "type": "text",
+          "text": "🙂ab"
+        },
+        "kind": "SystemPromptEvent"
+      },
+      "text": "SystemPromptEvent (agent)\n  System: System xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...\n  Tools: 0 available\n  Dynamic Context: 3 chars"
+    },
+    {
+      "name": "5-CondensationSummaryEvent",
+      "event": {
+        "id": "fixture-5",
+        "timestamp": "2026-01-01T00:00:00Z",
+        "source": "environment",
+        "parent_id": null,
+        "summary": "Previous summary ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
+        "kind": "CondensationSummaryEvent"
+      },
+      "text": "CondensationSummaryEvent (environment)\n  user: Previous summary ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss..."
+    },
+    {
+      "name": "6-ActionEvent",
+      "event": {
+        "id": "fixture-6",
+        "timestamp": "2026-01-01T00:00:00Z",
+        "source": "agent",
+        "parent_id": null,
+        "thought": [
+          {
+            "cache_prompt": false,
+            "type": "text",
+            "text": "Think tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+          }
+        ],
+        "reasoning_content": null,
+        "thinking_blocks": [],
+        "responses_reasoning_item": null,
+        "action": {
+          "data": {},
+          "kind": "MCPToolAction"
+        },
+        "tool_name": "test_tool",
+        "tool_call_id": "call",
+        "tool_call": {
+          "id": "call",
+          "responses_item_id": null,
+          "name": "test_tool",
+          "arguments": "{}",
+          "origin": "completion"
+        },
+        "llm_response_id": "response",
+        "kind": "ActionEvent"
+      },
+      "text": "ActionEvent (agent)\n  Thought: Think tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt...\n  Action: MCPToolAction"
+    },
+    {
+      "name": "7-ActionEvent",
+      "event": {
+        "id": "fixture-7",
+        "timestamp": "2026-01-01T00:00:00Z",
+        "source": "agent",
+        "parent_id": null,
+        "thought": [],
+        "reasoning_content": null,
+        "thinking_blocks": [],
+        "responses_reasoning_item": null,
+        "action": null,
+        "tool_name": "test_tool",
+        "tool_call_id": "call",
+        "tool_call": {
+          "id": "call",
+          "responses_item_id": null,
+          "name": "test_tool",
+          "arguments": "{}",
+          "origin": "completion"
+        },
+        "llm_response_id": "response",
+        "kind": "ActionEvent"
+      },
+      "text": "ActionEvent (agent)\n  Thought: \n  Action: (not executed)\n  Call: test_tool:call"
+    },
+    {
+      "name": "8-ObservationEvent",
+      "event": {
+        "id": "fixture-8",
+        "timestamp": "2026-01-01T00:00:00Z",
+        "source": "environment",
+        "parent_id": null,
+        "tool_name": "test_tool",
+        "tool_call_id": "call",
+        "observation": {
+          "content": [
+            {
+              "cache_prompt": false,
+              "type": "text",
+              "text": "Result rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+            }
+          ],
+          "is_error": false,
+          "tool_name": "test_tool",
+          "kind": "MCPToolObservation"
+        },
+        "action_id": "action",
+        "extended_content": [
+          {
+            "cache_prompt": false,
+            "type": "text",
+            "text": "NOT IN DISPLAY"
+          }
+        ],
+        "kind": "ObservationEvent"
+      },
+      "text": "ObservationEvent (environment)\n  Tool: test_tool\n  Result: Result rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr..."
+    },
+    {
+      "name": "9-UserRejectObservation",
+      "event": {
+        "id": "fixture-9",
+        "timestamp": "2026-01-01T00:00:00Z",
+        "source": "environment",
+        "parent_id": null,
+        "tool_name": "test_tool",
+        "tool_call_id": "call",
+        "rejection_reason": "Rejected eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "rejection_source": "user",
+        "action_id": "action",
+        "kind": "UserRejectObservation"
+      },
+      "text": "UserRejectObservation (environment)\n  Tool: test_tool\n  Reason: Rejected eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee..."
+    },
+    {
+      "name": "10-AgentErrorEvent",
+      "event": {
+        "id": "fixture-10",
+        "timestamp": "2026-01-01T00:00:00Z",
+        "source": "agent",
+        "parent_id": null,
+        "tool_name": "test_tool",
+        "tool_call_id": "call",
+        "error": "Error eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "classification": {
+          "kind": "unknown",
+          "retryable": false,
+          "user_action": "none",
+          "error_id": null
+        },
+        "kind": "AgentErrorEvent"
+      },
+      "text": "AgentErrorEvent (agent)\n  Error: Error eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee..."
+    }
+  ],
+  "prompt": "You are maintaining a context-aware state summary for an interactive agent.\nYou will be given a list of events corresponding to actions taken by the agent, which will include previous summaries.\nIf the events being summarized contain ANY task-tracking, you MUST include a TASK_TRACKING section to maintain continuity.\nWhen referencing tasks make sure to preserve exact task IDs and statuses.\n\nTrack:\n\nUSER_CONTEXT: (Preserve essential user requirements, goals, and clarifications in concise form)\n\nTASK_TRACKING: {Active tasks, their IDs and statuses - PRESERVE TASK IDs}\n\nCOMPLETED: (Tasks completed so far, with brief results)\nPENDING: (Tasks that still need to be done)\nCURRENT_STATE: (Current variables, data structures, or relevant state)\n\nFor code-specific tasks, also include:\nCODE_STATE: {File paths, function signatures, data structures}\nTESTS: {Failing cases, error messages, outputs}\nCHANGES: {Code edits, variable updates}\nDEPS: {Dependencies, imports, external calls}\nVERSION_CONTROL_STATUS: {Repository state, current branch, PR status, commit history}\n\nPRIORITIZE:\n1. Adapt tracking format to match the actual task type\n2. Capture key user requirements and goals\n3. Distinguish between completed and pending tasks\n4. Keep all sections concise and relevant\n\nSKIP: Tracking irrelevant details for the current task type\n\nExample formats:\n\nFor code tasks:\nUSER_CONTEXT: Fix FITS card float representation issue\nCOMPLETED: Modified mod_float() in card.py, all tests passing\nPENDING: Create PR, update documentation\nCODE_STATE: mod_float() in card.py updated\nTESTS: test_format() passed\nCHANGES: str(val) replaces f\"{val:.16G}\"\nDEPS: None modified\nVERSION_CONTROL_STATUS: Branch: fix-float-precision, Latest commit: a1b2c3d\n\nFor other tasks:\nUSER_CONTEXT: Write 20 haikus based on coin flip results\nCOMPLETED: 15 haikus written for results [T,H,T,H,T,H,T,T,H,T,H,T,H,T,H]\nPENDING: 5 more haikus needed\nCURRENT_STATE: Last flip: Heads, Haiku count: 15/20\n\n\n<EVENT>\nMessageEvent (user)\n  user: User requirements Context extension [Skills: skill-one]\n</EVENT>\n\n<EVENT>\nMessageEvent (agent)\n  assistant: 🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂... [Thinking blocks: 1]\n</EVENT>\n\n<EVENT>\nMessageEvent (agent)\n  assistant: [no text content]\n</EVENT>\n\n<EVENT>\nMessageEvent (user)\n  user: [Image: 1 URLs]\n</EVENT>\n\n<EVENT>\nSystemPromptEvent (agent)\n  System: System xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...\n  Tools: 0 available\n  Dynamic Context: 3 chars\n</EVENT>\n\n<EVENT>\nCondensationSummaryEvent (environment)\n  user: Previous summary ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss...\n</EVENT>\n\n<EVENT>\nActionEvent (agent)\n  Thought: Think tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt...\n  Action: MCPToolAction\n</EVENT>\n\n<EVENT>\nActionEvent (agent)\n  Thought: \n  Action: (not executed)\n  Call: test_tool:call\n</EVENT>\n\n<EVENT>\nObservationEvent (environment)\n  Tool: test_tool\n  Result: Result rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr...\n</EVENT>\n\n<EVENT>\nUserRejectObservation (environment)\n  Tool: test_tool\n  Reason: Rejected eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee...\n</EVENT>\n\n<EVENT>\nAgentErrorEvent (agent)\n  Error: Error eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee...\n</EVENT>\n\n\nNow summarize the events using the rules above.",
+  "truncation": [
+    {
+      "input": "🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef",
+      "limit": 0,
+      "text": "🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef"
+    },
+    {
+      "input": "🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef",
+      "limit": 1,
+      "text": "<"
+    },
+    {
+      "input": "🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef",
+      "limit": 100,
+      "text": "<response clipped><NOTE>Due to the max output limit, only part of the full response has been shown t"
+    },
+    {
+      "input": "🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef",
+      "limit": 130,
+      "text": "🙂abcdef🙂a<response clipped><NOTE>Due to the max output limit, only part of the full response has been shown to you.</NOTE>f🙂abcdef"
+    },
+    {
+      "input": "🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef",
+      "limit": 131,
+      "text": "🙂abcdef🙂a<response clipped><NOTE>Due to the max output limit, only part of the full response has been shown to you.</NOTE>ef🙂abcdef"
+    },
+    {
+      "input": "🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef",
+      "limit": 300,
+      "text": "🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂ab<response clipped><NOTE>Due to the max output limit, only part of the full response has been shown to you.</NOTE>ef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef🙂abcdef"
+    }
+  ]
+}

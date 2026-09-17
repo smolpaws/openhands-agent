@@ -31,6 +31,7 @@ export * from './io/index.js';
 export * from './llm/index.js';
 export * from './llm/auth/index.js';
 export * from './llm/client.js';
+export type { MetadataFetchLike } from './llm/context-budget.js';
 export * from './llm/metrics.js';
 export * from './llm/history.js';
 export * from './llm/exceptions.js';

@@ -180,6 +180,6 @@ function assertAccounting(stats: ConversationStats, responses: readonly Provider
 
 function assertFinish(events: readonly Event[], expected: string): void {
   const finish = events.filter(e => e.kind === 'ActionEvent' && e.tool_name === 'finish').at(-1);
-  assert.ok(finish?.kind === 'ActionEvent');
+  assert.ok(finish?.kind === 'ActionEvent' && finish.action !== null);
   assert.equal(finish.action.message, expected);
 }

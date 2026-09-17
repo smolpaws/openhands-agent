@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { conversationErrorEventSchema, messageEventSchema, type Event } from '../event/index.js';
+import { condensationRequestSchema, conversationErrorEventSchema, messageEventSchema, type Event } from '../event/index.js';
 import { LocalFileStore, type FileStore } from '../io/index.js';
 import { textContent } from '../llm/index.js';
 import type { Agent } from '../agent/index.js';
@@ -25,6 +25,7 @@ export class LocalConversation {
   private activeAgent: Agent;
   private readonly onStepBoundary: AgentStepBoundary | undefined;
   private runInProgress: Promise<void> | null = null;
+  private stepTail: Promise<void> = Promise.resolve();
   private stepUserMessageId: string | null = null;
 
   get agent(): Agent { return this.activeAgent; }
@@ -79,6 +80,25 @@ export class LocalConversation {
     }
   }
 
+  /** Force one condensation step after the currently executing step, without resuming a run. */
+  async condense(): Promise<void> {
+    await this.withStepLock(async () => {
+      if (this.agent.condenser?.handlesCondensationRequests?.() !== true) {
+        throw new Error('Cannot condense conversation: configure a condenser that handles condensation requests.');
+      }
+      await this.state.appendEventAsync(condensationRequestSchema.parse({}));
+      // A maintenance summary does not answer queued user input.
+      await this.agent.step(this.state);
+      this.activeAgent = await applyAgentStepBoundary(this.agent, this.state, this.onStepBoundary);
+    });
+  }
+
+  private withStepLock<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.stepTail.then(operation);
+    this.stepTail = result.then(() => undefined, () => undefined);
+    return result;
+  }
+
   private async runOnce(): Promise<void> {
     if (this.state.executionStatus === conversationExecutionStatus.PAUSED) {
       return;
@@ -92,31 +112,34 @@ export class LocalConversation {
     }
 
     let iteration = 0;
-    if (this.state.executionStatus === conversationExecutionStatus.RUNNING) {
-      this.activeAgent = await applyAgentStepBoundary(this.agent, this.state, this.onStepBoundary);
-    }
+    await this.withStepLock(async () => {
+      if (this.state.executionStatus === conversationExecutionStatus.RUNNING) {
+        this.activeAgent = await applyAgentStepBoundary(this.agent, this.state, this.onStepBoundary);
+      }
+    });
     while (this.state.executionStatus === conversationExecutionStatus.RUNNING) {
-      if (this.stuckDetector !== null && this.checkStuckOrNudge()) {
-        return;
-      }
+      await this.withStepLock(async () => {
+        if (this.state.executionStatus !== conversationExecutionStatus.RUNNING) return;
+        if (this.stuckDetector !== null && this.checkStuckOrNudge()) return;
 
-      this.stepUserMessageId = latestUserMessageId(this.state.events);
-      const emitted = await this.agent.step(this.state);
-      iteration += 1;
+        this.stepUserMessageId = latestUserMessageId(this.state.events);
+        const emitted = await this.agent.step(this.state);
+        iteration += 1;
 
-      if (emitted.some(isSuccessfulFinishObservation)) {
-        this.state.executionStatus = conversationExecutionStatus.FINISHED;
-      } else if (iteration >= this.maxIterations && this.state.executionStatus === conversationExecutionStatus.RUNNING) {
-        this.state.executionStatus = conversationExecutionStatus.ERROR;
-        await this.state.appendEventAsync(
-          conversationErrorEventSchema.parse({
-            source: 'environment',
-            code: 'MaxIterationsReached',
-            detail: `Agent reached maximum iterations limit (${this.maxIterations}).`,
-          }),
-        );
-      }
-      this.activeAgent = await applyAgentStepBoundary(this.agent, this.state, this.onStepBoundary);
+        if (emitted.some(isSuccessfulFinishObservation)) {
+          this.state.executionStatus = conversationExecutionStatus.FINISHED;
+        } else if (iteration >= this.maxIterations && this.state.executionStatus === conversationExecutionStatus.RUNNING) {
+          this.state.executionStatus = conversationExecutionStatus.ERROR;
+          await this.state.appendEventAsync(
+            conversationErrorEventSchema.parse({
+              source: 'environment',
+              code: 'MaxIterationsReached',
+              detail: `Agent reached maximum iterations limit (${this.maxIterations}).`,
+            }),
+          );
+        }
+        this.activeAgent = await applyAgentStepBoundary(this.agent, this.state, this.onStepBoundary);
+      });
     }
   }
 

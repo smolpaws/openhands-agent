@@ -16,8 +16,18 @@ export type FetchLike = (
   init: { readonly method: 'POST'; readonly headers: Readonly<Record<string, string>>; readonly body: string },
 ) => Promise<FetchResponseLike>;
 
+/** Stored SystemPromptEvent tools and executable tool definitions share a count boundary. */
+export type LLMTokenCountTool = ToolDefinition | Readonly<Record<string, unknown>>;
+
 export interface LLMClient {
   readonly profile: LLMProfile;
+  /** Profile override first, then known metadata; null means unknown. No I/O in this getter. */
+  readonly effectiveMaxInputTokens?: number | null;
+  readonly tokenCountAccuracy?: 'estimate' | 'exact';
+  /** Local estimates include system text and tools. Unknown modalities return null, never zero. */
+  getTokenCount?(messages: readonly Message[], tools?: readonly LLMTokenCountTool[]): Promise<number | null>;
+  /** Resolve route metadata before reading the effective limit; failed discovery stays unknown. */
+  resolveRuntimeMetadata?(): Promise<void>;
   complete(messages: readonly Message[], tools?: readonly ToolDefinition[]): Promise<LLMCompletionResponse>;
 }
 
@@ -83,4 +93,24 @@ export function parseLlmResponseWithMetadata(
   } catch (cause) {
     throw new LLMResponseError(metadata, cause);
   }
+}
+
+
+/** Retain available completion metadata on provider failure without an assistant message. */
+export function throwProviderErrorWithMetadata(
+  body: unknown,
+  error: unknown,
+  parseMetadata: (raw: unknown) => LLMResponseMetadata,
+): never {
+  let raw: unknown = body;
+  if (typeof body === 'string') {
+    try { raw = JSON.parse(body) as unknown; } catch { throw error; }
+  }
+  if (typeof raw === 'object' && raw !== null && !Array.isArray(raw) && ('usage' in raw || 'id' in raw || 'model' in raw)) {
+    try { parseLlmResponseWithMetadata(raw, parseMetadata, () => { throw error; }); }
+    catch (failure) {
+      if (failure instanceof LLMResponseError) throw new LLMResponseError(failure.metadata, error);
+    }
+  }
+  throw error;
 }

@@ -1,10 +1,13 @@
+import { LLMContextBudget, type MetadataFetchLike } from './context-budget.js';
+import type { LLMTokenCountTool } from './client.js';
+import { providerResponseError, mapProviderException } from './exceptions.js';
 import { orderCompletedToolResults } from './tool-result-order.js';
 import { z } from 'zod';
 
 import { getLlmApiKey } from '../secrets/index.js';
 import type { SecretStore } from '../secrets/index.js';
 import type { JsonObject, ToolDefinition } from '../tool/index.js';
-import { llmCompletionResponseSchema, llmResponseMetadataSchema, parseLlmResponseWithMetadata, type FetchLike, type LLMClient, type LLMCompletionResponse, type LLMResponseMetadata } from './client.js';
+import { llmCompletionResponseSchema, llmResponseMetadataSchema, parseLlmResponseWithMetadata, throwProviderErrorWithMetadata, type FetchLike, type LLMClient, type LLMCompletionResponse, type LLMResponseMetadata } from './client.js';
 import { contentToString, messageSchema, type Content, type LLMProfile, type Message, type MessageToolCall } from './index.js';
 
 export { llmProfileSchema } from './index.js';
@@ -14,6 +17,7 @@ const DEFAULT_GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1bet
 
 export interface CreateGeminiClientOptions {
   readonly fetch?: FetchLike;
+  readonly metadataFetch?: MetadataFetchLike;
 }
 
 export class GeminiClient implements LLMClient {
@@ -21,22 +25,29 @@ export class GeminiClient implements LLMClient {
   private readonly apiKey: string;
   private readonly fetchImpl: FetchLike;
 
-  constructor(profile: LLMProfile, apiKey: string, fetchImpl: FetchLike = defaultFetch) {
+  constructor(profile: LLMProfile, apiKey: string, fetchImpl: FetchLike = defaultFetch, metadataFetch?: MetadataFetchLike) {
     this.profile = profile;
     this.apiKey = apiKey;
     this.fetchImpl = fetchImpl;
+    this.contextBudget = new LLMContextBudget(profile, { ...(metadataFetch ? { fetch: metadataFetch } : {}), headers: buildHeaders(profile, apiKey) });
   }
+
+  private readonly contextBudget: LLMContextBudget;
+  readonly tokenCountAccuracy = 'estimate' as const;
+  get effectiveMaxInputTokens(): number | null { return this.contextBudget.effectiveMaxInputTokens; }
+  getTokenCount(messages: readonly Message[], tools?: readonly LLMTokenCountTool[]): Promise<number | null> { return this.contextBudget.getTokenCount(messages, tools); }
+  resolveRuntimeMetadata(): Promise<void> { return this.contextBudget.resolveRuntimeMetadata(); }
 
   async complete(messages: readonly Message[], tools?: readonly ToolDefinition[]): Promise<LLMCompletionResponse> {
     const response = await this.fetchImpl(`${resolveBaseUrl(this.profile)}/interactions`, {
       method: 'POST',
       headers: buildHeaders(this.profile, this.apiKey),
       body: JSON.stringify(buildGeminiInteractionsBody(this.profile, messages, tools)),
-    });
+    }).catch(error => { throw mapProviderException(error); });
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`Gemini Interactions completion failed with HTTP ${response.status}: ${text}`);
+      throwProviderErrorWithMetadata(text, providerResponseError('Gemini Interactions', response.status, text), parseGeminiMetadata);
     }
 
     return parseGeminiInteractionResponse(await response.json());
@@ -61,7 +72,7 @@ export async function createGeminiClientFromProfile(
       `Missing API key for Gemini LLM profile '${profile.profileId}'. Set provider key '${profile.providerId}' or enable and set a profile override.`,
     );
   }
-  return new GeminiClient(profile, apiKey, options.fetch ?? defaultFetch);
+  return new GeminiClient(profile, apiKey, options.fetch ?? defaultFetch, options.metadataFetch);
 }
 
 export function buildGeminiInteractionsBody(

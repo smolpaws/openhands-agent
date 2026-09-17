@@ -106,3 +106,48 @@ request view: durable arrival order, message contents and completed side effects
 Only complete batches are reordered; missing results are never invented. See
 [`transpile/interleaved-tool-results.md`](../transpile/interleaved-tool-results.md) for source
 comparison and regression evidence.
+
+
+## Context recovery and input budgets
+
+Provider adapters map native HTTP errors and Responses/subscription stream failures
+onto `LLMContextWindowExceedError` or `LLMMalformedConversationHistoryError` before
+the agent chooses recovery. Context overflow and malformed tool history remain
+distinct. Generic HTTP 400/413, authentication, rate limits, content policy and
+output-token limits are not context-overflow signals. An explicit overflow code
+on a failed or incomplete Responses event is recognized; an incomplete response
+caused by `max_output_tokens` is not. Available usage remains on `LLMResponseError`,
+whose typed cause retains the recovery classification. Error text does not retain
+provider response bodies. The adapters do not retry or condense on their own.
+
+`LLMClient` exposes optional `getTokenCount(messages, tools)`,
+`effectiveMaxInputTokens`, and `resolveRuntimeMetadata()` hooks. Native clients
+count system/user text, names, tool arguments/results and serialized tool definitions
+locally, with `tokenCountAccuracy: 'estimate'`. The BPE and generic chat/tool overhead
+recipe is adapted from the exact LiteLLM dependency in the pinned Python SDK's
+`uv.lock`. It matches the original functions on the checked-in text/tool goldens,
+including Unicode and named messages. It is not billed usage or an exact model chat
+template. Images, redacted thinking and encrypted continuation yield unknown
+(`null`); no image is downloaded for a preflight. Non-OpenAI text uses the generic
+cl100k estimate, including Gemini. Hugging Face/native tokenizers and custom chat
+templates remain outside this counting coverage. See DEV-SDK-010 for these limits.
+
+A profile's explicit `maxInputTokens` wins. Native model limits come from a generated
+input-only subset of that same locked LiteLLM catalog. Unknown models and custom
+routes do not inherit guessed limits; subscription endpoints do not inherit API
+model limits. OpenRouter discovers the minimum supported context across eligible
+catalog endpoints, and LiteLLM proxy discovery matches the public alias or underlying
+model ID. Hosts await metadata resolution before proactive condensation. Discovery
+uses a ten-second bound, an hour of positive caching, five minutes of negative
+caching, and coalesces concurrent probes on the client. Failed discovery stays
+unknown and does not fail the completion. Discovery does not follow redirects and
+never forwards private headers to OpenRouter's public catalog. `metadataFetch` is
+a separate injectable GET transport; ordinary completion `fetch` remains POST-only.
+
+Regenerate both the model limits and original-function token goldens with
+[`generate-python-llm-budget-oracle.py`](../scripts/parity/generate-python-llm-budget-oracle.py).
+It verifies the canonical manifest pin, reads that revision's `uv.lock`, validates
+the supplied LiteLLM sdist hash and installed tiktoken version, then executes the
+original generic counter functions over the fixture inputs. The generated files
+record the pin and source hashes. Provider fixture tests, rather than live model
+calls, prove the classification and budget contracts above.
