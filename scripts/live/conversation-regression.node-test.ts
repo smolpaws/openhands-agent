@@ -1,11 +1,30 @@
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import test from 'node:test';
+import { promisify } from 'node:util';
 import { InMemorySecretStore, llmProfileSchema, llmProviderSecretRef, type FetchLike } from '@smolpaws/openhands-agent';
 import { runConversationRegression } from './conversation-regression.js';
 
 type Format = 'chat' | 'responses' | 'anthropic' | 'gemini';
 type Call = { id: string; name: string; args: Record<string, unknown> };
+
+test('scratch creation failure lets the process exit without waiting for the conversation deadline', { timeout: 10_000 }, async () => {
+  await promisify(execFile)(process.execPath, ['--import', 'tsx', '--input-type=module', '--eval', `
+    import assert from 'node:assert/strict';
+    import { InMemorySecretStore, llmProfileSchema } from '@smolpaws/openhands-agent';
+    import { runConversationRegression } from './scripts/live/conversation-regression.ts';
+    process.env.TMPDIR = process.env.TEST_INVALID_TMPDIR;
+    await assert.rejects(runConversationRegression({
+      profile: llmProfileSchema.parse({ profileId: 'failed-setup', providerId: 'openai', model: 'fixture-model' }),
+      store: new InMemorySecretStore(), timeoutMs: 60_000,
+    }), { code: 'ENOTDIR' });
+  `], {
+    env: { PATH: process.env.PATH, TMPDIR: process.env.TMPDIR, TEST_INVALID_TMPDIR: join(process.cwd(), 'README.md', 'not-a-directory') },
+    timeout: 3_000,
+  });
+});
 
 for (const format of ['chat', 'responses', 'anthropic', 'gemini'] as const) {
   test(`complete regression harness exercises real built-in tools through ${format} transport`, { timeout: 30_000 }, async () => {

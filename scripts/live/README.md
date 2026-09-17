@@ -138,11 +138,12 @@ Use these secret names in the canonical repository's **LLM** environment:
 | OpenCode | `OPENCODE_API_KEY` |
 | OpenRouter | `OPENROUTER_API_KEY` |
 | OpenHands app | `LITELLM_API_KEY_APP` |
-| OpenHands eval | `LITELLM_API_KEY_EVAL` |
+| OpenHands eval | `LITELLM_PROXY_API_KEY` |
 
-The workflow accepts existing secret `LITELLM_PROXY_API_KEY` as an eval-key alias
-when `LITELLM_API_KEY_EVAL` is absent. This is a credential-name compatibility alias,
-not a routing fallback. Model IDs, enabled flags, and scenario settings come from
+Keep one GitHub secret per credential, only in **LLM**. The workflow maps the existing
+eval secret `LITELLM_PROXY_API_KEY` into the runner's `LITELLM_API_KEY_EVAL` variable;
+do not create a duplicate eval secret. Local Keychain accounts retain the names in
+`models.json`. Model IDs, enabled flags, and scenario settings come from
 `models.json`; historical GitHub variables do not override this inventory.
 
 The initial workflow installation must land on `main` before its label trigger is

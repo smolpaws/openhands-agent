@@ -118,8 +118,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           LITELLM_API_KEY_APP: ${{ secrets.LITELLM_API_KEY_APP }}
-          LITELLM_API_KEY_EVAL: ${{ secrets.LITELLM_API_KEY_EVAL || secrets.LITELLM_PROXY_API_KEY }}
-          LITELLM_PROXY_API_KEY: ${{ secrets.LITELLM_PROXY_API_KEY }}
+          LITELLM_API_KEY_EVAL: ${{ secrets.LITELLM_PROXY_API_KEY }}
           LLM_TEST_REVISION: ${{ steps.target.outputs.sha }}
 
       - name: Publish the sanitized result summary

@@ -49,9 +49,9 @@ export interface ConversationRegressionSummary {
 /** One real conversation on an isolated snapshot of this repository; no global cwd or profile edits. */
 export async function runConversationRegression(options: ConversationRegressionOptions): Promise<ConversationRegressionSummary> {
   const controller = new AbortController();
+  const scratch = await mkdtemp(join(tmpdir(), 'openhands-llm-conversation-'));
   const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? 300_000);
   const signal = options.signal === undefined ? controller.signal : AbortSignal.any([controller.signal, options.signal]);
-  const scratch = await mkdtemp(join(tmpdir(), 'openhands-llm-conversation-'));
   let releaseTools = () => {};
   let releasePlainResponse = () => {};
   let activeRun: Promise<void> | undefined;
