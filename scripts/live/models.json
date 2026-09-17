@@ -1,0 +1,997 @@
+{
+  "version": 1,
+  "updated": "2026-09-17",
+  "sources": [
+    "https://enyst.github.io/arch/llm-profiles.html",
+    "https://enyst.github.io/arch/llm-profile-composer-options.html",
+    "https://enyst.github.io/arch/llm-profiles-before-agent-profiles.html",
+    "https://developers.openai.com/api/docs/models",
+    "https://api.anthropic.com/v1/models",
+    "https://api-docs.deepseek.com/updates/",
+    "https://api.deepseek.com/models",
+    "https://ai.google.dev/gemini-api/docs/models",
+    "https://openrouter.ai/api/v1/models",
+    "https://llm-proxy.app.all-hands.dev/v1/models",
+    "https://llm-proxy.eval.all-hands.dev/v1/models",
+    "https://opencode.ai/console/guides/inference"
+  ],
+  "targets": [
+    {
+      "id": "native-opus-5",
+      "label": "Claude Opus 5 / native",
+      "route": "native",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "ANTHROPIC_API_KEY",
+        "keychainAccount": "ANTHROPIC_API_KEY"
+      },
+      "profile": {
+        "providerId": "anthropic",
+        "model": "claude-opus-5",
+        "baseUrl": "https://api.anthropic.com",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://api.anthropic.com/v1/models",
+        "modelId": "claude-opus-5"
+      }
+    },
+    {
+      "id": "openrouter-opus-5",
+      "label": "Claude Opus 5 / openrouter",
+      "route": "openrouter",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "OPENROUTER_API_KEY",
+        "keychainAccount": "OPENROUTER_API_KEY"
+      },
+      "profile": {
+        "providerId": "openrouter",
+        "model": "anthropic/claude-opus-5",
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://openrouter.ai/api/v1/models",
+        "modelId": "anthropic/claude-opus-5"
+      }
+    },
+    {
+      "id": "openhands-app-opus-5",
+      "label": "Claude Opus 5 / openhands-app",
+      "route": "openhands-app",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_APP",
+        "keychainAccount": "LITELLM_API_KEY_APP"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "claude-opus-5",
+        "baseUrl": "https://llm-proxy.app.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.app.all-hands.dev/v1/models",
+        "modelId": "claude-opus-5"
+      }
+    },
+    {
+      "id": "openhands-eval-opus-5",
+      "label": "Claude Opus 5 / openhands-eval",
+      "route": "openhands-eval",
+      "enabled": false,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_EVAL",
+        "keychainAccount": "LITELLM_API_KEY_EVAL"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "anthropic/claude-opus-5",
+        "baseUrl": "https://llm-proxy.eval.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.eval.all-hands.dev/v1/models",
+        "modelId": "anthropic/claude-opus-5"
+      },
+      "reason": "Verified in the eval catalog; disabled because the requested model is available on app. Enable explicitly to compare both proxies."
+    },
+    {
+      "id": "native-fable-5-1",
+      "label": "Claude Fable 5.1 / native",
+      "route": "native",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "ANTHROPIC_API_KEY",
+        "keychainAccount": "ANTHROPIC_API_KEY"
+      },
+      "profile": {
+        "providerId": "anthropic",
+        "model": "claude-fable-5-1",
+        "baseUrl": "https://api.anthropic.com",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://api.anthropic.com/v1/models",
+        "modelId": "claude-fable-5-1"
+      }
+    },
+    {
+      "id": "openrouter-fable-5-1",
+      "label": "Claude Fable 5.1 / openrouter",
+      "route": "openrouter",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "OPENROUTER_API_KEY",
+        "keychainAccount": "OPENROUTER_API_KEY"
+      },
+      "profile": {
+        "providerId": "openrouter",
+        "model": "anthropic/claude-fable-5.1",
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://openrouter.ai/api/v1/models",
+        "modelId": "anthropic/claude-fable-5.1"
+      }
+    },
+    {
+      "id": "openhands-app-fable-5-1",
+      "label": "Claude Fable 5.1 / openhands-app",
+      "route": "openhands-app",
+      "enabled": false,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_APP",
+        "keychainAccount": "LITELLM_API_KEY_APP"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "claude-fable-5-1",
+        "baseUrl": "https://llm-proxy.app.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.app.all-hands.dev/v1/models",
+        "modelId": "claude-fable-5-1"
+      },
+      "reason": "Exact requested model absent from the app catalog checked 2026-09-17; this candidate ID is disabled, not a verified alias."
+    },
+    {
+      "id": "openhands-eval-fable-5-1",
+      "label": "Claude Fable 5.1 / openhands-eval",
+      "route": "openhands-eval",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_EVAL",
+        "keychainAccount": "LITELLM_API_KEY_EVAL"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "anthropic/claude-fable-5-1",
+        "baseUrl": "https://llm-proxy.eval.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.eval.all-hands.dev/v1/models",
+        "modelId": "anthropic/claude-fable-5-1"
+      },
+      "reason": "Explicit eval fallback: the exact requested model is absent from the app catalog checked 2026-09-17."
+    },
+    {
+      "id": "native-gpt-5-6-sol",
+      "label": "GPT-5.6 Sol / native",
+      "route": "native",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "OPENAI_API_KEY",
+        "keychainAccount": "OPENAI_API_KEY"
+      },
+      "profile": {
+        "providerId": "openai",
+        "model": "gpt-5.6-sol",
+        "baseUrl": "https://api.openai.com/v1",
+        "openAiApiMode": "responses",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://developers.openai.com/api/docs/models",
+        "modelId": "gpt-5.6-sol"
+      },
+      "reason": "Exact model documented by OpenAI; local catalog authentication returned 401 on 2026-09-17. Keep enabled so missing or invalid credentials are reported as unavailable."
+    },
+    {
+      "id": "openrouter-gpt-5-6-sol",
+      "label": "GPT-5.6 Sol / openrouter",
+      "route": "openrouter",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "OPENROUTER_API_KEY",
+        "keychainAccount": "OPENROUTER_API_KEY"
+      },
+      "profile": {
+        "providerId": "openrouter",
+        "model": "openai/gpt-5.6-sol",
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "openAiApiMode": "chat_completions",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://openrouter.ai/api/v1/models",
+        "modelId": "openai/gpt-5.6-sol"
+      }
+    },
+    {
+      "id": "openhands-app-gpt-5-6-sol",
+      "label": "GPT-5.6 Sol / openhands-app",
+      "route": "openhands-app",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_APP",
+        "keychainAccount": "LITELLM_API_KEY_APP"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "gpt-5.6-sol",
+        "baseUrl": "https://llm-proxy.app.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.app.all-hands.dev/v1/models",
+        "modelId": "gpt-5.6-sol"
+      }
+    },
+    {
+      "id": "openhands-eval-gpt-5-6-sol",
+      "label": "GPT-5.6 Sol / openhands-eval",
+      "route": "openhands-eval",
+      "enabled": false,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_EVAL",
+        "keychainAccount": "LITELLM_API_KEY_EVAL"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "openai/gpt-5.6-sol",
+        "baseUrl": "https://llm-proxy.eval.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.eval.all-hands.dev/v1/models",
+        "modelId": "openai/gpt-5.6-sol"
+      },
+      "reason": "Verified in the eval catalog; disabled because the requested model is available on app. Enable explicitly to compare both proxies."
+    },
+    {
+      "id": "native-gpt-5-6-luna",
+      "label": "GPT-5.6 Luna / native",
+      "route": "native",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "OPENAI_API_KEY",
+        "keychainAccount": "OPENAI_API_KEY"
+      },
+      "profile": {
+        "providerId": "openai",
+        "model": "gpt-5.6-luna",
+        "baseUrl": "https://api.openai.com/v1",
+        "openAiApiMode": "responses",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://developers.openai.com/api/docs/models",
+        "modelId": "gpt-5.6-luna"
+      },
+      "reason": "Exact model documented by OpenAI; local catalog authentication returned 401 on 2026-09-17. Keep enabled so missing or invalid credentials are reported as unavailable."
+    },
+    {
+      "id": "openrouter-gpt-5-6-luna",
+      "label": "GPT-5.6 Luna / openrouter",
+      "route": "openrouter",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "OPENROUTER_API_KEY",
+        "keychainAccount": "OPENROUTER_API_KEY"
+      },
+      "profile": {
+        "providerId": "openrouter",
+        "model": "openai/gpt-5.6-luna",
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "openAiApiMode": "chat_completions",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://openrouter.ai/api/v1/models",
+        "modelId": "openai/gpt-5.6-luna"
+      }
+    },
+    {
+      "id": "openhands-app-gpt-5-6-luna",
+      "label": "GPT-5.6 Luna / openhands-app",
+      "route": "openhands-app",
+      "enabled": false,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_APP",
+        "keychainAccount": "LITELLM_API_KEY_APP"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "gpt-5.6-luna",
+        "baseUrl": "https://llm-proxy.app.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.app.all-hands.dev/v1/models",
+        "modelId": "gpt-5.6-luna"
+      },
+      "reason": "Exact requested model absent from the app catalog checked 2026-09-17; this candidate ID is disabled, not a verified alias."
+    },
+    {
+      "id": "openhands-eval-gpt-5-6-luna",
+      "label": "GPT-5.6 Luna / openhands-eval",
+      "route": "openhands-eval",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_EVAL",
+        "keychainAccount": "LITELLM_API_KEY_EVAL"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "openai/gpt-5.6-luna",
+        "baseUrl": "https://llm-proxy.eval.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.eval.all-hands.dev/v1/models",
+        "modelId": "openai/gpt-5.6-luna"
+      },
+      "reason": "Explicit eval fallback: the exact requested model is absent from the app catalog checked 2026-09-17."
+    },
+    {
+      "id": "native-gpt-6-astra",
+      "label": "GPT-6 Astra / native",
+      "route": "native",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "OPENAI_API_KEY",
+        "keychainAccount": "OPENAI_API_KEY"
+      },
+      "profile": {
+        "providerId": "openai",
+        "model": "gpt-6-astra",
+        "baseUrl": "https://api.openai.com/v1",
+        "openAiApiMode": "responses",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://developers.openai.com/api/docs/models",
+        "modelId": "gpt-6-astra"
+      },
+      "reason": "Exact model documented by OpenAI; local catalog authentication returned 401 on 2026-09-17. Keep enabled so missing or invalid credentials are reported as unavailable."
+    },
+    {
+      "id": "openrouter-gpt-6-astra",
+      "label": "GPT-6 Astra / openrouter",
+      "route": "openrouter",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "OPENROUTER_API_KEY",
+        "keychainAccount": "OPENROUTER_API_KEY"
+      },
+      "profile": {
+        "providerId": "openrouter",
+        "model": "openai/gpt-6-astra",
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "openAiApiMode": "chat_completions",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://openrouter.ai/api/v1/models",
+        "modelId": "openai/gpt-6-astra"
+      }
+    },
+    {
+      "id": "openhands-app-gpt-6-astra",
+      "label": "GPT-6 Astra / openhands-app",
+      "route": "openhands-app",
+      "enabled": false,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_APP",
+        "keychainAccount": "LITELLM_API_KEY_APP"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "gpt-6-astra",
+        "baseUrl": "https://llm-proxy.app.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.app.all-hands.dev/v1/models",
+        "modelId": "gpt-6-astra"
+      },
+      "reason": "Exact requested model absent from the app catalog checked 2026-09-17; this candidate ID is disabled, not a verified alias."
+    },
+    {
+      "id": "openhands-eval-gpt-6-astra",
+      "label": "GPT-6 Astra / openhands-eval",
+      "route": "openhands-eval",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_EVAL",
+        "keychainAccount": "LITELLM_API_KEY_EVAL"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "openai/gpt-6-astra",
+        "baseUrl": "https://llm-proxy.eval.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.eval.all-hands.dev/v1/models",
+        "modelId": "openai/gpt-6-astra"
+      },
+      "reason": "Explicit eval fallback: the exact requested model is absent from the app catalog checked 2026-09-17."
+    },
+    {
+      "id": "native-deepseek-v4-pro",
+      "label": "DeepSeek V4 Pro / native",
+      "route": "native",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "DEEPSEEK_API_KEY",
+        "keychainAccount": "DEEPSEEK_API_KEY"
+      },
+      "profile": {
+        "providerId": "deepseek",
+        "model": "deepseek-v4-pro",
+        "baseUrl": "https://api.deepseek.com",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://api.deepseek.com/models",
+        "modelId": "deepseek-v4-pro"
+      }
+    },
+    {
+      "id": "openrouter-deepseek-v4-pro",
+      "label": "DeepSeek V4 Pro / openrouter",
+      "route": "openrouter",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "OPENROUTER_API_KEY",
+        "keychainAccount": "OPENROUTER_API_KEY"
+      },
+      "profile": {
+        "providerId": "openrouter",
+        "model": "deepseek/deepseek-v4-pro",
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://openrouter.ai/api/v1/models",
+        "modelId": "deepseek/deepseek-v4-pro"
+      }
+    },
+    {
+      "id": "openhands-app-deepseek-v4-pro",
+      "label": "DeepSeek V4 Pro / openhands-app",
+      "route": "openhands-app",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_APP",
+        "keychainAccount": "LITELLM_API_KEY_APP"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "deepseek-v4-pro",
+        "baseUrl": "https://llm-proxy.app.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.app.all-hands.dev/v1/models",
+        "modelId": "deepseek-v4-pro"
+      }
+    },
+    {
+      "id": "openhands-eval-deepseek-v4-pro",
+      "label": "DeepSeek V4 Pro / openhands-eval",
+      "route": "openhands-eval",
+      "enabled": false,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_EVAL",
+        "keychainAccount": "LITELLM_API_KEY_EVAL"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "deepseek-v4-pro",
+        "baseUrl": "https://llm-proxy.eval.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.eval.all-hands.dev/v1/models",
+        "modelId": "deepseek-v4-pro"
+      },
+      "reason": "Verified in the eval catalog; disabled because the requested model is available on app. Enable explicitly to compare both proxies."
+    },
+    {
+      "id": "native-deepseek-v4-1-flash",
+      "label": "DeepSeek V4.1 Flash / native",
+      "route": "native",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "DEEPSEEK_API_KEY",
+        "keychainAccount": "DEEPSEEK_API_KEY"
+      },
+      "profile": {
+        "providerId": "deepseek",
+        "model": "deepseek-flash",
+        "baseUrl": "https://api.deepseek.com",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://api.deepseek.com/models",
+        "modelId": "deepseek-flash"
+      }
+    },
+    {
+      "id": "openrouter-deepseek-v4-1-flash",
+      "label": "DeepSeek V4.1 Flash / openrouter",
+      "route": "openrouter",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "OPENROUTER_API_KEY",
+        "keychainAccount": "OPENROUTER_API_KEY"
+      },
+      "profile": {
+        "providerId": "openrouter",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://openrouter.ai/api/v1/models",
+        "modelId": "deepseek/deepseek-v4.1-flash"
+      }
+    },
+    {
+      "id": "openhands-app-deepseek-v4-1-flash",
+      "label": "DeepSeek V4.1 Flash / openhands-app",
+      "route": "openhands-app",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_APP",
+        "keychainAccount": "LITELLM_API_KEY_APP"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "deepseek-v4.1-flash",
+        "baseUrl": "https://llm-proxy.app.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.app.all-hands.dev/v1/models",
+        "modelId": "deepseek-v4.1-flash"
+      }
+    },
+    {
+      "id": "openhands-eval-deepseek-v4-1-flash",
+      "label": "DeepSeek V4.1 Flash / openhands-eval",
+      "route": "openhands-eval",
+      "enabled": false,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_EVAL",
+        "keychainAccount": "LITELLM_API_KEY_EVAL"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "deepseek-flash",
+        "baseUrl": "https://llm-proxy.eval.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.eval.all-hands.dev/v1/models",
+        "modelId": "deepseek-flash"
+      },
+      "reason": "No explicit V4.1 Flash or deepseek-flash entry in the eval catalog checked 2026-09-17. Older deepseek-v4-flash aliases do not verify V4.1 coverage. The exact app route is enabled."
+    },
+    {
+      "id": "native-gemini-3-8-flash",
+      "label": "Gemini 3.8 Flash / native",
+      "route": "native",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "GEMINI_API_KEY",
+        "keychainAccount": "GEMINI_API_KEY"
+      },
+      "profile": {
+        "providerId": "gemini",
+        "model": "gemini-3.8-flash",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "openAiApiMode": "chat_completions",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "modelId": "models/gemini-3.8-flash"
+      }
+    },
+    {
+      "id": "openrouter-gemini-3-8-flash",
+      "label": "Gemini 3.8 Flash / openrouter",
+      "route": "openrouter",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "OPENROUTER_API_KEY",
+        "keychainAccount": "OPENROUTER_API_KEY"
+      },
+      "profile": {
+        "providerId": "openrouter",
+        "model": "google/gemini-3.8-flash",
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "openAiApiMode": "chat_completions",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://openrouter.ai/api/v1/models",
+        "modelId": "google/gemini-3.8-flash"
+      }
+    },
+    {
+      "id": "openhands-app-gemini-3-8-flash",
+      "label": "Gemini 3.8 Flash / openhands-app",
+      "route": "openhands-app",
+      "enabled": false,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_APP",
+        "keychainAccount": "LITELLM_API_KEY_APP"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "gemini-3.8-flash",
+        "baseUrl": "https://llm-proxy.app.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.app.all-hands.dev/v1/models",
+        "modelId": "gemini-3.8-flash"
+      },
+      "reason": "Exact requested model absent from the app catalog checked 2026-09-17; this candidate ID is disabled, not a verified alias."
+    },
+    {
+      "id": "openhands-eval-gemini-3-8-flash",
+      "label": "Gemini 3.8 Flash / openhands-eval",
+      "route": "openhands-eval",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_EVAL",
+        "keychainAccount": "LITELLM_API_KEY_EVAL"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "vertex_ai/gemini-3.8-flash",
+        "baseUrl": "https://llm-proxy.eval.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.eval.all-hands.dev/v1/models",
+        "modelId": "vertex_ai/gemini-3.8-flash"
+      },
+      "reason": "Explicit eval fallback: the exact requested model is absent from the app catalog checked 2026-09-17."
+    },
+    {
+      "id": "native-big-pickle",
+      "label": "OpenCode Big Pickle / native",
+      "route": "native",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "OPENCODE_API_KEY",
+        "keychainAccount": "OPENCODE_API_KEY"
+      },
+      "profile": {
+        "providerId": "opencode",
+        "model": "big-pickle",
+        "baseUrl": "https://opencode.ai/inference/openai/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://opencode.ai/console/guides/inference",
+        "modelId": "big-pickle"
+      },
+      "reason": "Big Pickle remains in current OpenCode inference documentation. Its catalog returned 403 on 2026-09-17; the documented inference endpoint is used, with explicit credentials for SDK compatibility."
+    },
+    {
+      "id": "openrouter-big-pickle",
+      "label": "OpenCode Big Pickle / openrouter",
+      "route": "openrouter",
+      "enabled": false,
+      "scenario": "conversation",
+      "credential": {
+        "env": "OPENROUTER_API_KEY",
+        "keychainAccount": "OPENROUTER_API_KEY"
+      },
+      "profile": {
+        "providerId": "openrouter",
+        "model": "opencode/big-pickle",
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://openrouter.ai/api/v1/models",
+        "modelId": "opencode/big-pickle"
+      },
+      "reason": "Exact requested model absent from the OpenRouter catalog checked 2026-09-17; this candidate ID is disabled, not a verified alias."
+    },
+    {
+      "id": "openhands-app-big-pickle",
+      "label": "OpenCode Big Pickle / openhands-app",
+      "route": "openhands-app",
+      "enabled": false,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_APP",
+        "keychainAccount": "LITELLM_API_KEY_APP"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "big-pickle",
+        "baseUrl": "https://llm-proxy.app.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.app.all-hands.dev/v1/models",
+        "modelId": "big-pickle"
+      },
+      "reason": "Exact requested model absent from the app catalog checked 2026-09-17; this candidate ID is disabled, not a verified alias."
+    },
+    {
+      "id": "openhands-eval-big-pickle",
+      "label": "OpenCode Big Pickle / openhands-eval",
+      "route": "openhands-eval",
+      "enabled": false,
+      "scenario": "conversation",
+      "credential": {
+        "env": "LITELLM_API_KEY_EVAL",
+        "keychainAccount": "LITELLM_API_KEY_EVAL"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "opencode/big-pickle",
+        "baseUrl": "https://llm-proxy.eval.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://llm-proxy.eval.all-hands.dev/v1/models",
+        "modelId": "opencode/big-pickle"
+      },
+      "reason": "Exact requested model absent from the eval catalog checked 2026-09-17; this candidate ID is disabled, not a verified alias."
+    },
+    {
+      "id": "regression-deepseek-accounting",
+      "label": "DeepSeek overlap, restored history and exact metrics",
+      "route": "native",
+      "enabled": true,
+      "scenario": "deepseek-accounting",
+      "credential": {
+        "env": "DEEPSEEK_API_KEY",
+        "keychainAccount": "DEEPSEEK_API_KEY"
+      },
+      "profile": {
+        "providerId": "deepseek",
+        "model": "deepseek-flash",
+        "baseUrl": "https://api.deepseek.com",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      }
+    },
+    {
+      "id": "regression-anthropic-cache",
+      "label": "Haiku one-hour cache writes, hits and restored metrics via eval",
+      "route": "openhands-eval",
+      "enabled": true,
+      "scenario": "anthropic-cache",
+      "credential": {
+        "env": "LITELLM_API_KEY_EVAL",
+        "keychainAccount": "LITELLM_API_KEY_EVAL"
+      },
+      "profile": {
+        "providerId": "litellm_proxy",
+        "model": "anthropic/claude-haiku-4-5-20251001",
+        "baseUrl": "https://llm-proxy.eval.all-hands.dev/v1",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096,
+        "anthropicCacheTtl": "1h"
+      }
+    },
+    {
+      "id": "regression-responses-reasoning",
+      "label": "OpenAI Responses reasoning replay",
+      "route": "native",
+      "enabled": true,
+      "scenario": "responses-reasoning",
+      "credential": {
+        "env": "OPENAI_API_KEY",
+        "keychainAccount": "OPENAI_API_KEY"
+      },
+      "profile": {
+        "providerId": "openai",
+        "model": "gpt-5.6-sol",
+        "baseUrl": "https://api.openai.com/v1",
+        "openAiApiMode": "responses",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      }
+    },
+    {
+      "id": "example-native-openai-tools",
+      "label": "OpenAI native file tools",
+      "route": "native",
+      "enabled": true,
+      "scenario": "native-openai-tools",
+      "credential": {
+        "env": "OPENAI_API_KEY",
+        "keychainAccount": "OPENAI_API_KEY"
+      },
+      "profile": {
+        "providerId": "openai",
+        "model": "gpt-5.6-sol",
+        "baseUrl": "https://api.openai.com/v1",
+        "openAiApiMode": "responses",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      }
+    },
+    {
+      "id": "example-native-gemini-tools",
+      "label": "Gemini native signed-thought tool continuation",
+      "route": "native",
+      "enabled": true,
+      "scenario": "native-gemini-tools",
+      "credential": {
+        "env": "GEMINI_API_KEY",
+        "keychainAccount": "GEMINI_API_KEY"
+      },
+      "profile": {
+        "providerId": "gemini",
+        "model": "gemini-3.8-flash",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "openAiApiMode": "chat_completions",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      }
+    },
+    {
+      "id": "examples-native-opus-5",
+      "label": "All applicable runnable examples: native-opus-5",
+      "route": "native",
+      "enabled": true,
+      "scenario": "examples",
+      "credential": {
+        "env": "ANTHROPIC_API_KEY",
+        "keychainAccount": "ANTHROPIC_API_KEY"
+      },
+      "profile": {
+        "providerId": "anthropic",
+        "model": "claude-opus-5",
+        "baseUrl": "https://api.anthropic.com",
+        "openAiApiMode": "chat_completions",
+        "maxOutputTokens": 4096
+      }
+    },
+    {
+      "id": "examples-native-gpt-5-6-sol",
+      "label": "All applicable runnable examples: native-gpt-5-6-sol",
+      "route": "native",
+      "enabled": true,
+      "scenario": "examples",
+      "credential": {
+        "env": "OPENAI_API_KEY",
+        "keychainAccount": "OPENAI_API_KEY"
+      },
+      "profile": {
+        "providerId": "openai",
+        "model": "gpt-5.6-sol",
+        "baseUrl": "https://api.openai.com/v1",
+        "openAiApiMode": "responses",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      }
+    },
+    {
+      "id": "examples-native-gemini-3-8-flash",
+      "label": "All applicable runnable examples: native-gemini-3-8-flash",
+      "route": "native",
+      "enabled": true,
+      "scenario": "examples",
+      "credential": {
+        "env": "GEMINI_API_KEY",
+        "keychainAccount": "GEMINI_API_KEY"
+      },
+      "profile": {
+        "providerId": "gemini",
+        "model": "gemini-3.8-flash",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "openAiApiMode": "chat_completions",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      }
+    }
+  ]
+}

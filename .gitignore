@@ -29,3 +29,6 @@ logs/
 .beads/*.db-wal
 .beads/*.sock
 .beads/daemon-*.log*
+
+# Sanitized live regression reports
+artifacts/llm/

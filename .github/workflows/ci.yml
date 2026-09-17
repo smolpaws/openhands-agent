@@ -46,3 +46,6 @@ jobs:
 
       - name: Type-check live scripts
         run: npm run typecheck:live
+
+      - name: Test the live harness without provider calls
+        run: npm run test:live-harness

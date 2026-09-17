@@ -2,56 +2,138 @@ name: Live LLM
 
 on:
   workflow_dispatch:
+  pull_request_target:
+    types: [labeled]
 
 permissions:
   contents: read
 
 concurrency:
-  group: live-llm
+  group: live-llm-${{ github.event.pull_request.number || 'main' }}
   cancel-in-progress: false
 
 jobs:
-  deepseek:
-    name: DeepSeek v4 Flash
-    if: github.repository == 'smolpaws/openhands-agent' && github.ref == 'refs/heads/main'
+  regressions:
+    name: Conversations, provider regressions, and examples
+    if: >-
+      github.repository == 'smolpaws/openhands-agent' &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+       (github.event_name == 'pull_request_target' && github.event.label.name == 'llm-tests'))
     runs-on: ubuntu-latest
     environment: LLM
-    timeout-minutes: 6
+    timeout-minutes: 180
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: '22'
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npm run typecheck:live
-      - name: Run real-provider regression
-        run: npx tsx --test scripts/live/deepseek-flash.ts
+      # This inline gate belongs to the trusted base workflow. Do not move it into
+      # the PR checkout: applying llm-tests grants this exact revision LLM keys.
+      - name: Authorize and capture the exact revision
+        id: target
         env:
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          DEEPSEEK_MODEL: ${{ vars.DEEPSEEK_MODEL || 'deepseek-v4-flash' }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFile, readFile } from 'node:fs/promises';
+          import assert from 'node:assert/strict';
+          const env = process.env;
+          const event = JSON.parse(await readFile(env.GITHUB_EVENT_PATH, 'utf8'));
+          const repo = env.GITHUB_REPOSITORY;
+          const api = async path => {
+            const response = await fetch(`https://api.github.com/repos/${repo}/${path}`, {
+              headers: { Authorization: `Bearer ${env.GH_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+            });
+            assert(response.ok, `GitHub authorization lookup returned HTTP ${response.status}`);
+            return response.json();
+          };
+          for (const actor of new Set([env.GITHUB_ACTOR, env.GITHUB_TRIGGERING_ACTOR].filter(Boolean))) {
+            const access = await api(`collaborators/${encodeURIComponent(actor)}/permission`);
+            assert(['admin', 'maintain', 'write'].includes(access.permission), 'Running billable LLM tests requires repository write permission');
+          }
+          let sha;
+          let description;
+          if (env.GITHUB_EVENT_NAME === 'pull_request_target') {
+            assert(event.action === 'labeled' && event.label?.name === 'llm-tests', 'Expected the explicit llm-tests label action');
+            const pr = event.pull_request;
+            assert(pr.base.repo.full_name === repo && pr.base.ref === 'main', 'Only PRs into canonical main are eligible');
+            assert(pr.head.repo?.full_name === repo, 'Fork PR code cannot receive LLM credentials; use a reviewed same-repository branch');
+            const current = await api(`pulls/${pr.number}`);
+            assert(current.state === 'open', 'The labeled pull request must still be open');
+            assert(current.head.repo?.full_name === repo && current.head.sha === pr.head.sha, 'PR head changed since labeling; review the new revision and reapply llm-tests');
+            assert(current.base.ref === 'main' && current.base.repo.full_name === repo, 'PR base changed since labeling');
+            assert(current.labels.some(label => label.name === 'llm-tests'), 'The llm-tests authorization label was removed');
+            sha = pr.head.sha;
+            description = `PR #${pr.number}; exact head captured when llm-tests was applied`;
+          } else {
+            assert(env.GITHUB_EVENT_NAME === 'workflow_dispatch' && env.GITHUB_REF === 'refs/heads/main', 'Dispatch this workflow from main');
+            sha = env.GITHUB_SHA;
+            description = 'main; exact revision captured by workflow_dispatch';
+          }
+          assert(/^[0-9a-f]{40}$/.test(sha), 'Expected a complete Git commit ID');
+          await appendFile(env.GITHUB_OUTPUT, `sha=${sha}\n`);
+          await appendFile(env.GITHUB_STEP_SUMMARY, `## Live LLM revision\n\n${description}.\n\nTested commit: [\`${sha}\`](https://github.com/${repo}/commit/${sha}).\n\nEnabled targets without usable credentials are unavailable and fail the suite; they are never counted as passing.\n`);
+          NODE
 
-  anthropic-cache:
-    name: Haiku prompt caching through eval proxy
-    if: github.repository == 'smolpaws/openhands-agent' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: LLM
-    timeout-minutes: 6
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Checkout the authorized revision
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ steps.target.outputs.sha }}
+          persist-credentials: false
+
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: '22'
           cache: npm
+
       - run: npm ci
       - run: npm run build
       - run: npm run typecheck:live
-      - name: Prove cache writes, hits, and restored usage
-        run: npx tsx --test scripts/live/anthropic-cache-smoke.ts
+      - run: npm run typecheck:examples
+
+      - name: Recheck PR authorization before using LLM credentials
+        if: github.event_name == 'pull_request_target'
         env:
+          GH_TOKEN: ${{ github.token }}
+          AUTHORIZED_SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          import assert from 'node:assert/strict';
+          const env = process.env;
+          const event = JSON.parse(await readFile(env.GITHUB_EVENT_PATH, 'utf8'));
+          const response = await fetch(`https://api.github.com/repos/${env.GITHUB_REPOSITORY}/pulls/${event.pull_request.number}`, {
+            headers: { Authorization: `Bearer ${env.GH_TOKEN}`, Accept: 'application/vnd.github+json' },
+          });
+          assert(response.ok, `GitHub PR recheck returned HTTP ${response.status}`);
+          const pr = await response.json();
+          assert(pr.state === 'open' && pr.head.repo?.full_name === env.GITHUB_REPOSITORY && pr.head.sha === env.AUTHORIZED_SHA,
+            'PR changed during setup; review the new revision and reapply llm-tests');
+          assert(pr.base.ref === 'main' && pr.labels.some(label => label.name === 'llm-tests'), 'PR authorization changed during setup');
+          NODE
+
+      - name: Run all enabled real LLM tests
+        run: node --import tsx scripts/live/run.ts --all
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          LITELLM_API_KEY_APP: ${{ secrets.LITELLM_API_KEY_APP }}
+          LITELLM_API_KEY_EVAL: ${{ secrets.LITELLM_API_KEY_EVAL || secrets.LITELLM_PROXY_API_KEY }}
           LITELLM_PROXY_API_KEY: ${{ secrets.LITELLM_PROXY_API_KEY }}
-          LLM_PROVIDER_ID: litellm_proxy
-          LLM_MODEL: ${{ vars.ANTHROPIC_CACHE_MODEL || 'anthropic/claude-haiku-4-5-20251001' }}
-          ANTHROPIC_CACHE_TTL: ${{ vars.ANTHROPIC_CACHE_TTL || '1h' }}
-          LLM_BASE_URL: https://llm-proxy.eval.all-hands.dev/v1
+          LLM_TEST_REVISION: ${{ steps.target.outputs.sha }}
+
+      - name: Publish the sanitized result summary
+        if: always() && steps.target.outputs.sha != ''
+        run: |
+          if [ -f artifacts/llm/summary.md ]; then
+            cat artifacts/llm/summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload sanitized LLM results
+        if: always() && steps.target.outputs.sha != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: llm-results-${{ steps.target.outputs.sha }}-${{ github.run_attempt }}
+          path: artifacts/llm/
+          if-no-files-found: warn
+          retention-days: 14

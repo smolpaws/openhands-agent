@@ -1,0 +1,122 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import test from 'node:test';
+import { InMemorySecretStore, llmProfileSchema, llmProviderSecretRef, type FetchLike } from '@smolpaws/openhands-agent';
+import { runConversationRegression } from './conversation-regression.js';
+
+type Format = 'chat' | 'responses' | 'anthropic' | 'gemini';
+type Call = { id: string; name: string; args: Record<string, unknown> };
+
+for (const format of ['chat', 'responses', 'anthropic', 'gemini'] as const) {
+  test(`complete regression harness exercises real built-in tools through ${format} transport`, { timeout: 30_000 }, async () => {
+    const before = await readFile('README.md', 'utf8');
+    const { profile, store } = configuration(format);
+    const result = await runConversationRegression({ profile, store, fetch: scenario(format), timeoutMs: 20_000 });
+    assert.equal(result.requests, 9);
+    assert.equal(result.recordedCompletions, 9);
+    assert.equal(result.parallelToolExecutions, 2);
+    assert.equal(result.wireRequestsChecked, 4);
+    assert.equal(result.plainResponseWireRequestsChecked, 2);
+    assert.equal(result.checks.length, 9);
+    assert.deepEqual(result.returnedModels, ['fixture-model']);
+    assert.equal(await readFile('README.md', 'utf8'), before, 'the real checkout README must be untouched');
+  });
+}
+
+test('an ordinary assistant answer cannot masquerade as finish', { timeout: 30_000 }, async () => {
+  const { profile, store } = configuration('chat');
+  await assert.rejects(runConversationRegression({ profile, store, fetch: scenario('chat', 'plain-finish'), timeoutMs: 20_000 }), /finish tool action is required/);
+});
+
+test('partial README reads report the hand-authored invariant and safe phase', { timeout: 30_000 }, async () => {
+  const { profile, store } = configuration('chat');
+  await assert.rejects(runConversationRegression({ profile, store, fetch: scenario('chat', 'partial-read'), timeoutMs: 20_000 }), error => {
+    assert.ok(error instanceof Error);
+    assert.equal(error.message, 'the read phase must read the complete README');
+    assert.equal((error as Error & { regressionPhase: string }).regressionPhase, 'read');
+    return true;
+  });
+});
+
+test('one directory call fails promptly instead of pretending the parallel race was tested', { timeout: 30_000 }, async () => {
+  const { profile, store } = configuration('chat');
+  await assert.rejects(runConversationRegression({ profile, store, fetch: scenario('chat', 'single-tool'), timeoutMs: 20_000 }), /exactly two terminal calls/);
+});
+
+test('the complete Responses harness rejects tool identities corrupted by native wire normalization', { timeout: 30_000 }, async () => {
+  const { profile, store } = configuration('responses');
+  await assert.rejects(runConversationRegression({ profile, store, fetch: scenario('responses', 'wire-collision'), timeoutMs: 20_000 }), /exactly one matching wire result/);
+});
+
+test('provider error bodies and supplied transport deadlines are bounded without disclosure', { timeout: 30_000 }, async () => {
+  const { profile, store } = configuration('chat');
+  const response = new Response('sensitive provider body', { status: 401 });
+  await assert.rejects(runConversationRegression({ profile, store, fetch: async () => response, timeoutMs: 20_000 }), error => {
+    assert.ok(error instanceof Error);
+    assert.equal(error.message, 'Live conversation provider returned HTTP 401');
+    return true;
+  });
+  await assert.rejects(runConversationRegression({ profile, store, fetch: async () => new Promise(() => {}), timeoutMs: 500 }), /deadline|aborted/);
+});
+
+function configuration(format: Format) {
+  const providerId = format === 'chat' || format === 'responses' ? 'openai' : format;
+  const profile = llmProfileSchema.parse({ profileId: `fixture-${format}`, providerId, model: 'fixture-model', openAiApiMode: format === 'responses' ? 'responses' : 'chat_completions' });
+  return { profile, store: new InMemorySecretStore([[llmProviderSecretRef(providerId), 'synthetic-not-a-real-key']]) };
+}
+
+function scenario(format: Format, mode?: 'plain-finish' | 'single-tool' | 'wire-collision' | 'partial-read'): FetchLike {
+  let step = 0;
+  let readme = '';
+  return async (_url, init) => {
+    step += 1;
+    if (step === 1) {
+      const request = JSON.parse(init.body) as Record<string, unknown>;
+      const text = requestText(request);
+      readme = /README path: ([^\n]+)/u.exec(text)?.[1] ?? '';
+      assert.ok(readme.endsWith('/README.md'), 'fixture discovers the actual isolated README path from the real request');
+    }
+    const call = (name: string, args: Record<string, unknown>, suffix = ''): Call => ({ id: `call_${step}${suffix}`, name, args });
+    const finish = (message: string) => [call('finish', { message })];
+    const calls = step === 1 ? [call('file_editor', { command: 'view', path: readme, view_range: mode === 'partial-read' ? [2, 10] : [1, -1] })]
+      : step === 2 ? (mode === 'plain-finish' ? [] : finish('README-READ'))
+      : step === 3 ? [call('file_editor', { command: 'str_replace', path: readme, old_str: 'Idiomatic', new_str: 'Straightforward' })]
+      : step === 4 ? finish('README-EDITED')
+      : step === 5 ? [call('terminal', { command: 'ls -1 src' }, '_a'), ...(mode === 'single-tool' ? [] : [call('terminal', { command: 'ls -1 examples' }, '_b')])]
+      : step === 6 ? finish('Directories inspected.')
+      : step === 7 ? []
+      : step === 8 ? finish('INFLIGHT-FINISHED')
+      : finish('README-RESTORED');
+    // Distinct durable IDs collapse to the same Responses wire ID, so only the
+    // final POST oracle can detect this; transcript-only assertions would pass.
+    if (step === 5 && mode === 'wire-collision') {
+      calls[0]!.id = 'foreign+one';
+      calls[1]!.id = 'foreign?one';
+    }
+    assert.ok(step <= 9, 'fixture completion budget exceeded');
+    return new Response(JSON.stringify(providerResponse(format, calls, step === 7 ? 'PLAIN-REPLY' : undefined)), { headers: { 'content-type': 'application/json' } });
+  };
+}
+
+function providerResponse(format: Format, calls: Call[], text = 'Inspecting the requested files.'): Record<string, unknown> {
+  // Response IDs are deliberately reused. A real multi-tool thought must survive reconstruction once.
+  const base = { id: 'reused-provider-response', model: 'fixture-model' };
+  if (format === 'chat') return { ...base, usage: { prompt_tokens: 100, completion_tokens: 20, total_tokens: 120 },
+    choices: [{ message: { role: 'assistant', content: text, reasoning_content: 'Preserve batch reasoning once.', tool_calls: calls.map(call => ({ id: call.id, type: 'function', function: { name: call.name, arguments: JSON.stringify(call.args) } })) } }] };
+  if (format === 'responses') return { ...base, usage: { input_tokens: 100, output_tokens: 20, total_tokens: 120 },
+    output: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text }] },
+      ...calls.map(call => ({ type: 'function_call', id: `item_${call.id}`, call_id: call.id, name: call.name, arguments: JSON.stringify(call.args) }))] };
+  if (format === 'anthropic') return { ...base, role: 'assistant', usage: { input_tokens: 100, output_tokens: 20 },
+    content: [{ type: 'thinking', thinking: 'Preserve signed thought once.', signature: 'fixture-signature' }, { type: 'text', text },
+      ...calls.map(call => ({ type: 'tool_use', id: call.id, name: call.name, input: call.args }))] };
+  return { ...base, usage: { total_input_tokens: 100, total_output_tokens: 15, total_thought_tokens: 5, total_tokens: 120 },
+    steps: [{ type: 'thought', summary: [{ type: 'text', text: 'Preserve signed thought once.' }], signature: 'fixture-signature' }, { type: 'model_output', content: [{ type: 'text', text }] },
+      ...calls.map(call => ({ type: 'function_call', id: call.id, name: call.name, arguments: call.args }))] };
+}
+
+function requestText(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return value.map(requestText).join('\n');
+  if (typeof value === 'object' && value !== null) return Object.values(value).map(requestText).join('\n');
+  return '';
+}
