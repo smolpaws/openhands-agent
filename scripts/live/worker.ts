@@ -58,7 +58,7 @@ async function runExisting(target: LiveTarget, key: string): Promise<unknown> {
     DEEPSEEK_MODEL: target.profile.model, OPENAI_RESPONSES_MODEL: target.profile.model,
     OPENAI_RESPONSES_MAX_OUTPUT_TOKENS: String(target.profile.maxOutputTokens ?? 4096),
     OPENAI_TOOL_MODEL: target.profile.model, GEMINI_TOOL_MODEL: target.profile.model,
-    ANTHROPIC_CACHE_TTL: target.profile.anthropicCacheTtl ?? '1h',
+    ...(target.profile.anthropicCacheTtl === undefined ? {} : { ANTHROPIC_CACHE_TTL: target.profile.anthropicCacheTtl }),
   };
   const completed: string[] = [];
   const run = async (file: string, args: string[] = []) => {

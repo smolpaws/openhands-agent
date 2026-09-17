@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import test from 'node:test';
 import { llmProfileSchema } from '@smolpaws/openhands-agent';
 import { buildExampleLlmProfile } from '../../examples/_shared/exampleProfile.js';
@@ -58,6 +59,69 @@ test('actual legacy constructors send the selected API mode, reasoning, and toke
       });
       assert.equal(code, 1, `${file} must stop at the mocked request`);
       assert.deepEqual(messages, [{ path, model: profile.model, maxOutputTokens: profile.maxOutputTokens, reasoningEffort: profile.reasoningEffort }], file);
+    }
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('the actual cache worker preserves an omitted TTL and an explicit one-hour TTL', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'legacy-cache-ttl-'));
+  try {
+    const mock = join(dir, 'cache-fetch.mjs');
+    await writeFile(mock, `import assert from 'node:assert/strict';
+      import { llmProfileSchema } from ${JSON.stringify(pathToFileURL(join(process.cwd(), 'dist/index.mjs')).href)};
+      let calls = 0;
+      globalThis.fetch = async (_url, init) => {
+        const selected = JSON.parse(process.env.LLM_TEST_PROFILE);
+        const explicit = Object.hasOwn(selected, 'anthropicCacheTtl');
+        assert.equal(Object.hasOwn(process.env, 'ANTHROPIC_CACHE_TTL'), explicit, 'worker must not invent a TTL environment override');
+        assert.equal(Object.hasOwn(llmProfileSchema.parse(selected), 'anthropicCacheTtl'), explicit, 'normalized profile must preserve TTL omission');
+        const markers = [];
+        const inspect = value => { if (value && typeof value === 'object') for (const [key, child] of Object.entries(value)) { if (key === 'cache_control') markers.push(child); else inspect(child); } };
+        inspect(JSON.parse(init.body));
+        assert.ok(markers.length > 0);
+        for (const marker of markers) assert.deepEqual(marker, explicit ? { type: 'ephemeral', ttl: '1h' } : { type: 'ephemeral' });
+        const index = calls++;
+        assert.ok(index < 3);
+        const writes = index === 0 ? 4096 : 0;
+        return new Response(JSON.stringify({ id: 'cache-response-' + index, model: selected.model,
+          choices: [{ index: 0, finish_reason: 'tool_calls', message: { role: 'assistant', content: null,
+            tool_calls: [{ id: 'cache-finish-' + index, type: 'function', function: { name: 'finish', arguments: JSON.stringify({ message: ['CACHE-FIRST-OK', 'CACHE-SECOND-OK', 'CACHE-RESTORED-OK'][index] }) } }] } }],
+          usage: { prompt_tokens: 5000, completion_tokens: 10, total_tokens: 5010, prompt_tokens_details: {
+            cached_tokens: index === 0 ? 0 : 4096, cache_creation_tokens: writes,
+            cache_creation_token_details: { ephemeral_1h_input_tokens: explicit ? writes : 0 } } } }), { status: 200 });
+      };`);
+    const preload = join(dir, 'worker-preload.mjs');
+    await writeFile(preload, `import fs from 'node:fs/promises';
+      import childProcess from 'node:child_process';
+      import { syncBuiltinESMExports } from 'node:module';
+      const read = fs.readFile;
+      fs.readFile = async (path, ...args) => {
+        const result = await read(path, ...args);
+        if (!String(path).endsWith('/scripts/live/models.json')) return result;
+        const config = JSON.parse(String(result));
+        const target = config.targets.find(target => target.id === 'regression-anthropic-cache');
+        if (process.env.WORKER_TEST_TTL === 'omitted') delete target.profile.anthropicCacheTtl;
+        else target.profile.anthropicCacheTtl = '1h';
+        return JSON.stringify(config);
+      };
+      const spawn = childProcess.spawn;
+      childProcess.spawn = (command, args, options) => spawn(command, ['--import', ${JSON.stringify(mock)}, ...args], options);
+      globalThis.fetch = async () => { throw new Error('unexpected parent fetch'); };
+      syncBuiltinESMExports();`);
+    for (const ttl of ['omitted', '1h']) {
+      const messages: unknown[] = [];
+      const code = await new Promise<number | null>((resolve, reject) => {
+        const child = spawn(process.execPath, ['--import', 'tsx', '--import', preload, 'scripts/live/worker.ts', 'regression-anthropic-cache'], {
+          env: { PATH: process.env.PATH, TMPDIR: process.env.TMPDIR, LITELLM_API_KEY_EVAL: 'synthetic-offline-key', WORKER_TEST_TTL: ttl },
+          stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+        });
+        child.on('message', value => messages.push(value));
+        child.on('error', reject);
+        child.on('close', resolve);
+      });
+      assert.equal(code, 0);
+      assert.equal(messages.length, 1);
+      assert.equal((messages[0] as { status?: string }).status, 'passed', `${ttl}: ${JSON.stringify(messages)}`);
     }
   } finally { await rm(dir, { recursive: true, force: true }); }
 });

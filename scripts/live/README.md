@@ -169,7 +169,11 @@ available for focused local investigation.
   provider-reported `ephemeral_1h_input_tokens`, not an inferred TTL. A zero-hit
   run fails. Native direct invocation uses `ANTHROPIC_API_KEY`; proxy invocation
   uses `LLM_PROVIDER_ID=litellm_proxy`, `LLM_MODEL`, `LLM_BASE_URL`, and
-  `LITELLM_PROXY_API_KEY`. `ANTHROPIC_CACHE_TTL` controls the direct invocation.
+  `LITELLM_PROXY_API_KEY`. `ANTHROPIC_CACHE_TTL` accepts `5m` or `1h` for direct
+  invocation. When unset, the profile omits this optional field and requests retain
+  Anthropic's five-minute default; outgoing markers match the effective duration.
+  One-hour cold responses must report at least 4,096 one-hour input tokens, and
+  each response's one-hour writes must equal its total cache writes.
 - `openai-responses-reasoning.ts`: multi-turn OpenAI Responses reasoning replay,
   including full and minimal replay paths. The suite uses `--strict`: every turn
   must return text and encrypted reasoning, and subsequent requests must preserve

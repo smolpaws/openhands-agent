@@ -14,20 +14,22 @@ import { createExampleLlmSecretStore, providerApiKeyEnvName, resolveExampleLlmPr
 test('Anthropic caching: writes, reads, tool continuation and restored accounting', { timeout: 180_000 }, async (t) => {
   const providerId = process.env.LLM_PROVIDER_ID?.trim() || 'anthropic';
   assert.ok(['anthropic', 'litellm_proxy', 'openrouter'].includes(providerId), 'Use an Anthropic native/proxy profile');
+  const requestedCacheTtl = process.env.ANTHROPIC_CACHE_TTL?.trim();
   const profile = resolveExampleLlmProfile({
     profileId: 'live-anthropic-cache-smoke', providerId,
     model: process.env.ANTHROPIC_MODEL?.trim() || process.env.LLM_MODEL?.trim()
       || (providerId === 'anthropic' ? 'claude-haiku-4-5-20251001' : 'anthropic/claude-haiku-4-5-20251001'),
     baseUrl: process.env.LLM_BASE_URL?.trim() || null, maxOutputTokens: 192,
-    anthropicCacheTtl: process.env.ANTHROPIC_CACHE_TTL?.trim() || '5m',
+    ...(requestedCacheTtl ? { anthropicCacheTtl: requestedCacheTtl } : {}),
   });
+  const effectiveCacheTtl = profile.anthropicCacheTtl ?? '5m';
   const store = createExampleLlmSecretStore(profile);
   assert.ok(store, `Set ${providerApiKeyEnvName(providerId)}; missing live credentials must fail, not skip.`);
   const records: Usage[] = [];
   const markerCounts: number[] = [];
   const client = await createClientFromProfile(profile, store, { fetch: async (url, init) => {
     assert.ok(markerCounts.length < 6, 'Cache smoke exceeded six provider requests');
-    markerCounts.push(validateMarkers(JSON.parse(String(init.body)), profile.anthropicCacheTtl));
+    markerCounts.push(validateMarkers(JSON.parse(String(init.body)), effectiveCacheTtl));
     const response = await fetch(url, { ...init, signal: AbortSignal.any([t.signal, AbortSignal.timeout(45_000)]) });
     if (!response.ok) {
       await response.body?.cancel();
@@ -47,7 +49,7 @@ test('Anthropic caching: writes, reads, tool continuation and restored accountin
   await conversation.run();
   assertFinish(conversation.state.events, 'CACHE-FIRST-OK');
   assert.equal(records.length, 1, 'First turn should finish in one completion');
-  console.log(JSON.stringify({ phase: 'cold', model: profile.model, anthropicCacheTtl: profile.anthropicCacheTtl, cacheMarkers: markerCounts[0], ...records[0] }));
+  console.log(JSON.stringify({ phase: 'cold', model: profile.model, effectiveCacheTtl, cacheMarkers: markerCounts[0], ...records[0] }));
   assert.ok(records[0]!.cacheWriteTokens >= 4096, 'Cold Agent request must write the cache, not merely serialize cache_control');
   if (profile.anthropicCacheTtl === '1h') {
     assert.ok((records[0]!.cacheWrite1hTokens ?? 0) >= 4096, 'Provider must confirm a one-hour cache write with ephemeral_1h_input_tokens');
@@ -75,7 +77,7 @@ test('Anthropic caching: writes, reads, tool continuation and restored accountin
     for (const record of records) assert.equal(record.cacheWrite1hTokens, record.cacheWriteTokens, 'All writes must use the selected one-hour duration');
   }
   assertAccounting(restored.state.stats, records);
-  console.log(JSON.stringify({ providerId, model: profile.model, anthropicCacheTtl: profile.anthropicCacheTtl, requests: records.length, cacheMarkers: markerCounts,
+  console.log(JSON.stringify({ providerId, model: profile.model, effectiveCacheTtl, requests: records.length, cacheMarkers: markerCounts,
     usage: records, accumulated: metricsSnapshot(restored.state.stats).accumulated_token_usage, restore: 'passed' }));
 });
 

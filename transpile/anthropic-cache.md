@@ -113,8 +113,10 @@ adapter differs from Python's LiteLLM implementation.
 At the canonical pin, Python's `llm/message.py` emits `{type: "ephemeral"}` for text,
 images and lifted tool results; `llm/llm.py` has no Anthropic cache-duration setting.
 Its `prompt_cache_retention` is an OpenAI setting and is not an Anthropic TTL.
-The target deliberately adds `LLMProfile.anthropicCacheTtl: '5m' | '1h'`, defaulting
-to `'5m'` for old profiles. This is a profile-boundary deviation under
+The target deliberately adds optional `LLMProfile.anthropicCacheTtl?: '5m' | '1h'`.
+Omission stays absent through profile parsing, JSON persistence and restore for both
+Anthropic and unrelated providers. The five-minute fallback belongs to Anthropic's
+wire behavior, never to schema-inserted profile configuration. This is a profile-boundary deviation under
 [DEV-SDK-004](../docs/TRANSPILE_CONTRACT.md#dev-sdk-004--profile-first-product-llm-boundary),
 not an unported Python option or a claim of new parity.
 
@@ -127,12 +129,15 @@ subscription requests receive no Anthropic marker. OpenAI retention remains inde
 
 The parameterized deterministic tests cover both durations through ordinary Agent
 requests and the wire builders. Profile parsing rejects other values and JSON restore
-preserves an explicit duration. Sequential one-hour/five-minute requests must not share
+preserves omission or an explicit duration. Typed callers may omit the field, and generated
+schemas must mark it optional without a default. Sequential one-hour/five-minute requests must not share
 mutable marker state. The server separately tests profile persistence and conversation
-snapshot behavior; changing the SDK default is not a migration of existing conversations.
+snapshot behavior; schema normalization must not backfill durations into existing profiles
+or conversations.
 
-The Haiku smoke accepts `ANTHROPIC_CACHE_TTL=1h` (local default: `5m`). It inspects each
-outgoing marker and requires a positive one-hour write, then cache reads across normal
+The Haiku smoke accepts `ANTHROPIC_CACHE_TTL=1h`. When unset locally, the profile field
+stays absent and requests keep five-minute wire behavior. It inspects each outgoing
+marker and requires a positive one-hour write when selected, then cache reads across normal
 and restored turns. Native evidence is `usage.cache_creation.ephemeral_1h_input_tokens`;
 the eval proxy exposes `usage.prompt_tokens_details.cache_creation_token_details`.
 Aggregate write counts alone do not prove duration. The GitHub **LLM** environment job

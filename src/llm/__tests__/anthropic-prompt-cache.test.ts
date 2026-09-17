@@ -16,18 +16,7 @@ const nativeProfile = llmProfileSchema.parse({ profileId: 'haiku', providerId: '
 const proxyProfile = llmProfileSchema.parse({ profileId: 'fable', providerId: 'litellm_proxy', model: 'anthropic/claude-fable-5-1' });
 const tool = new ToolDefinition({ name: 'lookup', description: 'Read a value', inputSchema: z.object({}), executor: async () => ({ content: 'result' }) });
 
-describe('Anthropic cache duration in saved profiles', () => {
-  it('defaults old profiles to five minutes and round-trips an explicit duration independently of OpenAI retention', () => {
-    expect(nativeProfile.anthropicCacheTtl).toBe('5m');
-    for (const anthropicCacheTtl of ['5m', '1h'] as const) {
-      const profile = llmProfileSchema.parse({ ...proxyProfile, anthropicCacheTtl, promptCacheRetention: '24h' });
-      expect(llmProfileSchema.parse(JSON.parse(JSON.stringify(profile)))).toMatchObject({ anthropicCacheTtl, promptCacheRetention: '24h' });
-    }
-    for (const anthropicCacheTtl of ['24h', 'disabled', '', null]) {
-      expect(llmProfileSchema.safeParse({ ...nativeProfile, anthropicCacheTtl }).success).toBe(false);
-    }
-  });
-
+describe('Anthropic cache duration requests', () => {
   it('keeps subsequent default and explicit five-minute requests unchanged after a one-hour request', () => {
     const messages = [{ role: 'user' as const, content: [textContent('prefix')] }];
     for (const [profile, build] of [[nativeProfile, buildAnthropicMessagesBody], [proxyProfile, buildChatCompletionsBody]] as const) {

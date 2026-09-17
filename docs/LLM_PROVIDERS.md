@@ -45,14 +45,17 @@ Messages and compatible Chat Completions gateways, including the eval proxy. Set
 profile's `cachingPrompt: false` to disable it. Model capabilities select cache semantics;
 the profile's provider still selects credentials and transport.
 
-`anthropicCacheTtl` selects `'5m'` (the default) or `'1h'` for every explicit breakpoint
-in that profile's requests, on both transports. One hour emits
+The optional, Anthropic-specific `anthropicCacheTtl` selects `'5m'` or `'1h'` for every
+explicit breakpoint in that profile's requests, on both transports. Omission leaves
+the field absent in saved profiles and keeps Anthropic's five-minute wire behavior.
+One hour emits
 `cache_control: {type: 'ephemeral', ttl: '1h'}`; five minutes retains `{type: 'ephemeral'}`.
 The same duration applies to automatic and caller-selected markers. A single duration
 avoids mixed-TTL ordering constraints. One-hour writes have a higher provider charge;
 cache hits refresh the lifetime. See [Anthropic's cache documentation](https://platform.claude.com/docs/en/build-with-claude/prompt-caching).
-Saved profiles lacking the field normalize to five minutes. This option does not enable
-caching for unsupported models or override `cachingPrompt: false`.
+Other providers do not receive a default TTL field. Their request serializers ignore
+this option if explicitly supplied. It does not enable caching for unsupported models
+or override `cachingPrompt: false`.
 
 Provider request preparation marks the static system block and the latest user/tool
 content. Keep dynamic system context in a separate block. Tool-result markers belong on
