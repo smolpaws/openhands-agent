@@ -67,7 +67,7 @@
       "enabled": true,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_APP",
+        "env": "OPENHANDS_API_KEY_APP",
         "keychainAccount": "LITELLM_API_KEY_APP"
       },
       "profile": {
@@ -89,7 +89,7 @@
       "enabled": false,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_EVAL",
+        "env": "OPENHANDS_API_KEY_EVAL",
         "keychainAccount": "LITELLM_API_KEY_EVAL"
       },
       "profile": {
@@ -156,7 +156,7 @@
       "enabled": false,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_APP",
+        "env": "OPENHANDS_API_KEY_APP",
         "keychainAccount": "LITELLM_API_KEY_APP"
       },
       "profile": {
@@ -179,7 +179,7 @@
       "enabled": true,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_EVAL",
+        "env": "OPENHANDS_API_KEY_EVAL",
         "keychainAccount": "LITELLM_API_KEY_EVAL"
       },
       "profile": {
@@ -249,7 +249,7 @@
       "enabled": true,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_APP",
+        "env": "OPENHANDS_API_KEY_APP",
         "keychainAccount": "LITELLM_API_KEY_APP"
       },
       "profile": {
@@ -272,7 +272,7 @@
       "enabled": false,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_EVAL",
+        "env": "OPENHANDS_API_KEY_EVAL",
         "keychainAccount": "LITELLM_API_KEY_EVAL"
       },
       "profile": {
@@ -343,7 +343,7 @@
       "enabled": false,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_APP",
+        "env": "OPENHANDS_API_KEY_APP",
         "keychainAccount": "LITELLM_API_KEY_APP"
       },
       "profile": {
@@ -367,7 +367,7 @@
       "enabled": true,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_EVAL",
+        "env": "OPENHANDS_API_KEY_EVAL",
         "keychainAccount": "LITELLM_API_KEY_EVAL"
       },
       "profile": {
@@ -438,7 +438,7 @@
       "enabled": false,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_APP",
+        "env": "OPENHANDS_API_KEY_APP",
         "keychainAccount": "LITELLM_API_KEY_APP"
       },
       "profile": {
@@ -462,7 +462,7 @@
       "enabled": true,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_EVAL",
+        "env": "OPENHANDS_API_KEY_EVAL",
         "keychainAccount": "LITELLM_API_KEY_EVAL"
       },
       "profile": {
@@ -530,7 +530,7 @@
       "enabled": true,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_APP",
+        "env": "OPENHANDS_API_KEY_APP",
         "keychainAccount": "LITELLM_API_KEY_APP"
       },
       "profile": {
@@ -552,7 +552,7 @@
       "enabled": false,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_EVAL",
+        "env": "OPENHANDS_API_KEY_EVAL",
         "keychainAccount": "LITELLM_API_KEY_EVAL"
       },
       "profile": {
@@ -619,7 +619,7 @@
       "enabled": true,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_APP",
+        "env": "OPENHANDS_API_KEY_APP",
         "keychainAccount": "LITELLM_API_KEY_APP"
       },
       "profile": {
@@ -641,7 +641,7 @@
       "enabled": false,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_EVAL",
+        "env": "OPENHANDS_API_KEY_EVAL",
         "keychainAccount": "LITELLM_API_KEY_EVAL"
       },
       "profile": {
@@ -710,7 +710,7 @@
       "enabled": false,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_APP",
+        "env": "OPENHANDS_API_KEY_APP",
         "keychainAccount": "LITELLM_API_KEY_APP"
       },
       "profile": {
@@ -734,7 +734,7 @@
       "enabled": true,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_EVAL",
+        "env": "OPENHANDS_API_KEY_EVAL",
         "keychainAccount": "LITELLM_API_KEY_EVAL"
       },
       "profile": {
@@ -804,7 +804,7 @@
       "enabled": false,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_APP",
+        "env": "OPENHANDS_API_KEY_APP",
         "keychainAccount": "LITELLM_API_KEY_APP"
       },
       "profile": {
@@ -827,7 +827,7 @@
       "enabled": false,
       "scenario": "conversation",
       "credential": {
-        "env": "LITELLM_API_KEY_EVAL",
+        "env": "OPENHANDS_API_KEY_EVAL",
         "keychainAccount": "LITELLM_API_KEY_EVAL"
       },
       "profile": {
@@ -868,7 +868,7 @@
       "enabled": true,
       "scenario": "anthropic-cache",
       "credential": {
-        "env": "LITELLM_API_KEY_EVAL",
+        "env": "OPENHANDS_API_KEY_EVAL",
         "keychainAccount": "LITELLM_API_KEY_EVAL"
       },
       "profile": {

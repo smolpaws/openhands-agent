@@ -112,7 +112,7 @@ test('the actual cache worker preserves an omitted TTL and an explicit one-hour 
       const messages: unknown[] = [];
       const code = await new Promise<number | null>((resolve, reject) => {
         const child = spawn(process.execPath, ['--import', 'tsx', '--import', preload, 'scripts/live/worker.ts', 'regression-anthropic-cache'], {
-          env: { PATH: process.env.PATH, TMPDIR: process.env.TMPDIR, LITELLM_API_KEY_EVAL: 'synthetic-offline-key', WORKER_TEST_TTL: ttl },
+          env: { PATH: process.env.PATH, TMPDIR: process.env.TMPDIR, OPENHANDS_API_KEY_EVAL: 'synthetic-offline-key', WORKER_TEST_TTL: ttl },
           stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
         });
         child.on('message', value => messages.push(value));

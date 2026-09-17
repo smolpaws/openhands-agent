@@ -117,8 +117,8 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          LITELLM_API_KEY_APP: ${{ secrets.LITELLM_API_KEY_APP }}
-          LITELLM_API_KEY_EVAL: ${{ secrets.LITELLM_PROXY_API_KEY }}
+          OPENHANDS_API_KEY_APP: ${{ secrets.OPENHANDS_API_KEY_APP }}
+          OPENHANDS_API_KEY_EVAL: ${{ secrets.OPENHANDS_API_KEY_EVAL }}
           LLM_TEST_REVISION: ${{ steps.target.outputs.sha }}
 
       - name: Publish the sanitized result summary

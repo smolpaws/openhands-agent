@@ -137,13 +137,13 @@ Use these secret names in the canonical repository's **LLM** environment:
 | Native DeepSeek | `DEEPSEEK_API_KEY` |
 | OpenCode | `OPENCODE_API_KEY` |
 | OpenRouter | `OPENROUTER_API_KEY` |
-| OpenHands app | `LITELLM_API_KEY_APP` |
-| OpenHands eval | `LITELLM_PROXY_API_KEY` |
+| OpenHands app | `OPENHANDS_API_KEY_APP` |
+| OpenHands eval | `OPENHANDS_API_KEY_EVAL` |
 
-Keep one GitHub secret per credential, only in **LLM**. The workflow maps the existing
-eval secret `LITELLM_PROXY_API_KEY` into the runner's `LITELLM_API_KEY_EVAL` variable;
-do not create a duplicate eval secret. Local Keychain accounts retain the names in
-`models.json`. Model IDs, enabled flags, and scenario settings come from
+Keep one GitHub secret per credential, only in **LLM**. The workflow passes the
+explicit APP and EVAL names directly to the runner. Local Keychain accounts retain
+their existing names in `models.json`; the credential record maps each account to
+its runner variable. Model IDs, enabled flags, and scenario settings come from
 `models.json`; historical GitHub variables do not override this inventory.
 
 The initial workflow installation must land on `main` before its label trigger is
