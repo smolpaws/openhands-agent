@@ -30,6 +30,10 @@ test('missing credentials never turn a selected suite green', () => {
   assert.equal(resultExitCode([]), 2);
 });
 
+test('Responses reasoning cannot be configured to claim Chat Completions coverage', () => {
+  assert.throws(() => parseConfig(config([{ ...target, scenario: 'responses-reasoning', profile: { ...target.profile, openAiApiMode: 'chat_completions' } }])), /Responses/);
+});
+
 test('legacy scenarios reject provider changes that would silently skip or use another endpoint', () => {
   for (const scenario of ['responses-reasoning', 'native-openai-tools']) {
     assert.throws(() => parseConfig(config([{ ...target, scenario, profile: { providerId: 'litellm_proxy', model: 'openai/test' } }])), /does not support/);

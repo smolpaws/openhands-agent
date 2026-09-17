@@ -4,17 +4,17 @@ import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 import {
   Agent, FinishTool, LocalConversation, createClientFromProfile,
-  llmProfileSchema, metricsSnapshot, restoreConversationState,
+  metricsSnapshot, restoreConversationState,
   type AnthropicCacheTtl, type ConversationStats, type Event,
 } from '@smolpaws/openhands-agent';
-import { createExampleLlmSecretStore, providerApiKeyEnvName } from '../../examples/_shared/exampleProfile.js';
+import { createExampleLlmSecretStore, providerApiKeyEnvName, resolveExampleLlmProfile } from '../../examples/_shared/exampleProfile.js';
 
 // External API viability, not a deterministic parity oracle. Ordinary Agent requests must cache;
 // the caller deliberately does not set cache_prompt or manually construct provider cache controls.
 test('Anthropic caching: writes, reads, tool continuation and restored accounting', { timeout: 180_000 }, async (t) => {
   const providerId = process.env.LLM_PROVIDER_ID?.trim() || 'anthropic';
   assert.ok(['anthropic', 'litellm_proxy', 'openrouter'].includes(providerId), 'Use an Anthropic native/proxy profile');
-  const profile = llmProfileSchema.parse({
+  const profile = resolveExampleLlmProfile({
     profileId: 'live-anthropic-cache-smoke', providerId,
     model: process.env.ANTHROPIC_MODEL?.trim() || process.env.LLM_MODEL?.trim()
       || (providerId === 'anthropic' ? 'claude-haiku-4-5-20251001' : 'anthropic/claude-haiku-4-5-20251001'),

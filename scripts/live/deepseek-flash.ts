@@ -5,14 +5,14 @@ import test from 'node:test';
 import { z } from 'zod';
 import {
   Agent, FinishTool, LocalConversation, ToolDefinition,
-  createClientFromProfile, llmProfileSchema, messageSchema, metricsSnapshot, restoreConversationState, textContent,
+  createClientFromProfile, messageSchema, metricsSnapshot, restoreConversationState, textContent,
   type ConversationStats, type Event,
 } from '@smolpaws/openhands-agent';
-import { createExampleLlmSecretStore } from '../../examples/_shared/exampleProfile.js';
+import { createExampleLlmSecretStore, resolveExampleLlmProfile } from '../../examples/_shared/exampleProfile.js';
 
 // A real-provider regression, separate from deterministic tests and parity oracles.
 test('DeepSeek Flash: concurrent tools, restored continuation, and provider-exact usage', { timeout: 180_000 }, async (t) => {
-  const profile = llmProfileSchema.parse({
+  const profile = resolveExampleLlmProfile({
     profileId: 'live-deepseek-flash', providerId: 'deepseek',
     model: process.env.DEEPSEEK_MODEL?.trim() || 'deepseek-v4-flash',
     baseUrl: 'https://api.deepseek.com', openAiApiMode: 'chat_completions',

@@ -9,13 +9,12 @@ import {
   ToolDefinition,
   conversationExecutionStatus,
   createClientFromProfile,
-  llmProfileSchema,
 } from '@smolpaws/openhands-agent';
 import { z } from 'zod';
 
-import { createExampleLlmSecretStore } from './_shared/exampleProfile.js';
+import { createExampleLlmSecretStore, resolveExampleLlmProfile } from './_shared/exampleProfile.js';
 
-const profile = llmProfileSchema.parse({
+const profile = resolveExampleLlmProfile({
   profileId: 'native-openai-tools-example',
   providerId: 'openai',
   model: process.env.OPENAI_TOOL_MODEL?.trim() || 'gpt-5-nano',

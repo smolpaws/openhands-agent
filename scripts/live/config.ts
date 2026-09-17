@@ -19,6 +19,9 @@ const targetSchema = z.object({
   catalog: z.object({ url: z.string().url(), modelId: z.string().optional() }).strict().optional(),
 }).strict().refine(t => t.enabled || !!t.reason, 'Disabled targets require a reason').superRefine((target, context) => {
   if (target.scenario === 'conversation') return;
+  if (target.scenario === 'responses-reasoning' && target.profile.openAiApiMode === 'chat_completions') {
+    context.addIssue({ code: 'custom', path: ['profile', 'openAiApiMode'], message: 'Reasoning replay scenario requires the Responses API' });
+  }
   const provider = target.profile.providerId;
   const nativeEndpoints: Record<string, string> = {
     openai: 'https://api.openai.com/v1', anthropic: 'https://api.anthropic.com',

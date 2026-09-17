@@ -54,6 +54,7 @@ async function runExisting(target: LiveTarget, key: string): Promise<unknown> {
     [`${target.profile.providerId.replace(/[^a-zA-Z0-9]/gu, '_').toUpperCase()}_API_KEY`]: key,
     LLM_PROVIDER_ID: target.profile.providerId, LLM_MODEL: target.profile.model,
     LLM_BASE_URL: target.profile.baseUrl ?? '',
+    LLM_TEST_PROFILE: JSON.stringify({ profileId: target.id, ...target.profile }),
     DEEPSEEK_MODEL: target.profile.model, OPENAI_RESPONSES_MODEL: target.profile.model,
     OPENAI_RESPONSES_MAX_OUTPUT_TOKENS: String(target.profile.maxOutputTokens ?? 4096),
     OPENAI_TOOL_MODEL: target.profile.model, GEMINI_TOOL_MODEL: target.profile.model,
@@ -68,12 +69,17 @@ async function runExisting(target: LiveTarget, key: string): Promise<unknown> {
       const child = spawn(process.execPath, ['--import', 'tsx', '--import', './scripts/live/legacy-transport.ts', file, ...args], { env, stdio: ['ignore', 'ignore', 'ignore', 'ipc'] });
       child.on('message', value => {
         if (value && typeof value === 'object' && 'providerFailure' in value && typeof value.providerFailure === 'string'
-          && /^Live conversation provider returned HTTP \d{3}( unavailable:(insufficient-credit|exhausted-quota|model-unavailable))?$/u.test(value.providerFailure)) {
+          && /^(Live conversation provider returned HTTP \d{3}( unavailable:(insufficient-credit|exhausted-quota|model-unavailable))?|fetch failed|request-deadline-exceeded|transport-failed)$/u.test(value.providerFailure)) {
           providerError = value.providerFailure;
         }
       });
       child.on('error', () => reject(new Error(`legacy-script-failed:${file.split('/').at(-1)}`)));
-      child.on('exit', code => code === 0 ? resolveRun() : reject(new Error(providerError ?? `legacy-script-failed:${file.split('/').at(-1)}`)));
+      child.on('close', code => {
+        if (code === 0 && providerError === undefined) { resolveRun(); return; }
+        const error = new Error(providerError ?? `legacy-script-failed:${file.split('/').at(-1)}`);
+        if (providerError === 'request-deadline-exceeded') error.name = 'TimeoutError';
+        reject(error);
+      });
     });
     completed.push(file);
   };

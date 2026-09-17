@@ -26,3 +26,29 @@ test('legacy examples and node:test scripts report safe provider failures throug
     }
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
+
+test('legacy network, timeout, and unexpected fetch failures send only fixed safe categories', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'legacy-transport-errors-'));
+  try {
+    const script = join(dir, 'script.mjs');
+    await writeFile(script, `await fetch('https://unused.invalid');`);
+    for (const [source, expected] of [
+      ["throw new TypeError('fetch failed', { cause: new Error('private-socket-value') })", 'fetch failed'],
+      ["throw new DOMException('private-timeout-value', 'TimeoutError')", 'request-deadline-exceeded'],
+      ["throw new Error('private-unexpected-value')", 'transport-failed'],
+    ]) {
+      const mock = join(dir, 'mock.mjs');
+      await writeFile(mock, `globalThis.fetch = async () => { ${source}; };`);
+      const messages: unknown[] = [];
+      const code = await new Promise<number | null>((resolve, reject) => {
+        const child = spawn(process.execPath, ['--import', 'tsx', '--import', mock, '--import', './scripts/live/legacy-transport.ts', script], { stdio: ['ignore', 'ignore', 'ignore', 'ipc'] });
+        child.on('message', value => messages.push(value));
+        child.on('error', reject);
+        child.on('close', resolve);
+      });
+      assert.equal(code, 1);
+      assert.deepEqual(messages, [{ providerFailure: expected }]);
+      assert.ok(!JSON.stringify(messages).includes('private-'));
+    }
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});

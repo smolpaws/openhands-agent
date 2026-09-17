@@ -8,7 +8,6 @@ import { fileURLToPath } from 'node:url';
 
 import {
   createOpenAIResponsesClientFromProfile,
-  llmProfileSchema,
   messageSchema,
   textContent,
   type FetchLike,
@@ -16,7 +15,7 @@ import {
   type Message,
 } from '@smolpaws/openhands-agent';
 
-import { createExampleLlmSecretStore, providerApiKeyEnvName } from '../../examples/_shared/exampleProfile.js';
+import { createExampleLlmSecretStore, providerApiKeyEnvName, resolveExampleLlmProfile } from '../../examples/_shared/exampleProfile.js';
 
 const MODEL = process.env.OPENAI_RESPONSES_MODEL?.trim() || process.env.OPENAI_MODEL?.trim() || process.env.LLM_MODEL?.trim() || 'gpt-5-mini';
 const MAX_OUTPUT_TOKENS = Number(process.env.OPENAI_RESPONSES_MAX_OUTPUT_TOKENS ?? 1024);
@@ -27,7 +26,7 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_OUT_ROOT = join(SCRIPT_DIR, '..', 'fixtures', 'openai-responses');
 const strict = process.argv.includes('--strict');
 
-const profile = llmProfileSchema.parse({
+const profile = resolveExampleLlmProfile({
   profileId: process.env.LLM_PROFILE?.trim() || 'live-openai-responses-reasoning',
   providerId: 'openai',
   model: MODEL,

@@ -17,11 +17,25 @@ export function hasExampleLlmCredentials(env: NodeJS.ProcessEnv = process.env): 
 
 export function buildExampleLlmProfile(env: NodeJS.ProcessEnv = process.env): LLMProfile {
   const providerId = env.LLM_PROVIDER_ID?.trim() || env.LLM_PROVIDER?.trim() || DEFAULT_PROVIDER_ID;
-  return llmProfileSchema.parse({
+  return resolveExampleLlmProfile({
     profileId: env.LLM_PROFILE?.trim() || `examples-${providerId}`,
     providerId,
     model: env.OPENAI_MODEL?.trim() || env.LLM_MODEL?.trim() || DEFAULT_MODEL,
-  });
+  }, env);
+}
+
+/** The live suite supplies configuration only; credentials remain in SecretStore. */
+export function resolveExampleLlmProfile(defaults: unknown, env: NodeJS.ProcessEnv = process.env): LLMProfile {
+  const profile = llmProfileSchema.parse(defaults);
+  if (env.LLM_TEST_PROFILE === undefined) return profile;
+  let override: unknown;
+  try { override = JSON.parse(env.LLM_TEST_PROFILE); }
+  catch { throw new Error('LLM_TEST_PROFILE must contain valid profile JSON'); }
+  if (override === null || typeof override !== 'object' || Array.isArray(override)) {
+    throw new Error('LLM_TEST_PROFILE must contain a profile object');
+  }
+  // Preserve explicit null overrides and reject unknown fields (including keys).
+  return llmProfileSchema.parse({ ...profile, ...override });
 }
 
 export async function getExampleLlmClient(env: NodeJS.ProcessEnv = process.env): Promise<LLMClient | null> {

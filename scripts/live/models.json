@@ -470,14 +470,14 @@
         "model": "openai/gpt-6-astra",
         "baseUrl": "https://llm-proxy.eval.all-hands.dev/v1",
         "openAiApiMode": "chat_completions",
-        "reasoningEffort": "low",
+        "reasoningEffort": null,
         "maxOutputTokens": 4096
       },
       "catalog": {
         "url": "https://llm-proxy.eval.all-hands.dev/v1/models",
         "modelId": "openai/gpt-6-astra"
       },
-      "reason": "Explicit eval fallback: the exact requested model is absent from the app catalog checked 2026-09-17."
+      "reason": "Verified eval catalog entry; this route rejects reasoning_effort, so the optional control is explicitly omitted."
     },
     {
       "id": "native-deepseek-v4-pro",
@@ -742,14 +742,14 @@
         "model": "vertex_ai/gemini-3.8-flash",
         "baseUrl": "https://llm-proxy.eval.all-hands.dev/v1",
         "openAiApiMode": "chat_completions",
-        "reasoningEffort": "low",
+        "reasoningEffort": null,
         "maxOutputTokens": 4096
       },
       "catalog": {
         "url": "https://llm-proxy.eval.all-hands.dev/v1/models",
         "modelId": "vertex_ai/gemini-3.8-flash"
       },
-      "reason": "Explicit eval fallback: the exact requested model is absent from the app catalog checked 2026-09-17."
+      "reason": "Verified eval catalog entry; tool-bearing requests reject reasoning_effort on this route, so the optional control is explicitly omitted."
     },
     {
       "id": "native-big-pickle",
@@ -876,7 +876,7 @@
         "model": "anthropic/claude-haiku-4-5-20251001",
         "baseUrl": "https://llm-proxy.eval.all-hands.dev/v1",
         "openAiApiMode": "chat_completions",
-        "maxOutputTokens": 4096,
+        "maxOutputTokens": 192,
         "anthropicCacheTtl": "1h"
       }
     },
@@ -895,7 +895,7 @@
         "model": "gpt-5.6-sol",
         "baseUrl": "https://api.openai.com/v1",
         "openAiApiMode": "responses",
-        "reasoningEffort": "low",
+        "reasoningEffort": "medium",
         "maxOutputTokens": 4096
       }
     },
@@ -915,7 +915,7 @@
         "baseUrl": "https://api.openai.com/v1",
         "openAiApiMode": "responses",
         "reasoningEffort": "low",
-        "maxOutputTokens": 4096
+        "maxOutputTokens": 1024
       }
     },
     {
@@ -934,7 +934,7 @@
         "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
         "openAiApiMode": "chat_completions",
         "reasoningEffort": "low",
-        "maxOutputTokens": 4096
+        "maxOutputTokens": 512
       }
     },
     {

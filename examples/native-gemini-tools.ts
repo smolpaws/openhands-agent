@@ -5,13 +5,12 @@ import {
   ToolDefinition,
   conversationExecutionStatus,
   createClientFromProfile,
-  llmProfileSchema,
 } from '@smolpaws/openhands-agent';
 import { z } from 'zod';
 
-import { createExampleLlmSecretStore } from './_shared/exampleProfile.js';
+import { createExampleLlmSecretStore, resolveExampleLlmProfile } from './_shared/exampleProfile.js';
 
-const profile = llmProfileSchema.parse({
+const profile = resolveExampleLlmProfile({
   profileId: 'native-gemini-tools-example',
   providerId: 'gemini',
   model: process.env.GEMINI_TOOL_MODEL?.trim() || 'gemini-3.5-flash-lite',
