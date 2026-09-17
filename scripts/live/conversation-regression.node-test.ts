@@ -38,6 +38,30 @@ test('partial README reads report the hand-authored invariant and safe phase', {
   });
 });
 
+test('a containing-sentence replacement is accepted when the entire file has exactly the requested word change', { timeout: 30_000 }, async () => {
+  const { profile, store } = configuration('chat');
+  const result = await runConversationRegression({ profile, store, fetch: scenario('chat', 'sentence-edit'), timeoutMs: 20_000 });
+  assert.equal(result.requests, 9);
+  assert.ok(result.checks.includes('exact-word-edit'));
+});
+
+test('a partial verification view after a correct edit is accepted', { timeout: 30_000 }, async () => {
+  const { profile, store } = configuration('chat');
+  const result = await runConversationRegression({ profile, store, fetch: scenario('chat', 'edit-verification'), timeoutMs: 20_000 });
+  assert.equal(result.requests, 10);
+  assert.ok(result.checks.includes('exact-word-edit'));
+});
+
+test('a sentence replacement that changes anything beyond the chosen word is rejected', { timeout: 30_000 }, async () => {
+  const { profile, store } = configuration('chat');
+  await assert.rejects(runConversationRegression({ profile, store, fetch: scenario('chat', 'extra-edit'), timeoutMs: 20_000 }), error => {
+    assert.ok(error instanceof Error);
+    assert.equal(error.message, 'the requested edit must produce exactly the chosen word replacement');
+    assert.equal((error as Error & { regressionPhase: string }).regressionPhase, 'edit');
+    return true;
+  });
+});
+
 test('one directory call fails promptly instead of pretending the parallel race was tested', { timeout: 30_000 }, async () => {
   const { profile, store } = configuration('chat');
   await assert.rejects(runConversationRegression({ profile, store, fetch: scenario('chat', 'single-tool'), timeoutMs: 20_000 }), /exactly two terminal calls/);
@@ -65,9 +89,10 @@ function configuration(format: Format) {
   return { profile, store: new InMemorySecretStore([[llmProviderSecretRef(providerId), 'synthetic-not-a-real-key']]) };
 }
 
-function scenario(format: Format, mode?: 'plain-finish' | 'single-tool' | 'wire-collision' | 'partial-read'): FetchLike {
+function scenario(format: Format, mode?: 'plain-finish' | 'single-tool' | 'wire-collision' | 'partial-read' | 'sentence-edit' | 'edit-verification' | 'extra-edit'): FetchLike {
   let step = 0;
   let readme = '';
+  let originalSentence = '';
   return async (_url, init) => {
     step += 1;
     if (step === 1) {
@@ -75,17 +100,23 @@ function scenario(format: Format, mode?: 'plain-finish' | 'single-tool' | 'wire-
       const text = requestText(request);
       readme = /README path: ([^\n]+)/u.exec(text)?.[1] ?? '';
       assert.ok(readme.endsWith('/README.md'), 'fixture discovers the actual isolated README path from the real request');
+      originalSentence = (await readFile(readme, 'utf8')).split('\n').find(line => line.startsWith('Idiomatic '))!;
     }
+    const logicalStep = step > 4 && mode === 'edit-verification' ? step - 1 : step;
     const call = (name: string, args: Record<string, unknown>, suffix = ''): Call => ({ id: `call_${step}${suffix}`, name, args });
     const finish = (message: string) => [call('finish', { message })];
-    const calls = step === 1 ? [call('file_editor', { command: 'view', path: readme, view_range: mode === 'partial-read' ? [2, 10] : [1, -1] })]
-      : step === 2 ? (mode === 'plain-finish' ? [] : finish('README-READ'))
-      : step === 3 ? [call('file_editor', { command: 'str_replace', path: readme, old_str: 'Idiomatic', new_str: 'Straightforward' })]
-      : step === 4 ? finish('README-EDITED')
-      : step === 5 ? [call('terminal', { command: 'ls -1 src' }, '_a'), ...(mode === 'single-tool' ? [] : [call('terminal', { command: 'ls -1 examples' }, '_b')])]
-      : step === 6 ? finish('Directories inspected.')
-      : step === 7 ? []
-      : step === 8 ? finish('INFLIGHT-FINISHED')
+    const calls = step === 4 && mode === 'edit-verification' ? [call('file_editor', { command: 'view', path: readme, view_range: [1, 5] })]
+      : logicalStep === 1 ? [call('file_editor', { command: 'view', path: readme, view_range: mode === 'partial-read' ? [2, 10] : [1, -1] })]
+      : logicalStep === 2 ? (mode === 'plain-finish' ? [] : finish('README-READ'))
+      : logicalStep === 3 ? [call('file_editor', { command: 'str_replace', path: readme,
+        old_str: mode === 'sentence-edit' || mode === 'extra-edit' ? originalSentence : 'Idiomatic',
+        new_str: mode === 'sentence-edit' || mode === 'extra-edit' ? originalSentence.replace('Idiomatic', 'Straightforward') + (mode === 'extra-edit' ? ' An unrequested change.' : '') : 'Straightforward',
+      })]
+      : logicalStep === 4 ? finish('README-EDITED')
+      : logicalStep === 5 ? [call('terminal', { command: 'ls -1 src' }, '_a'), ...(mode === 'single-tool' ? [] : [call('terminal', { command: 'ls -1 examples' }, '_b')])]
+      : logicalStep === 6 ? finish('Directories inspected.')
+      : logicalStep === 7 ? []
+      : logicalStep === 8 ? finish('INFLIGHT-FINISHED')
       : finish('README-RESTORED');
     // Distinct durable IDs collapse to the same Responses wire ID, so only the
     // final POST oracle can detect this; transcript-only assertions would pass.
@@ -93,8 +124,8 @@ function scenario(format: Format, mode?: 'plain-finish' | 'single-tool' | 'wire-
       calls[0]!.id = 'foreign+one';
       calls[1]!.id = 'foreign?one';
     }
-    assert.ok(step <= 9, 'fixture completion budget exceeded');
-    return new Response(JSON.stringify(providerResponse(format, calls, step === 7 ? 'PLAIN-REPLY' : undefined)), { headers: { 'content-type': 'application/json' } });
+    assert.ok(logicalStep <= 9, 'fixture completion budget exceeded');
+    return new Response(JSON.stringify(providerResponse(format, calls, logicalStep === 7 ? 'PLAIN-REPLY' : undefined)), { headers: { 'content-type': 'application/json' } });
   };
 }
 

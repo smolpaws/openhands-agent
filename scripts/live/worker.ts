@@ -60,10 +60,12 @@ async function runExisting(target: LiveTarget, key: string): Promise<unknown> {
     ANTHROPIC_CACHE_TTL: target.profile.anthropicCacheTtl ?? '1h',
   };
   const completed: string[] = [];
-  const run = async (file: string, args: string[] = [], nodeTest = false) => {
+  const run = async (file: string, args: string[] = []) => {
     await new Promise<void>((resolveRun, reject) => {
       let providerError: string | undefined;
-      const child = spawn(process.execPath, ['--import', 'tsx', '--import', './scripts/live/legacy-transport.ts', ...(nodeTest ? ['--test'] : []), file, ...args], { env, stdio: ['ignore', 'ignore', 'ignore', 'ipc'] });
+      // Run each node:test file directly: it still sets a failing exit status,
+      // while keeping the transport's IPC report in this child process.
+      const child = spawn(process.execPath, ['--import', 'tsx', '--import', './scripts/live/legacy-transport.ts', file, ...args], { env, stdio: ['ignore', 'ignore', 'ignore', 'ipc'] });
       child.on('message', value => {
         if (value && typeof value === 'object' && 'providerFailure' in value && typeof value.providerFailure === 'string'
           && /^Live conversation provider returned HTTP \d{3}( unavailable:(insufficient-credit|exhausted-quota|model-unavailable))?$/u.test(value.providerFailure)) {
@@ -76,8 +78,8 @@ async function runExisting(target: LiveTarget, key: string): Promise<unknown> {
     completed.push(file);
   };
   try {
-    if (target.scenario === 'deepseek-accounting') await run('scripts/live/deepseek-flash.ts', [], true);
-    else if (target.scenario === 'anthropic-cache') await run('scripts/live/anthropic-cache-smoke.ts', [], true);
+    if (target.scenario === 'deepseek-accounting') await run('scripts/live/deepseek-flash.ts');
+    else if (target.scenario === 'anthropic-cache') await run('scripts/live/anthropic-cache-smoke.ts');
     else if (target.scenario === 'responses-reasoning') await run('scripts/live/openai-responses-reasoning.ts', ['both', '--strict', '--out-dir', scratch]);
     else if (target.scenario === 'native-openai-tools') await run('examples/native-openai-tools.ts');
     else if (target.scenario === 'native-gemini-tools') await run('examples/native-gemini-tools.ts');

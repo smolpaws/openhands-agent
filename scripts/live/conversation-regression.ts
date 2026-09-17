@@ -149,14 +149,20 @@ export async function runConversationRegression(options: ConversationRegressionO
         assert.ok(resolve(workspace, action.path) === readmePath, 'only this isolated README may be opened or edited');
         assert.ok(stage === 'read' || stage === 'edit', 'file effects are not allowed after the edit phase');
         if (action.command === 'view') {
-          const lastLine = originalReadme.replace(/\n$/u, '').split('\n').length;
-          const startLine = action.view_range?.[0] ?? 1;
-          const endLine = action.view_range?.[1] ?? -1;
-          assert.ok(startLine === 1 && (endLine === -1 || endLine >= lastLine), 'the read phase must read the complete README');
+          if (stage === 'read') {
+            const lastLine = originalReadme.replace(/\n$/u, '').split('\n').length;
+            const startLine = action.view_range?.[0] ?? 1;
+            const endLine = action.view_range?.[1] ?? -1;
+            assert.ok(startLine === 1 && (endLine === -1 || endLine >= lastLine), 'the read phase must read the complete README');
+          }
           reads += 1;
         } else {
           assert.ok(stage === 'edit' && action.command === 'str_replace', 'only the requested word replacement is allowed');
-          assert.ok(action.old_str === OLD_WORD && action.new_str === NEW_WORD, 'the model must use the chosen deterministic replacement');
+          const before = await readFile(readmePath, 'utf8');
+          assert.ok(action.old_str !== null && action.old_str.length > 0 && action.new_str !== null
+            && before.split(action.old_str).length === 2
+            && before.replace(action.old_str, action.new_str) === editedReadme,
+          'the requested edit must produce exactly the chosen word replacement');
           assert.ok(++edits === 1, 'the README replacement must happen exactly once');
         }
         const result = await editor.execute({ ...action, path: readmePath });
@@ -186,7 +192,7 @@ export async function runConversationRegression(options: ConversationRegressionO
     });
     const makeAgent = () => new Agent({
       llm, tools: [boundedEditor, boundedTerminal, FinishTool.create()], toolConcurrencyLimit: 2,
-      systemPrompt: `You are testing the OpenHands SDK in its own repository snapshot. Working directory: ${workspace}. Follow the user's exact tool instructions. Use file_editor for README reads/edits. For each completed task, call finish.`,
+      systemPrompt: `You are testing the OpenHands SDK in its own repository snapshot. Working directory: ${workspace}. Follow the user's exact tool instructions. Use file_editor for README reads/edits. Complete each task with finish unless the user explicitly requests ordinary assistant text without tools; then follow that request.`,
     });
     const conversation = new LocalConversation({ agent: makeAgent(), maxIterations: 6 });
     const run = async () => {
