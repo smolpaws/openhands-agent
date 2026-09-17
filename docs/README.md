@@ -26,6 +26,8 @@ These are research records. Check current source/tests and provider documentatio
 
 `RELEASE_*.md` files record release-specific changes and verification. They are history, not the current compatibility contract.
 
+Latest release notes: [`RELEASE_0.4.0.md`](RELEASE_0.4.0.md).
+
 ## Repository entry points
 
 - Public package entry point: [`../src/index.ts`](../src/index.ts)

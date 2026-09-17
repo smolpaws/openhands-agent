@@ -26,7 +26,7 @@ The SDK and TypeScript agent-server advance against the same pinned upstream com
 ## Install
 
 ```sh
-npm install @smolpaws/openhands-agent
+npm install https://github.com/smolpaws/openhands-agent/releases/download/v0.4.0/smolpaws-openhands-agent-0.4.0.tgz
 ```
 
 ## Development
