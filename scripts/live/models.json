@@ -20,7 +20,8 @@
       "id": "native-opus-5",
       "label": "Claude Opus 5 / native",
       "route": "native",
-      "enabled": true,
+      "enabled": false,
+      "reason": "Temporarily paused: native API-key tests are disabled while subscription authentication is being enabled.",
       "scenario": "conversation",
       "credential": {
         "env": "ANTHROPIC_API_KEY",
@@ -109,7 +110,8 @@
       "id": "native-fable-5-1",
       "label": "Claude Fable 5.1 / native",
       "route": "native",
-      "enabled": true,
+      "enabled": false,
+      "reason": "Temporarily paused: native API-key tests are disabled while subscription authentication is being enabled.",
       "scenario": "conversation",
       "credential": {
         "env": "ANTHROPIC_API_KEY",
@@ -199,7 +201,8 @@
       "id": "native-gpt-5-6-sol",
       "label": "GPT-5.6 Sol / native",
       "route": "native",
-      "enabled": true,
+      "enabled": false,
+      "reason": "Temporarily paused: native API-key tests are disabled while subscription authentication is being enabled.",
       "scenario": "conversation",
       "credential": {
         "env": "OPENAI_API_KEY",
@@ -216,8 +219,7 @@
       "catalog": {
         "url": "https://developers.openai.com/api/docs/models",
         "modelId": "gpt-5.6-sol"
-      },
-      "reason": "Exact model documented by OpenAI; local catalog authentication returned 401 on 2026-09-17. Keep enabled so missing or invalid credentials are reported as unavailable."
+      }
     },
     {
       "id": "openrouter-gpt-5-6-sol",
@@ -293,7 +295,8 @@
       "id": "native-gpt-5-6-luna",
       "label": "GPT-5.6 Luna / native",
       "route": "native",
-      "enabled": true,
+      "enabled": false,
+      "reason": "Temporarily paused: native API-key tests are disabled while subscription authentication is being enabled.",
       "scenario": "conversation",
       "credential": {
         "env": "OPENAI_API_KEY",
@@ -310,8 +313,7 @@
       "catalog": {
         "url": "https://developers.openai.com/api/docs/models",
         "modelId": "gpt-5.6-luna"
-      },
-      "reason": "Exact model documented by OpenAI; local catalog authentication returned 401 on 2026-09-17. Keep enabled so missing or invalid credentials are reported as unavailable."
+      }
     },
     {
       "id": "openrouter-gpt-5-6-luna",
@@ -388,7 +390,8 @@
       "id": "native-gpt-6-astra",
       "label": "GPT-6 Astra / native",
       "route": "native",
-      "enabled": true,
+      "enabled": false,
+      "reason": "Temporarily paused: native API-key tests are disabled while subscription authentication is being enabled.",
       "scenario": "conversation",
       "credential": {
         "env": "OPENAI_API_KEY",
@@ -405,8 +408,7 @@
       "catalog": {
         "url": "https://developers.openai.com/api/docs/models",
         "modelId": "gpt-6-astra"
-      },
-      "reason": "Exact model documented by OpenAI; local catalog authentication returned 401 on 2026-09-17. Keep enabled so missing or invalid credentials are reported as unavailable."
+      }
     },
     {
       "id": "openrouter-gpt-6-astra",
@@ -884,7 +886,8 @@
       "id": "regression-responses-reasoning",
       "label": "OpenAI Responses reasoning replay",
       "route": "native",
-      "enabled": true,
+      "enabled": false,
+      "reason": "Temporarily paused: native API-key tests are disabled while subscription authentication is being enabled.",
       "scenario": "responses-reasoning",
       "credential": {
         "env": "OPENAI_API_KEY",
@@ -903,7 +906,8 @@
       "id": "example-native-openai-tools",
       "label": "OpenAI native file tools",
       "route": "native",
-      "enabled": true,
+      "enabled": false,
+      "reason": "Temporarily paused: native API-key tests are disabled while subscription authentication is being enabled.",
       "scenario": "native-openai-tools",
       "credential": {
         "env": "OPENAI_API_KEY",
@@ -941,7 +945,8 @@
       "id": "examples-native-opus-5",
       "label": "All applicable runnable examples: native-opus-5",
       "route": "native",
-      "enabled": true,
+      "enabled": false,
+      "reason": "Temporarily paused: native API-key tests are disabled while subscription authentication is being enabled.",
       "scenario": "examples",
       "credential": {
         "env": "ANTHROPIC_API_KEY",
@@ -959,7 +964,8 @@
       "id": "examples-native-gpt-5-6-sol",
       "label": "All applicable runnable examples: native-gpt-5-6-sol",
       "route": "native",
-      "enabled": true,
+      "enabled": false,
+      "reason": "Temporarily paused: native API-key tests are disabled while subscription authentication is being enabled.",
       "scenario": "examples",
       "credential": {
         "env": "OPENAI_API_KEY",
