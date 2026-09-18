@@ -33,6 +33,15 @@ describe('LLMSummarizingCondenser pinned behavior', () => {
     expect(() => condenser(mockLlm(), options)).toThrow(RangeError);
   });
 
+  // Review regression: the pinned direct class has int | None without gt=0.
+  // Profile-first settings validate positive budgets separately; do not tighten this constructor.
+  it.each([0, -1])('preserves the pinned direct-class token cap %s', async maxTokens => {
+    const c = condenser(mockLlm(), { maxTokens });
+    expect(c.maxTokens).toBe(maxTokens);
+    expect(c.effectiveMaxTokens(countedLlm(100))).toBe(maxTokens);
+    expect(await c.getCondensationReasons(new context.View(events(1)), countedLlm())).toEqual(new Set(['tokens']));
+  });
+
   it('returns the same untouched view when no pressure exists', async () => {
     const llm = mockLlm(), view = new context.View(events(10));
     const c = condenser(llm, { maxSize: 10, keepFirst: 3 });
@@ -151,6 +160,24 @@ describe('LLMSummarizingCondenser pinned behavior', () => {
     expect(prompts[1]!.length).toBeLessThan(prompts[0]!.length);
     expect(prompts[2]!.length).toBeLessThan(prompts[1]!.length);
     expect(JSON.stringify(original)).toBe(before);
+  });
+
+  it('preserves pinned zero-limit retry behavior when aggressive scaling reaches zero', async () => {
+    // Executed against original Python 50080b58d: an 88-character preview with
+    // scaling 0.1 gives [None, 8, 0, 0, 0]; maybe_truncate(0) means untruncated.
+    // This inherited edge is intentional parity, not a promise of monotonic shrinking.
+    const complete = vi.fn(async (_messages: readonly Message[]): Promise<LLMCompletionResponse> => { throw new Error('Synthetic failure'); });
+    const c = condenser(mockLlm({ complete }), { hardContextResetContextScaling: 0.1 });
+    const generate = vi.spyOn(c, 'generateCondensation');
+    expect(await c.hardContextReset(new context.View([user('public fixture '.repeat(4))]))).toBeNull();
+    expect(generate.mock.calls.map(call => call[2])).toEqual([null, 8, 0, 0, 0]);
+    const prompts = complete.mock.calls.map(([messages]) => {
+      const first = messages[0]!.content[0]!;
+      if (first.type !== 'text') throw new Error('Expected text summary prompt');
+      return first.text;
+    });
+    expect(prompts.map(prompt => [...prompt].length)).toEqual([2120, 2040, 2120, 2120, 2120]);
+    expect(prompts.slice(2)).toEqual([prompts[0], prompts[0], prompts[0]]);
   });
 
   it('uses a successful full-view reset when an explicitly requested normal summary fails', async () => {

@@ -18,7 +18,10 @@ const allowed = new Set(['--all', '--target', '--list', '--matrix', '--keychain'
 for (let i = 0; i < args.length; i++) {
   if (!allowed.has(args[i]!)) throw new Error('Use --all, --target ID, --list, or --matrix; optionally --keychain.');
   if (args[i] === '--target' || args[i] === '--condensation') {
-    if (!args[++i] || args[i]!.startsWith('--')) throw new Error('--target requires an ID');
+    const option = args[i]!;
+    if (!args[++i] || args[i]!.startsWith('--')) {
+      throw new Error(`${option} requires ${option === '--target' ? 'an ID' : 'a scenario'}`);
+    }
   }
 }
 const condensation = parseCondensationOption(args);

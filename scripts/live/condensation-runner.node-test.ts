@@ -51,3 +51,18 @@ test('explicit CLI scenario reports missing credentials as incomplete without ch
     await assert.rejects(readFile(join(directory, 'artifacts/llm/summary.json')), { code: 'ENOENT' });
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
+
+for (const [args, message] of [
+  [['--target'], '--target requires an ID'],
+  [['--target', 'native-deepseek-v4-pro', '--condensation'], '--condensation requires a scenario'],
+] as const) {
+  test(`CLI missing-value error identifies ${args.at(-1)}`, async () => {
+    await assert.rejects(exec(process.execPath, ['--import', import.meta.resolve('tsx'),
+      fileURLToPath(new URL('./run.ts', import.meta.url)), ...args], {
+      env: { PATH: process.env.PATH, TMPDIR: process.env.TMPDIR }, timeout: 10_000,
+    }), (error: unknown) => {
+      assert.ok((error as { stderr: string }).stderr.includes(message));
+      return true;
+    });
+  });
+}
