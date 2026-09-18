@@ -1,4 +1,4 @@
-/** PORT: context/condenser/llm_summarizing_condenser.py at the shared manifest pin. */
+/** PORT: pinned context/condenser/llm_summarizing_condenser.py; DEV-SDK-011 changes event defaults. */
 import { condensationSchema, type Condensation, type LLMConvertibleEvent } from '../event/index.js';
 import type { LLMClient, LLMCompletionResponse } from '../llm/client.js';
 import { messageSchema, textContent } from '../llm/index.js';
@@ -30,7 +30,7 @@ export class LLMSummarizingCondenser extends RollingCondenser {
   constructor(options: LLMSummarizingCondenserOptions) {
     super();
     this.llm = options.llm;
-    this.maxSize = options.maxSize ?? 240;
+    this.maxSize = options.maxSize ?? 1000;
     this.maxTokens = options.maxTokens ?? null;
     this.keepFirst = options.keepFirst ?? 2;
     this.minimumProgress = options.minimumProgress ?? 0.1;
@@ -145,7 +145,7 @@ export class LLMSummarizingCondenser extends RollingCondenser {
   }
 }
 
-/** The upstream standard agent/sub-agent factory is intentionally smaller than class/settings defaults. */
+/** DEV-SDK-011: the standard factory shares the target class/settings defaults of 1000/2. */
 export function defaultCondenser(llm: LLMClient): LLMSummarizingCondenser {
-  return new LLMSummarizingCondenser({ llm, maxSize: 80, keepFirst: 4 });
+  return new LLMSummarizingCondenser({ llm });
 }

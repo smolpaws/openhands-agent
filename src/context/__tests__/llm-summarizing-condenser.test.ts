@@ -21,12 +21,21 @@ const condensed = async (value: ReturnType<context.Condenser['condense']>) => {
   return result;
 };
 
-describe('LLMSummarizingCondenser pinned behavior', () => {
-  it('retains class defaults and the distinct standard factory defaults', () => {
+describe('LLMSummarizingCondenser pinned behavior with explicit target policy', () => {
+  // DEV-SDK-011: target defaults intentionally differ from the pinned Python values.
+  it('uses 1000/2 for both class and standard factory defaults', () => {
     const llm = mockLlm();
-    expect(condenser(llm)).toMatchObject({ llm, maxSize: 240, keepFirst: 2, maxTokens: null, minimumProgress: 0.1, hardContextResetMaxRetries: 5, hardContextResetContextScaling: 0.8 });
-    expect(context.defaultCondenser(llm)).toMatchObject({ maxSize: 80, keepFirst: 4 });
+    expect(condenser(llm)).toMatchObject({ llm, maxSize: 1000, keepFirst: 2, maxTokens: null, minimumProgress: 0.1, hardContextResetMaxRetries: 5, hardContextResetContextScaling: 0.8 });
+    expect(context.defaultCondenser(llm)).toMatchObject({ maxSize: 1000, keepFirst: 2 });
     expect(condenser(llm).handlesCondensationRequests()).toBe(true);
+  });
+
+  it.each(['class', 'factory'] as const)('starts default %s event pressure only above 1000 events', async kind => {
+    const llm = mockLlm();
+    const c = kind === 'class' ? condenser(llm) : context.defaultCondenser(llm);
+    expect(await c.condensationRequirement(new context.View(events(1000)))).toBeNull();
+    expect(await c.condensationRequirement(new context.View(events(1001)))).toBe('soft');
+    expect(llm.complete).not.toHaveBeenCalled();
   });
 
   it.each([{ maxSize: 0 }, { maxSize: 10, keepFirst: 4 }, { keepFirst: -1 }, { minimumProgress: 0 }, { minimumProgress: 1 }, { hardContextResetMaxRetries: 0 }, { hardContextResetContextScaling: 1 }])('rejects invalid configuration %j', options => {

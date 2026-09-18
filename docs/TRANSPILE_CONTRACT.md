@@ -145,6 +145,12 @@ Explicit profile input limits take precedence. Known native limits come from a r
 
 The TypeScript Agent renders fixed system/context outside the event View. Include those blocks and usable tool declarations in every candidate token count without removing them during condensation. An oversized fixed prompt cannot be repaired by forgetting history; do not silently truncate host identity or memory to conceal it. Preflight estimates never enter the usage ledger.
 
+### DEV-SDK-011 — shared condenser event defaults
+
+The TypeScript summarizing-condenser class, validated settings and `defaultCondenser()` factory default to `max_size: 1000` / `maxSize: 1000` and `keep_first: 2` / `keepFirst: 2`. This intentionally differs from the pinned Python class/settings defaults of 240/2 and standard-agent/sub-agent factory defaults of 80/4. The target keeps more event history before event-count pressure alone requests condensation and uses the same defaults through all three construction paths.
+
+These defaults apply only to omitted fields. Explicit constructor/settings values, including persisted conversation condenser bindings, remain authoritative and are not migrated merely because defaults changed. Event pressure remains strict greater-than; token pressure, explicit requests, provider-error recovery, safe cuts and reset behavior are unchanged. This policy does not select a model/profile, introduce a token budget, or make the factory reuse the main client. Review upstream condenser defaults, settings and standard-agent/sub-agent factory changes against this choice. See [condensation evidence](../transpile/condensation.md).
+
 ### EXC-SDK-001 — plugin runtime
 
 The Python plugin runtime is outside current transpilation scope unless this contract is deliberately changed.

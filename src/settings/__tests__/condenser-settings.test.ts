@@ -17,6 +17,7 @@ function client(id: string, limit: number | null = null): LLMClient {
 
 // PORT: tests/sdk/test_settings.py condenser cases at the shared pin.
 // DEV-SDK-004: resolve a separate saved profile instead of copying the main LLM.
+// DEV-SDK-011: omitted event defaults are 1000/2; saved overrides remain authoritative.
 describe('validated condenser settings', () => {
   it('loads the old discriminator-free settings with class defaults', () => {
     const settings = validateAgentSettings({ llm_profile_ref: 'agent', condenser: { enabled: true, max_size: 100, max_tokens: 5000 } });
@@ -27,9 +28,9 @@ describe('validated condenser settings', () => {
     } });
   });
 
-  it('keeps old default settings loadable without inventing a profile selection', () => {
+  it('applies target defaults to omitted settings without inventing a profile selection', () => {
     const settings = validateAgentSettings({ llm_profile_ref: 'agent' });
-    expect(settings).toMatchObject({ condenser: { condenser_kind: 'llm_summarizing', enabled: true, max_size: 240, keep_first: 2 } });
+    expect(settings).toMatchObject({ condenser: { condenser_kind: 'llm_summarizing', enabled: true, max_size: 1000, keep_first: 2 } });
     expect(settings.condenser).not.toHaveProperty('llm_profile_ref');
     expect(settings.condenser).not.toHaveProperty('max_tokens');
   });
@@ -75,11 +76,23 @@ describe('materializeCondenser', () => {
     expect(condenser.llm).not.toBe(agentLlm);
   });
 
-  it('distinguishes the settings defaults from defaultCondenser', async () => {
+  it('aligns materialized settings with the class and defaultCondenser defaults', async () => {
     const llm = client('summary');
     const condenser = await materializeCondenser({ llm_profile_ref: 'summary' }, { resolveClient: async () => llm });
-    expect(condenser).toMatchObject({ maxSize: 240, keepFirst: 2 });
-    expect(defaultCondenser(llm)).toMatchObject({ maxSize: 80, keepFirst: 4 });
+    expect(condenser).toMatchObject({ maxSize: 1000, keepFirst: 2 });
+    expect(new LLMSummarizingCondenser({ llm })).toMatchObject({ maxSize: 1000, keepFirst: 2 });
+    expect(defaultCondenser(llm)).toMatchObject({ maxSize: 1000, keepFirst: 2 });
+  });
+
+  it.each([[240, 2], [80, 4]])('preserves saved %s/%s overrides through JSON and materialization', async (maxSize, keepFirst) => {
+    const settings = validateAgentSettings({ llm_profile_ref: 'agent', condenser: {
+      llm_profile_ref: 'summary', max_size: maxSize, keep_first: keepFirst,
+    } });
+    const restored = validateAgentSettings(JSON.parse(JSON.stringify(settings)));
+    expect(restored.condenser).toMatchObject({ max_size: maxSize, keep_first: keepFirst });
+    const llm = client('summary');
+    const condenser = await materializeCondenser(restored.condenser, { resolveClient: async () => llm });
+    expect(condenser).toMatchObject({ maxSize, keepFirst });
   });
 
   it.each([

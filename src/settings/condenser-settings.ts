@@ -10,7 +10,8 @@ export const llmSummarizingCondenserSettingsSchema = z.object({
   condenser_kind: z.literal('llm_summarizing').default('llm_summarizing'),
   enabled: z.boolean().default(true),
   llm_profile_ref: profileReferenceSchema.optional(),
-  max_size: z.number().int().min(20).default(240),
+  // DEV-SDK-011: align omitted settings with the class and standard factory.
+  max_size: z.number().int().min(20).default(1000),
   // Absence inherits the agent limit at materialization; explicit null does not.
   max_tokens: z.number().int().positive().nullable().optional(),
   keep_first: z.number().int().nonnegative().default(2),
