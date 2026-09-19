@@ -10,6 +10,7 @@ export const llmProviderIdSchema = z.string().min(1).regex(/^[A-Za-z0-9._-]+$/u)
 
 export const openAiApiModeSchema = z.union([z.literal('chat_completions'), z.literal('responses')]);
 export const reasoningEffortSchema = z.union([z.literal('low'), z.literal('medium'), z.literal('high')]);
+export const verbositySchema = z.enum(['low', 'medium', 'high']);
 export const reasoningSummarySchema = z.union([z.literal('auto'), z.literal('concise'), z.literal('detailed')]);
 export const promptCacheRetentionSchema = z.union([z.literal('24h'), z.literal('disabled')]);
 export const anthropicCacheTtlSchema = z.enum(['5m', '1h']);
@@ -31,6 +32,7 @@ export const llmProfileSchema = z
     timeoutSeconds: z.number().positive().nullable().default(null),
     reasoningEffort: reasoningEffortSchema.nullable().default(null),
     reasoningSummary: reasoningSummarySchema.nullable().default(null),
+    verbosity: verbositySchema.optional(),
     cachingPrompt: z.boolean().default(true),
     anthropicCacheTtl: anthropicCacheTtlSchema.optional(),
     promptCacheRetention: promptCacheRetentionSchema.nullable().default(null),
@@ -43,6 +45,7 @@ export const llmProfileSchema = z
 export type LLMProfile = z.infer<typeof llmProfileSchema>;
 export type OpenAiApiMode = z.infer<typeof openAiApiModeSchema>;
 export type ReasoningEffort = z.infer<typeof reasoningEffortSchema>;
+export type Verbosity = z.infer<typeof verbositySchema>;
 export type ReasoningSummary = z.infer<typeof reasoningSummarySchema>;
 export type PromptCacheRetention = z.infer<typeof promptCacheRetentionSchema>;
 export type AnthropicCacheTtl = z.infer<typeof anthropicCacheTtlSchema>;

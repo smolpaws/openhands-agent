@@ -222,6 +222,7 @@ export function buildChatCompletionsBody(
     body.reasoning_effort = normalizedProfile.reasoningEffort;
   }
   applyOpenAIPromptCacheOptions(body, normalizedProfile);
+  if (normalizedProfile.verbosity !== undefined) body.verbosity = normalizedProfile.verbosity;
   finalizeAnthropicCacheBreakpoints(normalizedProfile, body);
   return body;
 }
@@ -261,6 +262,7 @@ export function buildOpenAIResponsesBody(
       ...(normalizedProfile.reasoningSummary === null ? {} : { summary: normalizedProfile.reasoningSummary }),
     };
   }
+  if (normalizedProfile.verbosity !== undefined) body.text = { verbosity: normalizedProfile.verbosity };
   if (profile.authType === 'subscription') {
     const [subscriptionInstructions, input] = transformForSubscription(instructions, (body.input as Record<string, unknown>[]).filter(item => item.type !== 'reasoning'));
     body.instructions = subscriptionInstructions;
