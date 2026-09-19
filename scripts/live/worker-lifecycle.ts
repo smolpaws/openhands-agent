@@ -76,6 +76,7 @@ export function waitForWorker(worker: ChildProcess, identity: Identity, timeoutM
 }
 
 function safeReason(reason: string): string {
+  if (['subscription-login-required', 'subscription-auth-unavailable'].includes(reason)) return reason;
   if (/^condensation-(thinking|token-count)-unavailable$/u.test(reason)) return reason;
   if (/^provider-http-\d{3}$/u.test(reason)) return reason;
   if (/^provider-(insufficient-credit|exhausted-quota|model-unavailable)$/u.test(reason)) return reason;

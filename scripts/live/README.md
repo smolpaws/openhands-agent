@@ -1,6 +1,7 @@
 # Live LLM regression suite
 
-`models.json` is the complete model/route inventory and the execution configuration.
+`models.json` is the API-key model/route inventory and the execution configuration.
+Local ChatGPT subscription targets have a separate `subscription-models.json` inventory.
 It lists native, OpenRouter, OpenHands app, and OpenHands eval targets separately,
 including disabled routes and the reason each is disabled. Model IDs are route
 specific. App is preferred where its catalog lists the model; eval is an explicit
@@ -46,6 +47,55 @@ bounded failure categories, durations, and verification counts. Child process
 stdout/stderr and raw provider exchanges are not published. Target workers receive
 only their own key and have a hard deadline: four minutes for a regression target,
 ten minutes for the example group. Provider requests also have individual limits.
+
+## Local ChatGPT subscription tests
+
+Use the existing **OpenHands** OAuth login, with the same SDK credential store and
+refresh handling used by normal subscription conversations. The command does not
+read Codex credentials, implement OAuth, copy credentials, or fall back to an API key.
+The SDK reads `~/.openhands/auth` by default; its existing `OH_PERSISTENCE_DIR`
+override selects a different OpenHands persistence directory.
+
+```sh
+npm run live:subscriptions -- --list
+npm run live:subscriptions -- --target subscription-gpt-5-6-luna
+npm run live:subscriptions -- --all
+```
+
+`subscription-models.json` lists Sol, Luna and Astra, with explicit `enabled` flags.
+Set `enabled: false` and a `reason` to pause a target. `--all` runs enabled targets
+sequentially; `--target` does not override a disabled flag. There is no model fallback.
+These targets use `authType: "subscription"` and `subscriptionVendor: "openai"`.
+
+Every target reuses the full conversation assertions below: real README read/edit,
+parallel tool calls, concurrent input ordering in the actual outgoing request,
+finish, restored continuation, in-flight plain response ordering and accounting.
+The SDK refreshes expired access tokens and persists any rotated credentials.
+An absent login reports `unavailable` with exit 2; log in through the existing
+OpenHands subscription flow and rerun. No browser login starts automatically.
+Avoid overlapping runs against the same OAuth account/store.
+
+Sanitized results go to `artifacts/llm/subscriptions/summary.json`, `summary.md`,
+and per-target JSON files, leaving the API-key suite reports untouched. Exit codes
+are the same 0/1/2 convention described above. Each worker has a four-minute limit.
+Reports do not contain tokens, raw provider exchanges or conversation text.
+
+**These live tests run locally, not in GitHub Actions.** The `llm-tests` label and
+API-key matrix do not select subscription targets; the subscription command refuses
+execution under `GITHUB_ACTIONS=true`. Ordinary CI runs only their offline harness
+tests and type checks. No subscription credentials belong in GitHub secrets or artifacts.
+
+For the separate SmolPaws agent-server path, its existing isolated smoke remains:
+
+```sh
+# In the smolpaws repository:
+OPENHANDS_SUBSCRIPTION_MODEL=gpt-5.6-luna npm --prefix packages/openhands-agent-server run manual:subscription
+```
+
+That smoke validates a saved subscription profile and two `think`/`finish` turns
+through server routes with temporary state. It is server integration evidence,
+not the full README regression or an end-to-end bridge test. Both commands use
+OpenHands-owned OAuth; neither changes production bridge profiles or sends messages.
 
 ## Conversation assertions
 
