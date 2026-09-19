@@ -65,3 +65,58 @@ test('subscription inventory rejects unsupported models, duplicates, credentials
   assert.throws(() => parse([{ ...target, access_token: 'must-not-store' }]));
   assert.equal(parse([{ ...target, enabled: false, reason: 'Temporarily unavailable' }]).targets[0]?.enabled, false);
 });
+
+test('cancellation stops an uncooperative detached worker before its deadline', async () => {
+  const { spawn } = await import('node:child_process');
+  const { waitForWorker } = await import('./worker-lifecycle.js');
+  const controller = new AbortController();
+  const worker = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], {
+    detached: process.platform !== 'win32', stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+  });
+  const started = Date.now();
+  const waiting = waitForWorker(worker, { target: 'cancel-test', model: 'fixture', route: 'chatgpt-subscription', scenario: 'conversation' }, 5_000, controller.signal);
+  controller.abort();
+  const result = await waiting;
+  assert.equal(result.status, 'failed');
+  assert.equal(result.reason, 'target-cancelled');
+  assert.ok(Date.now() - started < 4_000, 'cancellation must not wait for the target deadline');
+});
+
+test('SIGTERM cancels the current CLI target and leaves later targets pending', { skip: process.platform === 'win32' }, async () => {
+  const { spawn } = await import('node:child_process');
+  const { mkdir, chmod, stat } = await import('node:fs/promises');
+  const root = await mkdtemp(join(tmpdir(), 'subscription-cli-cancel-'));
+  let runnerProcess: ReturnType<typeof spawn> | undefined;
+  try {
+    const auth = join(root, 'state/auth');
+    await mkdir(auth, { recursive: true });
+    await chmod(auth, 0o755);
+    // A FIFO blocks credential setup without a credential or any network call.
+    // SDK chmod to 0700 tells us the worker has entered its normal store read.
+    await exec('mkfifo', [join(auth, 'openai_oauth.json')]);
+    runnerProcess = spawn(process.execPath, [...nodeArgs, '--all'], {
+      cwd: root, env: { PATH: process.env.PATH, OH_PERSISTENCE_DIR: join(root, 'state') }, stdio: 'ignore',
+    });
+    const closed = new Promise<[number | null, NodeJS.Signals | null]>((resolve, reject) => {
+      runnerProcess!.once('close', (code, signal) => resolve([code, signal]));
+      runnerProcess!.once('error', reject);
+    });
+    const deadline = Date.now() + 5_000;
+    while (((await stat(auth)).mode & 0o777) !== 0o700 && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    assert.equal((await stat(auth)).mode & 0o777, 0o700, 'worker entered credential setup');
+    runnerProcess.kill('SIGTERM');
+    const [code, signal] = await closed;
+    assert.equal(code, 143);
+    assert.equal(signal, null);
+    const summary = JSON.parse(await readFile(join(root, 'artifacts/llm/subscriptions/summary.json'), 'utf8'));
+    assert.equal(summary.complete, false);
+    assert.equal(summary.results.length, 1);
+    assert.equal(summary.results[0].reason, 'target-cancelled');
+    assert.deepEqual(summary.pending, ['subscription-gpt-5-6-luna', 'subscription-gpt-6-astra']);
+  } finally {
+    runnerProcess?.kill('SIGTERM');
+    await rm(root, { recursive: true, force: true });
+  }
+});

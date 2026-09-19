@@ -43,27 +43,39 @@ async function main() {
       ...disabled.filter(t => !results.some(r => r.target === t.id)).map(t => `| ${t.id} | disabled | ${t.reason} |`), '',
     ].join('\n'));
   };
-  await writeReports();
-  // Sequential workers share the SDK's persistent OAuth store; no credential copies.
-  for (const target of targets) {
-    const base = subscriptionIdentity(target);
-    let result: LiveResult;
-    if (!target.enabled) result = { ...base, status: 'disabled', reason: target.reason, durationMs: 0 };
-    else {
-      const env = Object.fromEntries(['PATH', 'HOME', 'USERPROFILE', 'TMPDIR', 'OH_PERSISTENCE_DIR']
-        .flatMap(key => process.env[key] === undefined ? [] : [[key, process.env[key]!]]));
-      const worker = fork(fileURLToPath(new URL('./subscriptions-worker.ts', import.meta.url)), [target.id], {
-        execArgv: ['--import', import.meta.resolve('tsx')], env, detached: process.platform !== 'win32',
-        stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
-      });
-      result = await waitForWorker(worker, base, 240_000);
-    }
-    results.push(result);
-    console.log(`${result.target}: ${result.status}${result.reason ? ` (${result.reason})` : ''}`);
-    await writeFile(resolve(out, `${target.id}.json`), JSON.stringify(result, null, 2) + '\n');
+  const controller = new AbortController();
+  let interrupted: number | undefined;
+  const interrupt = () => { interrupted ??= 130; controller.abort(); };
+  const terminate = () => { interrupted ??= 143; controller.abort(); };
+  process.on('SIGINT', interrupt);
+  process.on('SIGTERM', terminate);
+  try {
     await writeReports();
+    // Sequential workers share the SDK's persistent OAuth store; no credential copies.
+    for (const target of targets) {
+      if (controller.signal.aborted) break;
+      const base = subscriptionIdentity(target);
+      let result: LiveResult;
+      if (!target.enabled) result = { ...base, status: 'disabled', reason: target.reason, durationMs: 0 };
+      else {
+        const env = Object.fromEntries(['PATH', 'HOME', 'USERPROFILE', 'TMPDIR', 'OH_PERSISTENCE_DIR']
+          .flatMap(key => process.env[key] === undefined ? [] : [[key, process.env[key]!]]));
+        const worker = fork(fileURLToPath(new URL('./subscriptions-worker.ts', import.meta.url)), [target.id], {
+          execArgv: ['--import', import.meta.resolve('tsx')], env, detached: process.platform !== 'win32',
+          stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+        });
+        result = await waitForWorker(worker, base, 240_000, controller.signal);
+      }
+      results.push(result);
+      console.log(`${result.target}: ${result.status}${result.reason ? ` (${result.reason})` : ''}`);
+      await writeFile(resolve(out, `${target.id}.json`), JSON.stringify(result, null, 2) + '\n');
+      await writeReports();
+    }
+    process.exitCode = interrupted ?? resultExitCode(results);
+  } finally {
+    process.off('SIGINT', interrupt);
+    process.off('SIGTERM', terminate);
   }
-  process.exitCode = resultExitCode(results);
 }
 await main().catch(() => {
   console.error('Subscription runner setup failed; check configuration, build and output directory.');

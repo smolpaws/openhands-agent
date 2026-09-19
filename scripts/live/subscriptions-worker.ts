@@ -5,18 +5,26 @@ import { readSubscriptionConfig, subscriptionIdentity } from './subscriptions-co
 const target = (await readSubscriptionConfig()).targets.find(t => t.id === process.argv[2]);
 if (!target?.enabled || !process.send || process.env.GITHUB_ACTIONS === 'true') process.exit(2);
 const base = subscriptionIdentity(target);
+const controller = new AbortController();
+const cancel = (message: unknown) => {
+  if (message && typeof message === 'object' && 'cancel' in message && message.cancel === true) controller.abort();
+};
+const disconnect = () => controller.abort();
+process.on('message', cancel);
+process.on('disconnect', disconnect);
+const report = (value: unknown) => { if (process.connected) process.send?.(value); };
 try {
   // The SDK alone reads, validates, refreshes and persists OAuth credentials.
   // An expired access token is not a missing login: the factory refreshes it.
   if (!new OpenAISubscriptionAuth().getCredentials()) {
-    process.send({ ...base, status: 'unavailable', reason: 'subscription-login-required' });
+    report({ ...base, status: 'unavailable', reason: 'subscription-login-required' });
   } else {
     const evidence = await runConversationRegression({
       profile: llmProfileSchema.parse({ profileId: target.id, providerId: 'openai', model: target.model,
         authType: 'subscription', subscriptionVendor: 'openai', timeoutSeconds: 60 }),
-      store: new InMemorySecretStore(), repoRoot: process.cwd(), timeoutMs: 220_000, maxRequests: 18,
+      store: new InMemorySecretStore(), signal: controller.signal, repoRoot: process.cwd(), timeoutMs: 220_000, maxRequests: 18,
     });
-    process.send({ ...base, status: 'passed', evidence });
+    report({ ...base, status: 'passed', evidence });
   }
 } catch (error) {
   // Never send exception text, request headers, provider bodies or credentials.
@@ -30,5 +38,9 @@ try {
   const unavailable = auth || network || category || (http && ['401', '403', '404', '429', '500', '502', '503', '504'].includes(http));
   const reason = auth ? 'subscription-auth-unavailable' : category ? `provider-${category}` : http ? `provider-http-${http}`
     : network ? 'provider-network-unavailable' : phase ? `conversation-${phase}` : 'scenario-error';
-  process.send({ ...base, status: unavailable ? 'unavailable' : 'failed', reason });
+  report({ ...base, status: unavailable ? 'unavailable' : 'failed', reason });
+} finally {
+  process.off('message', cancel);
+  process.off('disconnect', disconnect);
+  if (process.connected) process.disconnect();
 }

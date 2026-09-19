@@ -77,7 +77,9 @@ Avoid overlapping runs against the same OAuth account/store.
 
 Sanitized results go to `artifacts/llm/subscriptions/summary.json`, `summary.md`,
 and per-target JSON files, leaving the API-key suite reports untouched. Exit codes
-are the same 0/1/2 convention described above. Each worker has a four-minute limit.
+are the same 0/1/2 convention described above. Each worker has a four-minute limit. Ctrl-C/SIGTERM aborts the current target
+and stops the remaining targets; a worker that cannot stop cooperatively is killed
+after one second. The exit status is 130/143 for interruption/termination.
 Reports do not contain tokens, raw provider exchanges or conversation text.
 
 **These live tests run locally, not in GitHub Actions.** The `llm-tests` label and
@@ -95,7 +97,7 @@ OPENHANDS_SUBSCRIPTION_MODEL=gpt-5.6-luna npm --prefix packages/openhands-agent-
 That smoke validates a saved subscription profile and two `think`/`finish` turns
 through server routes with temporary state. It is server integration evidence,
 not the full README regression or an end-to-end bridge test. Both commands use
-OpenHands-owned OAuth; neither changes production bridge profiles or sends messages.
+OpenHands-owned OAuth; neither changes production bridge profiles nor sends messages through production bridge routes.
 
 ## Conversation assertions
 
