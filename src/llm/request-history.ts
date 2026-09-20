@@ -4,7 +4,7 @@ import { conversationStateUpdateEventSchema, type Event, type LLMConvertibleEven
 
 export const LLM_REQUEST_BOUNDARY_KEY = 'llm_request_boundary';
 
-const boundarySchema = z.object({
+export const llmRequestBoundarySchema = z.object({
   version: z.literal(1),
   // Event serialization omits nulls, so an omitted ID also means an empty input log.
   input_event_id: z.string().nullable().default(null),
@@ -15,7 +15,7 @@ const boundarySchema = z.object({
 export function requestBoundaryEvent(inputEventId: string | null, responseEvents: readonly Event[]): Event {
   return conversationStateUpdateEventSchema.parse({
     key: LLM_REQUEST_BOUNDARY_KEY,
-    value: boundarySchema.parse({ version: 1, input_event_id: inputEventId, response_event_ids: responseEvents.map(event => event.id) }),
+    value: llmRequestBoundarySchema.parse({ version: 1, input_event_id: inputEventId, response_event_ids: responseEvents.map(event => event.id) }),
   });
 }
 
@@ -26,19 +26,7 @@ export function requestBoundaryEvent(inputEventId: string | null, responseEvents
  */
 export function historyForRequests(view: readonly LLMConvertibleEvent[], history: readonly Event[]): LLMConvertibleEvent[] {
   let ordered = [...view];
-  const indices = new Map(history.map((event, index) => [event.id, index]));
-  for (const marker of history) {
-    if (marker.kind !== 'ConversationStateUpdateEvent' || marker.key !== LLM_REQUEST_BOUNDARY_KEY) continue;
-    const boundary = boundarySchema.parse(marker.value);
-    const inputIndex = boundary.input_event_id === null ? -1 : indices.get(boundary.input_event_id);
-    const responseIds = new Set(boundary.response_event_ids);
-    const responseIndices = boundary.response_event_ids.map(id => indices.get(id));
-    // A partially persisted batch cannot establish its completed causal boundary.
-    if (inputIndex === undefined || responseIds.size !== responseIndices.length
-      || responseIndices.some(index => index === undefined || index <= inputIndex)) continue;
-    const firstResponseIndex = Math.min(...responseIndices as number[]);
-    const markerIndex = indices.get(marker.id)!;
-    if (inputIndex >= markerIndex || firstResponseIndex <= markerIndex) continue;
+  for (const { inputIndex, responseIds, firstResponseIndex } of completedRequestBoundaries(history)) {
     const lateIds = new Set(history.slice(inputIndex + 1, firstResponseIndex).filter(event =>
       event.kind === 'MessageEvent' && event.source === 'user' && event.llm_message.role === 'user',
     ).map(event => event.id));
@@ -65,4 +53,50 @@ export function historyForRequests(view: readonly LLMConvertibleEvent[], history
     ];
   }
   return ordered;
+}
+
+/** User input absent from every completed request remains verbatim during recovery. */
+export function unconsumedUserEventIds(view: readonly LLMConvertibleEvent[], history: readonly Event[]): Set<string> {
+  const indices = new Map(history.map((event, index) => [event.id, index]));
+  let consumedThrough = -1;
+  for (const { inputIndex } of completedRequestBoundaries(history)) consumedThrough = Math.max(consumedThrough, inputIndex);
+  return new Set(view.filter(event => event.kind === 'MessageEvent' && event.source === 'user'
+    && event.llm_message.role === 'user' && (indices.get(event.id) ?? Infinity) > consumedThrough).map(event => event.id));
+}
+
+/** A successful subsequent main request, not new user input, rearms paid recovery. */
+export function hasCompletedLlmRequestAfter(history: readonly Event[], eventId: string): boolean {
+  const index = history.findIndex(event => event.id === eventId);
+  return index >= 0 && completedRequestBoundaries(history).some(boundary => boundary.inputIndex >= index);
+}
+
+interface CompletedRequestBoundary {
+  readonly inputIndex: number;
+  readonly responseIds: ReadonlySet<string>;
+  readonly firstResponseIndex: number;
+}
+
+function completedRequestBoundaries(history: readonly Event[]): CompletedRequestBoundary[] {
+  const indices = new Map(history.map((event, index) => [event.id, index]));
+  const completed: CompletedRequestBoundary[] = [];
+  for (const [markerIndex, marker] of history.entries()) {
+    if (marker.kind !== 'ConversationStateUpdateEvent' || marker.key !== LLM_REQUEST_BOUNDARY_KEY) continue;
+    const boundary = llmRequestBoundarySchema.parse(marker.value);
+    const inputIndex = boundary.input_event_id === null ? -1 : indices.get(boundary.input_event_id);
+    const responseIds = new Set(boundary.response_event_ids);
+    if (inputIndex === undefined || inputIndex >= markerIndex || responseIds.size !== boundary.response_event_ids.length) continue;
+    const responseIndices = boundary.response_event_ids.map(id => indices.get(id));
+    // A partial or misordered batch cannot establish a completed causal boundary.
+    if (responseIndices.some(index => index === undefined || index <= markerIndex)) continue;
+    const responses = responseIndices.map(index => history[index!]!);
+    if (!responses.some(isMainResponse) || !responses.every(event => isMainResponse(event)
+      || event.kind === 'MessageEvent' && event.source === 'environment' && event.llm_message.role === 'user')) continue;
+    completed.push({ inputIndex, responseIds, firstResponseIndex: Math.min(...responseIndices as number[]) });
+  }
+  return completed;
+}
+
+function isMainResponse(event: Event): boolean {
+  return event.kind === 'ActionEvent' || event.kind === 'MessageEvent'
+    && event.source === 'agent' && event.llm_message.role === 'assistant';
 }

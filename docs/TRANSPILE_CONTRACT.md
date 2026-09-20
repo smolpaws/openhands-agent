@@ -85,7 +85,7 @@ Profiles may explicitly select `verbosity: 'low' | 'medium' | 'high'`. Omission 
 
 The optional `switch_llm` builtin retains the upstream profile-name/reason input and structured observation. Hosts provide saved profile names and a profile-selection callback; the SDK does not choose a global profile database. A callback may prepare and durably accept a pending selection during tool execution, then install it at the completed-step boundary before the next LLM call. Its success text describes acceptance for that next call, rather than claiming the currently executing batch changed models. Failure leaves the working selection intact. Settings-driven hosts honor `enable_switch_llm_tool` (default true); it is not one of the unconditional `BUILT_IN_TOOLS`.
 
-Condenser settings select their own `llm_profile_ref`, or an explicit host-provided default reference. Materialization must resolve that reference independently; it must never silently reuse the main agent client. Disabled/no-op settings require no credential lookup. Missing references and resolution failures are errors at materialization, while old settings without a reference remain loadable for host migration. Profile switches do not implicitly switch the condenser.
+Ordinary summarizing-condenser settings select their own `llm_profile_ref`, or an explicit host-provided default reference. Materialization must resolve that reference independently; it must never silently reuse the main agent client. Disabled/no-op settings require no credential lookup. Missing references and resolution failures are errors at materialization, while old settings without a reference remain loadable for host migration. Profile switches do not implicitly switch the condenser. The opt-in agent-reset mode and its explicit sibling hard fallback are governed by DEV-SDK-012 and EXT-SDK-004.
 
 ### DEV-SDK-005 — no ACP runtime execution
 
@@ -141,7 +141,7 @@ condensation and event conversion against it. See [concurrent response evidence 
 
 ### DEV-SDK-010 — explicit input-budget estimates and unavailable counts
 
-Native clients expose optional token-counting, effective-input-limit and awaited runtime-metadata capabilities. Local text/tool counting ports the pinned LiteLLM generic BPE recipe; it is an estimate, not billed usage or a promise of provider-specific tokenizer equivalence. The native implementation does not reproduce every Hugging Face tokenizer, chat template, or multimodal token estimator. Unmeasurable images/opaque reasoning return `null`, never an invented zero or silent character-count approximation. Custom clients may omit these capabilities. Event-count, manual-request and typed provider-error condensation remain available when proactive token counting is unavailable.
+Native clients expose optional token-counting, effective-input-limit and awaited runtime-metadata capabilities. Local text/tool counting ports the pinned LiteLLM generic BPE recipe; it is an estimate, not billed usage or a promise of provider-specific tokenizer equivalence. The native implementation does not reproduce every Hugging Face tokenizer, chat template, or multimodal token estimator. Unmeasurable images/opaque reasoning return `null`, never an invented zero or silent character-count approximation. Custom clients may omit these capabilities. For ordinary summarizers, event-count, manual-request and typed provider-error condensation remain available when proactive token counting is unavailable. Agent-reset mode instead follows DEV-SDK-012's advisory-only and provider-error-only routing.
 
 Explicit profile input limits take precedence. Known native limits come from a reproducibly generated snapshot of the dependency locked at the canonical Python pin. Route overrides must not inherit an unrelated native catalog limit. Runtime discovery is bounded, cached, provider-owned and restricted to supported metadata routes; unknown limits remain `null`. This differs from Python's fallback-zero token counting and some dependency model resolution. Revisit this policy when adding native tokenizers/modalities or when upstream token accounting/model discovery changes. See [condensation evidence](../transpile/condensation.md).
 
@@ -152,6 +152,70 @@ The TypeScript Agent renders fixed system/context outside the event View. Includ
 The TypeScript summarizing-condenser class, validated settings and `defaultCondenser()` factory default to `max_size: 1000` / `maxSize: 1000` and `keep_first: 2` / `keepFirst: 2`. This intentionally differs from the pinned Python class/settings defaults of 240/2 and standard-agent/sub-agent factory defaults of 80/4. The target keeps more event history before event-count pressure alone requests condensation and uses the same defaults through all three construction paths.
 
 These defaults apply only to omitted fields. Explicit constructor/settings values, including persisted conversation condenser bindings, remain authoritative and are not migrated merely because defaults changed. Event pressure remains strict greater-than; token pressure, explicit requests, provider-error recovery, safe cuts and reset behavior are unchanged. This policy does not select a model/profile, introduce a token budget, or make the factory reuse the main client. Review upstream condenser defaults, settings and standard-agent/sub-agent factory changes against this choice. See [condensation evidence](../transpile/condensation.md).
+
+### DEV-SDK-012 — opt-in agent-controlled context reset
+
+Selecting an enabled `condenser_kind: 'agent_reset'` changes only that mode's context
+lifecycle. Ordinary summarizing/no-op configurations retain their existing behavior.
+The new tool and settings are EXT-SDK-004; the shared Agent, View, event and
+LocalConversation changes are this explicit deviation.
+
+Warnings default to fractional thresholds `[0.75, 0.80, 0.85, 0.90]`. The active main
+profile's explicit `maxInputTokens` is authoritative, even when client metadata reports
+a larger model window. Only an absent explicit limit may use resolved main-model
+metadata. Include fixed system/context, memory snapshot and usable tools in the
+estimate. Counts and limits may be unavailable and must not become an invented zero.
+Persist the highest newly crossed warning per committed-reset generation; restore
+does not repeat it. A warning, a count at or above 100%, event pressure, elapsed turns
+or a judgment about note readiness must neither reset context nor block a model request.
+
+A successful sole `condense` tool call clears all eligible old active history without
+a summary or retained historical prefix/tail. Preserve the normal fixed prompt,
+then project the exact user-role notice `The agent triggered context condensation.`,
+the genuine assistant tool call and matching tool observation, followed by protected
+late user input. The notice has environment provenance, not user authorship.
+The optional future-self message is agent-authored text retained verbatim in the
+exchange. The tool does not write or reread memory files; recovery asks the agent to
+take a deep breath, find/read its notes and continue, with user-awareness guidance.
+An immutable host memory snapshot cannot silently become a fresh read of those notes.
+
+Keep the existing ActionEvent/ObservationEvent wrappers and add typed tool payloads.
+Versioned optional request/reset metadata correlates the original call/result,
+provider-error trigger, input boundary and committed Condensation. The complete
+event log, accounting and files remain intact. Validate the replay before committing;
+do not expose a successful reset to the next model request before that commit.
+Mixed or duplicate reset calls fail explicitly without discarding other calls.
+Retain text/media accepted after the consumed input boundary. Restart may finish a
+fully recorded voluntary operation, but must not replay tool execution or an
+interrupted paid summary. Record failures without secrets and preserve the source log.
+
+The optional sibling `hard_condenser` requires its own explicit `llm_profile_ref`.
+Omitted/null means disabled; catalog presence or a host's ordinary condenser-role
+default cannot enable it. It is only valid with enabled agent reset. On an actual
+main-provider `LLMContextWindowExceedError` (including an `LLMResponseError` cause),
+call the separate summarizer's `hardContextReset` directly. Do not invoke its ordinary
+proactive `condense` method or introduce a pipeline. Malformed-history, generic
+400/413, output-budget, authentication, rate-limit, content-policy and transport
+failures do not qualify merely by their status or broad failure category.
+
+This deliberately bypasses Python RollingCondenser's initial ordinary cut/summary
+attempt. Its full-view `hard_context_reset` algorithm remains the underlying
+summarization operation; exclude protected unconsumed user input from the eligible
+View, remove the old historical prefix, and project an environment notice before
+the generated user-role summary. Preserve rejected-request input and later arrivals
+afterward. Never invent an agent tool exchange for this path. Bounded attempts,
+usable-summary validation and repeated provider-rejection handling prevent loops;
+local estimates must not gate continuation. Record each actual attempt once under
+condenser usage, preserve error metadata, and never repeat paid work because an
+accounting write failed.
+
+In this mode, host `LocalConversation.condense()` rejects with
+`AgentControlledCondensationError` before appending a forced request: the host has
+no genuine agent-authored exchange. Existing standalone summarizer maintenance
+keeps its contract. SDK review/merge precedes server vendoring and protocol mapping.
+Review upstream agent/error routing, settings, tool/event serialization, View replay
+and conversation maintenance changes against this policy. Source and bounded
+evidence: [agent-reset integration](../transpile/agent-reset.md).
 
 ### EXC-SDK-001 — plugin runtime
 
@@ -197,6 +261,29 @@ The host owns selection policy, validation, client construction, pending-selecti
 Normal runs and explicit `condense()` operations share a step-level guard, so maintenance waits for the current step and runs before the next queued model request. It does not await the entire run, resume a paused conversation, reset the iteration budget, or mark queued user input answered. A successful manual step also reaches the completed-step host callback.
 
 Terminal execution status is updated before the final boundary callback. A read-only `lastStepUserMessageId` records the latest user event synchronously immediately before `Agent.step`, so a host can distinguish input consumed by that step from input arriving during later preparation or completion. This queue-coordination marker is part of the host seam, not an upstream switch-tool field.
+
+### EXT-SDK-004 — agent-requested context reset tool and settings
+
+The opt-in `condense` tool uses strict `CondenseAction` and `CondenseObservation`
+payloads inside ordinary ActionEvent/ObservationEvent envelopes. Its sole input,
+optional `message_to_future_self`, preserves even empty text verbatim and is bounded
+to 16,384 UTF-16 code units. The tool is available through enabled agent-reset
+construction; it is not an unconditional built-in for existing agents. Its execution
+context records intent, while the Agent owns the validated reset commit. The tool
+does not write notes, send channel messages or perform a summarizer completion.
+
+Settings add `condenser_kind: 'agent_reset'`, validated advisory
+`warning_thresholds`, and the optional sibling `hard_condenser`.
+The latter accepts only `llm_summarizing`, an explicit profile reference, and bounded
+retry/scaling settings (defaults five attempts and 0.8). Ordinary `max_tokens`,
+`max_size`, `keep_first` and progress controls do not belong to that fallback.
+Null disables it; omission stays absent through persistence. The additive optional
+field does not bump the agent-settings schema version.
+
+Keep tool/schema/reset helpers in their own target-only modules. Changes to the
+shared runtime, event replay and host operation are governed by DEV-SDK-012, not
+exempted from compatibility review by this extension. Product profile storage,
+frozen bindings, channel command routing and deployment stay outside the SDK.
 
 ## Context and persistent memory
 

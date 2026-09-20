@@ -80,19 +80,19 @@ Important event families:
 
 - an `LLMClient`;
 - a list of executable `ToolDefinition`s;
-- optional `AgentContext` and `Condenser`;
+- optional `AgentContext`, `Condenser` and separately configured hard fallback;
 - the per-step orchestration method `step(state)`.
 
 A step performs:
 
 1. capture the input boundary and render fixed context, then resolve available model metadata;
 2. rebuild a `View` with tool-history property enforcement;
-3. await optional condensation, persisting its event and returning before another main completion when a summary is produced;
+3. prepare the selected context mode: ordinary condensation may persist a summary and return; opt-in agent reset emits advisory warnings without a proactive summary;
 4. call `LLMClient.complete(messages, tools)` with the agent's usable `ToolDefinition`s;
 5. persist one `llm_usage` record from the returned usage, identity and timing;
 6. dispatch the result with `dispatchLlmResponse()`.
 
-This matches the pinned Python Agent, which passes its resolved `tools_map` values through `make_llm_completion()`. The TypeScript `LLMClient` remains a thin transport boundary: it receives executable tool definitions but does not reshape them. Provider clients that support native tools own their wire format and derive schemas from `ToolDefinition` helpers; Agent and server code must not construct provider-specific tool DTOs.
+Passing tools matches the pinned Python Agent, which passes its resolved `tools_map` values through `make_llm_completion()`. The opt-in reset lifecycle below is a separate target policy. The TypeScript `LLMClient` remains a thin transport boundary: it receives executable tool definitions but does not reshape them. Provider clients that support native tools own their wire format and derive schemas from `ToolDefinition` helpers; Agent and server code must not construct provider-specific tool DTOs.
 
 `LocalConversation` owns the local run loop around an `Agent` and `ConversationState`. `RemoteConversation` mirrors the public shape for an agent-server-backed runtime. `ConversationState` is the append-only event log plus execution status.
 
@@ -196,9 +196,74 @@ Condensers operate on `View` objects while the complete event log remains unchan
 
 `LLMSummarizingCondenser` implements the pinned Python request/event/token triggers, safe-range selection, minimum progress and full-context reset fallback. It uses its own LLM client without tools. Class/settings defaults and `defaultCondenser(llm)` all use 1000 events and 2 retained first events under [DEV-SDK-011](TRANSPILE_CONTRACT.md#dev-sdk-011--shared-condenser-event-defaults); explicitly configured values are preserved. Thresholds are strict greater-than. Event-only condensation is soft: if no safe cut exists, another step may create one. Requests and token overflow are hard: a failed safe cut attempts whole-view reset up to five times, progressively shortening rendered previews. There is no detached background summary task.
 
-A condenser returns a View or a Condensation, synchronously or asynchronously. `PipelineCondenser` preserves synchronous callers when its members are synchronous and awaits asynchronous members in order. `Agent.step` provides the actual fixed system/context and usable tools to token counting, projects summary history for the selected condenser profile, and persists each summary attempt under usage ID `condenser`. Typed context-window or malformed-history failures append a `CondensationRequest`; a later step condenses, and a subsequent step retries the main model with the reduced View. Unsupported condensers propagate the original failure.
+A condenser returns a View or a Condensation, synchronously or asynchronously. `PipelineCondenser` preserves synchronous callers when its members are synchronous and awaits asynchronous members in order. `Agent.step` provides the actual fixed system/context and usable tools to token counting, projects summary history for the selected condenser profile, and persists each summary attempt under usage ID `condenser`. For ordinary capable summarizers, typed context-window or malformed-history failures append a `CondensationRequest`; a later step condenses, and a subsequent step retries the main model with the reduced View. Unsupported ordinary condensers propagate the original failure. Agent-reset mode has the separate error-only fallback described below.
 
 `LocalConversation.condense()` serializes one forced step with ordinary run steps. `RemoteConversation.condense()` posts through the existing authenticated conversation endpoint. Settings materialization validates the supported condenser variants and resolves a separate explicit profile reference through a host callback. [Condensation port evidence](../transpile/condensation.md) records source mapping, generated Python oracles and remaining limits.
+
+### Agent-controlled context reset
+
+The opt-in implementation being integrated on 2026-09-20 adds
+`AgentResetCondenser` alongside the existing summarizer. It supplies advisory
+thresholds and returns the unchanged View during ordinary preparation.
+`Agent` installs the `condense` tool for this mode and owns request/commit handling
+through `src/agent/context-reset.ts`; the tool itself does not write notes or reset
+the View. Integration/release evidence is tracked in
+[agent-reset evidence](../transpile/agent-reset.md), separately from the completed
+standard-condensation port.
+
+`src/context/context-warnings.ts` counts the full prospective main-model request,
+including fixed context and tools. An explicit main-profile `maxInputTokens`
+overrides a different effective client limit; absent explicit limits may use resolved
+metadata. Unknown measurements remain unknown. Crossings are persisted as
+`agent_context_warning` state updates and projected into environment-source
+user-role messages. Warnings do not block requests or trigger condensation, even
+at estimates of 100% or more. Only a committed Condensation rearms the warnings.
+
+`src/tool/condense.ts` defines the optional `message_to_future_self` action field
+and structured result. Existing ActionEvent/ObservationEvent envelopes retain the
+real IDs and payloads. A versioned `CondensationRequest.details` records agent or
+provider-error provenance and an input boundary; `Condensation.reset` correlates
+the commit. `View` validates this metadata and projects fixed context, the exact
+notice `The agent triggered context condensation.`, the real tool exchange and
+late input. There is no summary on the voluntary path and no retained old
+prefix/tail. The underlying event log and files remain intact. The model is told
+to recover from its notes; a frozen host memory snapshot is not automatically refreshed.
+
+The settings boundary is two sibling options:
+
+```json
+{
+  "llm_profile_ref": "main",
+  "condenser": {
+    "condenser_kind": "agent_reset",
+    "warning_thresholds": [0.75, 0.80, 0.85, 0.90]
+  },
+  "hard_condenser": {
+    "condenser_kind": "llm_summarizing",
+    "llm_profile_ref": "summary"
+  }
+}
+```
+
+`materializeCondenser` creates reset mode without profile or metadata lookup.
+`materializeHardCondenser` resolves only the explicit fallback reference; omitted
+or null settings produce no fallback. It accepts retry/scaling controls, not
+ordinary cut/token/event limits. The host persists independent secret-free profile
+bindings; main-profile changes must not silently replace the fallback.
+
+Only a caught typed main-provider context-window error activates that optional
+fallback. The Agent calls `hardContextReset` directly on the eligible old View,
+preserves pending/rejected-request input, and commits an environment notice before
+the generated summary. This mode uses no pipeline and does not first invoke an
+ordinary prefix/tail summary. Other provider errors keep their own handling.
+Failed or interrupted recovery preserves history; restoration must not blindly
+repeat paid work. `LocalConversation.condense()` rejects this mode with the typed
+`AgentControlledCondensationError` because host maintenance has no genuine tool
+call. Standard summarizer maintenance remains supported.
+
+The tool is EXT-SDK-004; the opt-in lifecycle/event/replay differences are
+DEV-SDK-012. SDK review and merge remain prerequisites for server vendoring and
+host integration; this SDK change does not enable a product deployment.
 
 Hooks are lifecycle-sidecar processes. Hook results can allow/block and attach additional context. They are represented as hook execution results/events rather than as confirmation gates.
 

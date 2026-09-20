@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
+import { AgentResetCondenser } from '../context/agent-reset-condenser.js';
 import { NoOpCondenser, type Condenser } from '../context/condenser.js';
+import { contextWarningThresholdsSchema, DEFAULT_CONTEXT_WARNING_THRESHOLDS } from '../context/context-warnings.js';
 import { LLMSummarizingCondenser } from '../context/llm-summarizing-condenser.js';
 import type { LLMClient } from '../llm/client.js';
 
@@ -25,16 +27,32 @@ export const noOpCondenserSettingsSchema = z.object({
   enabled: z.boolean().default(true),
 }).strict();
 
+export const agentResetCondenserSettingsSchema = z.object({
+  condenser_kind: z.literal('agent_reset'),
+  enabled: z.boolean().default(true),
+  warning_thresholds: contextWarningThresholdsSchema.default(() => [...DEFAULT_CONTEXT_WARNING_THRESHOLDS]),
+}).strict();
+
+/** Full-view error recovery has no ordinary token/event trigger or retained-prefix settings. */
+export const hardCondenserSettingsSchema = z.object({
+  condenser_kind: z.literal('llm_summarizing'),
+  llm_profile_ref: profileReferenceSchema,
+  hard_context_reset_max_retries: z.number().int().positive().default(5),
+  hard_context_reset_context_scaling: z.number().gt(0).lt(1).default(0.8),
+}).strict();
+
 export const condenserSettingsSchema = z.preprocess((value) => {
   if (typeof value === 'object' && value !== null && !Array.isArray(value) &&
     'condenser_kind' in value && value.condenser_kind === 'noop') {
     return { ...value, condenser_kind: 'no_op' };
   }
   return value;
-}, z.union([llmSummarizingCondenserSettingsSchema, noOpCondenserSettingsSchema]));
+}, z.union([llmSummarizingCondenserSettingsSchema, noOpCondenserSettingsSchema, agentResetCondenserSettingsSchema]));
 
 export type LLMSummarizingCondenserSettings = z.infer<typeof llmSummarizingCondenserSettingsSchema>;
 export type NoOpCondenserSettings = z.infer<typeof noOpCondenserSettingsSchema>;
+export type AgentResetCondenserSettings = z.infer<typeof agentResetCondenserSettingsSchema>;
+export type HardCondenserSettings = z.infer<typeof hardCondenserSettingsSchema>;
 export type CondenserSettings = z.infer<typeof condenserSettingsSchema>;
 
 export interface MaterializeCondenserOptions {
@@ -54,6 +72,7 @@ export async function materializeCondenser(
   const settings = condenserSettingsSchema.parse(data);
   if (!settings.enabled) return null;
   if (settings.condenser_kind === 'no_op') return new NoOpCondenser();
+  if (settings.condenser_kind === 'agent_reset') return new AgentResetCondenser({ warningThresholds: settings.warning_thresholds });
   if (Math.floor(settings.max_size / 2) - settings.keep_first - 1 <= 0) {
     throw new RangeError('keep_first must be less than max_size // 2 to leave room for condensation');
   }
@@ -75,6 +94,23 @@ export async function materializeCondenser(
     maxTokens,
     keepFirst: settings.keep_first,
     minimumProgress: settings.minimum_progress,
+    hardContextResetMaxRetries: settings.hard_context_reset_max_retries,
+    hardContextResetContextScaling: settings.hard_context_reset_context_scaling,
+  });
+}
+
+/** Materialize the separate emergency fallback; hosts invoke hardContextReset only after an actual provider context error. */
+export async function materializeHardCondenser(
+  data: unknown,
+  options: MaterializeCondenserOptions,
+): Promise<LLMSummarizingCondenser | null> {
+  if (data === undefined || data === null) return null;
+  const settings = hardCondenserSettingsSchema.parse(data);
+  const llm = await options.resolveClient(settings.llm_profile_ref);
+  return new LLMSummarizingCondenser({
+    llm,
+    // The fallback never inherits a proactive main-model token trigger.
+    maxTokens: null,
     hardContextResetMaxRetries: settings.hard_context_reset_max_retries,
     hardContextResetContextScaling: settings.hard_context_reset_context_scaling,
   });

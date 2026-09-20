@@ -10,7 +10,11 @@ import {
   type LLMConvertibleEvent,
 } from '../event/index.js';
 import { AGENT_OUTCOME } from '../event/error-classification.js';
-import { View, type Condenser } from '../context/index.js';
+import { View, type Condenser, type CondenserContext } from '../context/index.js';
+import { AgentResetCondenser } from '../context/agent-reset-condenser.js';
+import { contextWarningEvent } from '../context/context-warnings.js';
+import { CondenseTool } from '../tool/condense.js';
+import { executeCondenseTool, finishPendingContextReset, recoverContextWindow, type HardCondenser } from './context-reset.js';
 import type { AgentContext } from '../context/index.js';
 import { LLMResponseError, type LLMClient } from '../llm/client.js';
 import { createLlmUsageEvent } from '../llm/metrics.js';
@@ -30,6 +34,7 @@ export interface AgentOptions {
   readonly toolConcurrencyLimit?: number;
   readonly context?: AgentContext | null;
   readonly condenser?: Condenser | null;
+  readonly hardCondenser?: HardCondenser | null;
   readonly systemPrompt?: string | null;
   readonly usageId?: string;
 }
@@ -40,12 +45,23 @@ export class Agent {
   readonly toolConcurrencyLimit: number;
   readonly context: AgentContext | null;
   readonly condenser: Condenser | null;
+  readonly hardCondenser: HardCondenser | null;
   readonly systemPrompt: string | null;
   readonly usageId: string | undefined;
 
   constructor(options: AgentOptions) {
     this.llm = options.llm;
-    this.tools = [...(options.tools ?? [])];
+    const tools = (options.tools ?? []).filter(tool => tool.meta?.smolpaws_agent_condense !== true);
+    if (options.condenser instanceof AgentResetCondenser) {
+      if (tools.some(tool => tool.name === 'condense')) throw new Error('The condense tool name is reserved in agent-reset mode.');
+      this.tools = [...tools, CondenseTool.create()];
+    } else {
+      this.tools = tools;
+    }
+    this.hardCondenser = options.hardCondenser ?? null;
+    if (this.hardCondenser !== null && !(options.condenser instanceof AgentResetCondenser)) {
+      throw new Error('A hard condenser requires agent-reset mode.');
+    }
     this.toolConcurrencyLimit = Math.max(1, options.toolConcurrencyLimit ?? 1);
     this.context = options.context ?? null;
     this.condenser = options.condenser ?? null;
@@ -54,11 +70,23 @@ export class Agent {
   }
 
   async step(state: ConversationState): Promise<readonly Event[]> {
+    if (this.condenser instanceof AgentResetCondenser) {
+      const recovered = await finishPendingContextReset(state);
+      if (recovered !== null) return recovered;
+    }
     const history = [...state.events];
     const inputEventId = history.at(-1)?.id ?? null;
     const system = this.renderSystemPrompt();
     await this.llm.resolveRuntimeMetadata?.();
-    const messages = await this.messagesForState(state, history, system);
+    const context = this.condenserContext(state, history, system);
+    if (this.condenser instanceof AgentResetCondenser) {
+      const warning = await contextWarningEvent(history, View.fromEvents(history), this.llm, this.condenser.warningThresholds, context);
+      if (warning !== null) {
+        await state.appendEventAsync(warning);
+        history.push(warning);
+      }
+    }
+    const messages = await this.messagesForState(state, history, context);
     if (!Array.isArray(messages)) return [messages];
     let response;
     const startedAt = Date.now();
@@ -71,6 +99,9 @@ export class Agent {
         }));
       }
       const cause = error instanceof LLMResponseError ? error.cause : error;
+      if (this.condenser instanceof AgentResetCondenser && cause instanceof LLMContextWindowExceedError && this.hardCondenser !== null) {
+        return recoverContextWindow(state, history, inputEventId, this.llm, this.hardCondenser, context);
+      }
       if ((cause instanceof LLMContextWindowExceedError || cause instanceof LLMMalformedConversationHistoryError)
         && this.condenser?.handlesCondensationRequests?.() === true) {
         // Views are rebuilt with property enforcement at the beginning of every step.
@@ -97,24 +128,40 @@ export class Agent {
       startedAt, completedAt: Date.now(), ...(this.usageId === undefined ? {} : { usageId: this.usageId }),
     });
     await state.appendEventAsync(accounting);
-    return dispatchLlmResponse(response, state, (action) => this.runTool(action), {
+    const emitted = await dispatchLlmResponse(response, state, (action) => {
+      const tool = this.tools.find(candidate => candidate.name === action.tool_name);
+      if (this.condenser instanceof AgentResetCondenser && tool?.meta?.smolpaws_agent_condense === true) {
+        return executeCondenseTool(tool, action, state, inputEventId, response.message.tool_calls?.length === 1);
+      }
+      return this.runTool(action);
+    }, {
       llmResponseId: response.responseId ?? accounting.id,
       maxConcurrency: this.toolConcurrencyLimit,
       inputEventId,
     });
+    const reset = this.condenser instanceof AgentResetCondenser ? await finishPendingContextReset(state) : null;
+    return reset === null ? emitted : [...emitted, ...reset];
   }
 
-  private async messagesForState(state: ConversationState, history: readonly Event[], system: TextContent[] | null): Promise<Message[] | Condensation> {
+  private async messagesForState(state: ConversationState, history: readonly Event[], context: CondenserContext): Promise<Message[] | Condensation> {
     const view = View.fromEvents(history);
+    const condensed = await (this.condenser?.condense(view, this.llm, context) ?? view);
+    if (!(condensed instanceof View)) {
+      await state.appendEventAsync(condensed);
+      return condensed;
+    }
+    return [...context.messagesForEvents!(condensed.events.filter(isLlmConvertibleEvent))];
+  }
+
+  private condenserContext(state: ConversationState, history: readonly Event[], system: TextContent[] | null): CondenserContext {
     const projectEvents = (events: readonly LLMConvertibleEvent[], profile: typeof this.llm.profile) =>
       historyForProfile(historyForRequests(events, history), history, profile, this.llm.profile);
-    const messagesForEvents = (events: readonly LLMConvertibleEvent[]): Message[] => {
-      const messages = eventsToMessages(projectEvents(events, this.llm.profile));
-      return system === null ? messages : [systemMessage(system), ...messages];
-    };
-    const condensed = await (this.condenser?.condense(view, this.llm, {
+    return {
       tools: this.tools.filter(tool => tool.usable),
-      messagesForEvents,
+      messagesForEvents: events => {
+        const messages = eventsToMessages(projectEvents(events, this.llm.profile));
+        return system === null ? messages : [systemMessage(system), ...messages];
+      },
       projectEvents,
       onCompletion: async attempt => {
         const metadata = attempt.response ?? (attempt.error instanceof LLMResponseError ? attempt.error.metadata : { usage: null });
@@ -122,12 +169,7 @@ export class Agent {
           startedAt: attempt.startedAt, completedAt: attempt.completedAt, usageId: 'condenser',
         }));
       },
-    }) ?? view);
-    if (!(condensed instanceof View)) {
-      await state.appendEventAsync(condensed);
-      return condensed;
-    }
-    return messagesForEvents(condensed.events.filter(isLlmConvertibleEvent));
+    };
   }
 
   private renderSystemPrompt(): TextContent[] | null {

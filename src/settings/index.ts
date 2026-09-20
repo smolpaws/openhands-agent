@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { condenserSettingsSchema } from './condenser-settings.js';
+import { condenserSettingsSchema, hardCondenserSettingsSchema } from './condenser-settings.js';
 export * from './condenser-settings.js';
 
 import {
@@ -82,9 +82,20 @@ export const openHandsAgentSettingsSchema = z
     enable_switch_llm_tool: z.boolean().default(true),
     tool_concurrency_limit: z.number().int().min(1).default(1),
     condenser: condenserSettingsSchema.prefault({}),
+    hard_condenser: hardCondenserSettingsSchema.nullable().optional(),
     verification: profileVerificationSettingsSchema.default(defaultVerificationSettings),
   })
-  .strict();
+  .strict()
+  .superRefine((settings, context) => {
+    if (settings.hard_condenser !== undefined && settings.hard_condenser !== null
+      && (settings.condenser.condenser_kind !== 'agent_reset' || !settings.condenser.enabled)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['hard_condenser'],
+        message: 'hard_condenser requires an enabled agent_reset condenser',
+      });
+    }
+  });
 
 export const acpAgentSettingsSchema = z
   .object({

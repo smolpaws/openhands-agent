@@ -4,6 +4,7 @@ import { condensationRequestSchema, conversationErrorEventSchema, messageEventSc
 import { LocalFileStore, type FileStore } from '../io/index.js';
 import { textContent } from '../llm/index.js';
 import type { Agent } from '../agent/index.js';
+import { AgentResetCondenser, AgentControlledCondensationError } from '../context/agent-reset-condenser.js';
 import { EventLog, EVENTS_DIR } from './event-log.js';
 import { ConversationState, conversationExecutionStatus } from './state.js';
 import { StuckDetector, type StuckDetectionThresholds } from './stuck-detector.js';
@@ -83,6 +84,7 @@ export class LocalConversation {
   /** Force one condensation step after the currently executing step, without resuming a run. */
   async condense(): Promise<void> {
     await this.withStepLock(async () => {
+      if (this.agent.condenser instanceof AgentResetCondenser) throw new AgentControlledCondensationError();
       if (this.agent.condenser?.handlesCondensationRequests?.() !== true) {
         throw new Error('Cannot condense conversation: configure a condenser that handles condensation requests.');
       }

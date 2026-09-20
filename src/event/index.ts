@@ -14,6 +14,8 @@ import {
   type Message,
 } from '../llm/index.js';
 import { classifyError, errorClassificationSchema } from './error-classification.js';
+import { condensationRequestDetailsSchema, condensationResetSchema } from './condensation-metadata.js';
+export * from './condensation-metadata.js';
 
 export const N_CHAR_PREVIEW = 500;
 export const FULL_STATE_KEY = 'full_state';
@@ -167,6 +169,7 @@ export const agentErrorEventSchema = eventObject({
 
 export const condensationSchema = eventObject({
   kind: z.literal('Condensation').default('Condensation'),
+  reset: condensationResetSchema.optional(),
   source: z.literal('environment').default('environment'),
   summary: z.string().nullable().default(null),
   summary_offset: z.number().int().min(0).nullable().default(null),
@@ -178,6 +181,7 @@ export const condensationSchema = eventObject({
 
 export const condensationRequestSchema = eventObject({
   kind: z.literal('CondensationRequest').default('CondensationRequest'),
+  details: condensationRequestDetailsSchema.optional(),
   source: z.literal('environment').default('environment'),
 });
 
