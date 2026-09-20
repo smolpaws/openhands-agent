@@ -59,8 +59,9 @@ export async function finishPendingContextReset(state: ConversationState): Promi
   const activeEvents = activeEventsBeforeEnforcement(state.events);
   const inputIndex = inputBoundary(state.events, details.input_event_id);
   const retain = new Set([details.action_id, details.observation_id]);
+  const positions = new Map(state.events.map((event, index) => [event.id, index]));
   const forgotten = activeEvents.filter(event => event.kind !== 'SystemPromptEvent' && !retain.has(event.id)
-    && !(genuineUser(event) && state.events.indexOf(event) > inputIndex));
+    && !(genuineUser(event) && (positions.get(event.id) ?? -1) > inputIndex));
   const commit = condensationSchema.parse({ forgotten_event_ids: forgotten.map(event => event.id),
     reset: { version: 1, request_id: request.id } });
   // Validate the same representation that restore will replay before committing.

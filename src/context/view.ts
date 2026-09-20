@@ -140,6 +140,7 @@ export class View {
     const inputIndex = details.input_event_id === null ? -1 : this.history.findIndex(event => event.id === details.input_event_id);
     const requestIndex = this.history.indexOf(request);
     if (details.input_event_id !== null && inputIndex < 0 || inputIndex >= requestIndex) throw new Error('Invalid reset input boundary');
+    const positions = new Map(this.history.map((event, index) => [event.id, index]));
     const retained = this.events.filter(event => !commit.forgotten_event_ids.has(event.id));
     const fixed = retained.filter(event => event.kind === 'SystemPromptEvent');
     const protectedIds = details.trigger === 'provider_context_window'
@@ -151,10 +152,10 @@ export class View {
     const pairIds = new Set(pair.map(event => event.id));
     const pending = retained.filter(event => event.kind !== 'SystemPromptEvent' && !pairIds.has(event.id));
     if (pending.some(event => !genuineUser(event)
-      || !protectedIds.has(event.id) && this.history.indexOf(event) <= inputIndex)) throw new Error('Reset retained unexpected old history');
+      || !protectedIds.has(event.id) && (positions.get(event.id) ?? -1) <= inputIndex)) throw new Error('Reset retained unexpected old history');
     for (const event of this.events) {
       if (event.kind === 'SystemPromptEvent' && commit.forgotten_event_ids.has(event.id)
-        || genuineUser(event) && (protectedIds.has(event.id) || this.history.indexOf(event) > inputIndex)
+        || genuineUser(event) && (protectedIds.has(event.id) || (positions.get(event.id) ?? -1) > inputIndex)
           && commit.forgotten_event_ids.has(event.id)) {
         throw new Error('Reset would discard fixed context or pending input');
       }

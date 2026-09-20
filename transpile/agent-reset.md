@@ -172,8 +172,10 @@ and Anthropic fake-transport tests verify two resets with restore, exact call/re
 IDs and handoff, fixed context, late input, and signed/encrypted reasoning payloads.
 These prove local serialization invariants, not live provider acceptance.
 
-No blocking issue remains from the independent local review. Substantive PR review
-and CI remain merge gates. No paid provider call or production service change is
+No blocking issue remains from the independent local review. CodeRabbit
+reviewed SDK PR #51 and suggested replacing repeated linear event-position searches
+with maps; that optimization is applied in reset replay and commit preparation.
+CI passes on the implementation commit and is rerun for that review fix. No paid provider call or production service change is
 established by these checks.
 
 Only a reviewed, merged SDK commit may be vendored into the server. The server then
