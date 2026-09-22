@@ -31,6 +31,7 @@ const agentProfileBaseFields = {
   name: z.string().min(1),
   revision: z.number().int().min(0).default(0),
   mcp_server_refs: z.array(z.string()).nullable().default(null),
+  secret_refs: z.array(z.string()).nullable().default(null),
 } as const;
 
 export const openHandsAgentProfileSchema = z

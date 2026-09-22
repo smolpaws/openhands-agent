@@ -104,6 +104,27 @@ describe('AgentProfile schemas', () => {
     expect(validateAgentProfile(JSON.parse(JSON.stringify(useNone))).mcp_server_refs).toEqual([]);
   });
 
+  it('preserves secret_refs null versus empty list', () => {
+    const useAll = validateAgentProfile({ name: 'a', llm_profile_ref: 'd', secret_refs: null });
+    const useNone = validateAgentProfile({ name: 'b', llm_profile_ref: 'd', secret_refs: [] });
+    const subset = validateAgentProfile({ name: 'c', llm_profile_ref: 'd', secret_refs: ['github_token', 'npm_token'] });
+
+    expect(useAll.secret_refs).toBeNull();
+    expect(useNone.secret_refs).toEqual([]);
+    expect(subset.secret_refs).toEqual(['github_token', 'npm_token']);
+    expect(validateAgentProfile(JSON.parse(JSON.stringify(useAll))).secret_refs).toBeNull();
+    expect(validateAgentProfile(JSON.parse(JSON.stringify(useNone))).secret_refs).toEqual([]);
+    expect(validateAgentProfile(JSON.parse(JSON.stringify(subset))).secret_refs).toEqual(['github_token', 'npm_token']);
+  });
+
+  it('defaults secret_refs to unrestricted (null) when omitted and on both variants', () => {
+    const openHands = validateAgentProfile({ name: 'oh', llm_profile_ref: 'default' });
+    const acp = validateAgentProfile({ agent_kind: 'acp', name: 'minimal' });
+
+    expect(openHands.secret_refs).toBeNull();
+    expect(acp.secret_refs).toBeNull();
+  });
+
   it('validates schema_version and preserves UUID identity', () => {
     const profile = validateAgentProfile({ name: 'oh', llm_profile_ref: 'd' });
 
