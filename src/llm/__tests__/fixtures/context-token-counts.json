@@ -1,5 +1,5 @@
 {
-  "upstreamCommit": "50080b58d35b4824fda25fca2345d80bcd08aeff",
+  "upstreamCommit": "481dfb3d7adf6355fc157390d293559092739089",
   "source": "LiteLLM 1.93.0 litellm_core_utils/token_counter.py; original functions executed with tiktoken 0.12.0",
   "archiveSha256": "140bf215e264c71601bca9c06d2436c5451bb59e1e195ea23fc2d3d87b6929ec",
   "sourceSha256": "79d69869506f50625f2aa6027a18e292365e4a8ab90aa506b02f7c5b1f7e0ed8",
