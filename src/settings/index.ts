@@ -37,7 +37,7 @@ export type ProfileSelectedLlmSettings = {
   readonly [K in RawLlmFieldIgnoredWhenProfileSelected]?: unknown;
 };
 
-export const AGENT_SETTINGS_SCHEMA_VERSION = 5;
+export const AGENT_SETTINGS_SCHEMA_VERSION = 6;
 export const CONVERSATION_SETTINGS_SCHEMA_VERSION = 1;
 
 const settingsSchemaVersion = (version: number) => z.literal(version).default(version);
