@@ -175,11 +175,14 @@
       "docs": []
     },
     "e2889cd49d3ef7fe06d52c8a2355b8a769b97d88:sdk": {
-      "disposition": "NO_TARGET_CHANGE",
-      "reason": "Extends the remote conversation and remote workspace HTTP client surfaces. The TypeScript workspace module only implements LocalWorkspace and has no remote conversation/workspace counterpart.",
+      "disposition": "PORT",
+      "reason": "Extends the remote conversation and remote workspace HTTP surfaces for automation: runtime conversation scoping (runtime_conversation_id + api_prefix), start_command/get_command_output/get_runtime_session_key/release_runtime, in-memory byte uploads, and RemoteConversation.set_title. The TypeScript port implements RemoteWorkspace (src/workspace/index.ts) and RemoteConversation (src/conversation/remote-conversation.ts), so these surfaces are in scope.",
       "policy": null,
       "tracking": [],
-      "evidence": [],
+      "evidence": [
+        "src/workspace/__tests__/remote-workspace-runtime-scope.test.ts",
+        "src/conversation/__tests__/remote-conversation.test.ts"
+      ],
       "compatibilityConsequence": null,
       "revisitTrigger": null,
       "docsImpact": "none",

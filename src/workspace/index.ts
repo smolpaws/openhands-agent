@@ -120,6 +120,8 @@ export interface RemoteWorkspaceOptions extends LocalWorkspaceOptions {
   readonly api_key?: string | null;
   readonly readTimeoutSeconds?: number;
   readonly read_timeout?: number;
+  readonly runtimeConversationId?: string | null;
+  readonly runtime_conversation_id?: string | null;
 }
 
 export class RemoteWorkspace implements BaseWorkspace {
@@ -127,12 +129,14 @@ export class RemoteWorkspace implements BaseWorkspace {
   readonly apiKey: string | null;
   readonly workingDir: string;
   readonly readTimeoutSeconds: number;
+  readonly runtimeConversationId: string | null;
 
   constructor(options: RemoteWorkspaceOptions) {
     this.host = options.host.replace(/\/+$/u, '');
     this.apiKey = options.apiKey ?? options.api_key ?? null;
     this.workingDir = remotePath(options.workingDir ?? options.working_dir ?? 'workspace/project');
     this.readTimeoutSeconds = options.readTimeoutSeconds ?? options.read_timeout ?? 600;
+    this.runtimeConversationId = options.runtimeConversationId ?? options.runtime_conversation_id ?? null;
   }
 
   async alive(): Promise<boolean> {
@@ -156,7 +160,7 @@ export class RemoteWorkspace implements BaseWorkspace {
     payload.cwd = options.cwd === undefined || options.cwd === null ? this.workingDir : joinRemotePath(this.workingDir, options.cwd);
 
     try {
-      const start = await this.request('/api/bash/start_bash_command', {
+      const start = await this.request(`${this.apiPrefix}/bash/start_bash_command`, {
         method: 'POST',
         body: JSON.stringify(payload),
         headers: { 'content-type': 'application/json' },
@@ -179,7 +183,7 @@ export class RemoteWorkspace implements BaseWorkspace {
         if (lastOrder >= 0) {
           params.set('order__gt', String(lastOrder));
         }
-        const response = await this.request(`/api/bash/bash_events/search?${params.toString()}`, { timeoutMs: this.readTimeoutSeconds * 1000 });
+        const response = await this.request(`${this.apiPrefix}/bash/bash_events/search?${params.toString()}`, { timeoutMs: this.readTimeoutSeconds * 1000 });
         const result = (await response.json()) as { items?: Array<Record<string, unknown>> };
         for (const event of result.items ?? []) {
           if (event.kind !== 'BashOutput') {
@@ -221,15 +225,70 @@ export class RemoteWorkspace implements BaseWorkspace {
     }
   }
 
-  async fileUpload(sourcePath: string, destinationPath: string): Promise<FileOperationResult> {
-    const source = resolve(sourcePath);
+  async startCommand(command: string, options: { readonly cwd?: string | null; readonly timeoutSeconds?: number } = {}): Promise<string> {
+    const timeoutSeconds = options.timeoutSeconds ?? 30;
+    const payload: Record<string, unknown> = { command, timeout: Math.trunc(timeoutSeconds) };
+    if (options.cwd !== undefined && options.cwd !== null) {
+      payload.cwd = joinRemotePath(this.workingDir, options.cwd);
+    }
+    const start = await this.request(`${this.apiPrefix}/bash/start_bash_command`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: { 'content-type': 'application/json' },
+      timeoutMs: (timeoutSeconds + 5) * 1000,
+    });
+    const started = (await start.json()) as { id?: string };
+    if (typeof started.id !== 'string' || started.id.length === 0) {
+      throw new Error('agent-server did not return a bash command id');
+    }
+    return started.id;
+  }
+
+  async getCommandOutput(commandId?: string | null): Promise<Record<string, unknown> | null> {
+    const params = new URLSearchParams({ kind__eq: 'BashOutput', sort_order: 'TIMESTAMP_DESC', limit: '1' });
+    if (commandId !== undefined && commandId !== null) {
+      params.set('command_id__eq', commandId);
+    }
+    const response = await this.request(`${this.apiPrefix}/bash/bash_events/search?${params.toString()}`, { timeoutMs: 60_000 });
+    const page = (await response.json()) as { items?: Array<Record<string, unknown>> };
+    return page.items?.[0] ?? null;
+  }
+
+  async getRuntimeSessionKey(): Promise<string> {
+    this.requireRuntimeScope();
+    const response = await this.request(`${this.apiPrefix}/runtime/credentials`, { method: 'POST', timeoutMs: 60_000 });
+    const data = (await response.json()) as { session_api_key?: unknown };
+    if (typeof data.session_api_key !== 'string' || data.session_api_key.length === 0) {
+      throw new Error('agent-server returned an empty session credential');
+    }
+    return data.session_api_key;
+  }
+
+  async releaseRuntime(): Promise<void> {
+    this.requireRuntimeScope();
+    // A 404 means the runtime was already released; that is not an error.
+    await this.request(`${this.apiPrefix}/runtime`, { method: 'DELETE', timeoutMs: 60_000 }, new Set([404]));
+  }
+
+  async fileUpload(sourcePath: string | Uint8Array, destinationPath: string): Promise<FileOperationResult> {
+    let source: string;
+    let content: Buffer;
+    let filename: string;
+    if (sourcePath instanceof Uint8Array) {
+      source = 'upload';
+      content = Buffer.from(sourcePath);
+      filename = 'upload';
+    } else {
+      source = resolve(sourcePath);
+      content = await readFile(source);
+      filename = source.split(/[\\/]/u).at(-1) ?? 'file';
+    }
     const destination = joinRemotePath(this.workingDir, destinationPath);
     try {
-      const content = await readFile(source);
       const form = new FormData();
-      form.set('file', new Blob([content]), source.split(/[\\/]/u).at(-1) ?? 'file');
+      form.set('file', new Blob([content]), filename);
       const params = new URLSearchParams({ path: destination });
-      const response = await this.request(`/api/file/upload?${params.toString()}`, { method: 'POST', body: form, timeoutMs: 60_000 });
+      const response = await this.request(`${this.apiPrefix}/file/upload?${params.toString()}`, { method: 'POST', body: form, timeoutMs: 60_000 });
       const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
       const result: FileOperationResult = { success: data.success !== false, sourcePath: source, destinationPath: destination, fileSize: typeof data.file_size === 'number' ? data.file_size : content.length };
       if (typeof data.error === 'string') {
@@ -246,7 +305,7 @@ export class RemoteWorkspace implements BaseWorkspace {
     const destination = resolve(destinationPath);
     try {
       const params = new URLSearchParams({ path: source });
-      const response = await this.request(`/api/file/download?${params.toString()}`, { timeoutMs: 60_000 });
+      const response = await this.request(`${this.apiPrefix}/file/download?${params.toString()}`, { timeoutMs: 60_000 });
       const content = Buffer.from(await response.arrayBuffer());
       await mkdir(dirname(destination), { recursive: true });
       await writeFile(destination, content);
@@ -258,13 +317,13 @@ export class RemoteWorkspace implements BaseWorkspace {
 
   async gitChanges(path: string): Promise<GitChange[]> {
     const params = new URLSearchParams({ path: joinRemotePath(this.workingDir, path), ref: 'HEAD' });
-    const response = await this.request(`/api/git/changes?${params.toString()}`, { timeoutMs: 60_000 });
+    const response = await this.request(`${this.apiPrefix}/git/changes?${params.toString()}`, { timeoutMs: 60_000 });
     return ((await response.json()) as GitChange[]).sort((left, right) => left.path.localeCompare(right.path));
   }
 
   async gitDiff(path: string): Promise<GitDiff> {
     const params = new URLSearchParams({ path: joinRemotePath(this.workingDir, path), ref: 'HEAD' });
-    const response = await this.request(`/api/git/diff?${params.toString()}`, { timeoutMs: 60_000 });
+    const response = await this.request(`${this.apiPrefix}/git/diff?${params.toString()}`, { timeoutMs: 60_000 });
     return (await response.json()) as GitDiff;
   }
 
@@ -276,7 +335,20 @@ export class RemoteWorkspace implements BaseWorkspace {
     return Promise.resolve();
   }
 
-  private async request(path: string, init: FetchRequestInit = {}): Promise<Response> {
+  private get apiPrefix(): string {
+    if (this.runtimeConversationId === null) {
+      return '/api';
+    }
+    return `/api/conversations/${encodeURIComponent(this.runtimeConversationId)}`;
+  }
+
+  private requireRuntimeScope(): void {
+    if (this.runtimeConversationId === null) {
+      throw new Error('Runtime lifecycle requires a conversation scope');
+    }
+  }
+
+  private async request(path: string, init: FetchRequestInit = {}, acceptableStatusCodes: ReadonlySet<number> = new Set()): Promise<Response> {
     const headers = new Headers(init.headers);
     if (this.apiKey !== null) {
       headers.set('X-Session-API-Key', this.apiKey);
@@ -286,7 +358,7 @@ export class RemoteWorkspace implements BaseWorkspace {
       headers,
       signal: init.signal ?? AbortSignal.timeout(init.timeoutMs ?? this.readTimeoutSeconds * 1000),
     });
-    if (!response.ok) {
+    if (!response.ok && !acceptableStatusCodes.has(response.status)) {
       throw new Error(`agent-server request failed: ${response.status} ${response.statusText} ${await response.text().catch(() => '')}`.trim());
     }
     return response;
@@ -299,6 +371,8 @@ export interface WorkspaceOptions extends LocalWorkspaceOptions {
   readonly api_key?: string | null;
   readonly readTimeoutSeconds?: number;
   readonly read_timeout?: number;
+  readonly runtimeConversationId?: string | null;
+  readonly runtime_conversation_id?: string | null;
 }
 
 export function workspace(options: WorkspaceOptions = {}): BaseWorkspace {
