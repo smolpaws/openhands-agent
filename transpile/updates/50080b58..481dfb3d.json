@@ -43,7 +43,9 @@
       "reason": "Bumps AGENT_SETTINGS_SCHEMA_VERSION 5->6 and removes llm.modify_params past its v1.47.0 deadline. The TypeScript settings track the same schema version number and must bump to 6; TS never carried modify_params (profile-first), so the migration reduces to the version bump.",
       "policy": null,
       "tracking": [],
-      "evidence": [],
+      "evidence": [
+        "src/settings/__tests__/agent-reset-settings.test.ts"
+      ],
       "compatibilityConsequence": null,
       "revisitTrigger": null,
       "docsImpact": "none",
@@ -142,7 +144,9 @@
       "reason": "Adds secret_refs (a names-only allow-list of stable secret references) to AgentProfileBase. The TypeScript profile base must add the parallel secret_refs field.",
       "policy": null,
       "tracking": [],
-      "evidence": [],
+      "evidence": [
+        "src/profiles/__tests__/agent-profile.test.ts"
+      ],
       "compatibilityConsequence": null,
       "revisitTrigger": null,
       "docsImpact": "none",
