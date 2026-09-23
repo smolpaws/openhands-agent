@@ -1,4 +1,5 @@
 import { textContent, messageSchema, type Message } from '../llm/index.js';
+import type { AgentSettings } from '../settings/index.js';
 import { ConversationState, conversationExecutionStatus, type ConversationExecutionStatus } from './state.js';
 
 export interface RemoteFetchResponseLike {
@@ -13,6 +14,30 @@ export interface RemoteFetchLike {
 }
 
 export interface RemoteConversationOptions {
+  readonly host: string;
+  readonly conversationId: string;
+  readonly fetch?: RemoteFetchLike;
+  readonly apiKey?: string | null;
+  readonly state?: ConversationState;
+}
+
+export interface RemoteConversationCreateRequest {
+  readonly agentProfileId?: string | null;
+  readonly agentSettings?: AgentSettings | null;
+  readonly conversationId?: string | null;
+  readonly maxIterations?: number | null;
+  readonly tags?: Readonly<Record<string, string>> | null;
+}
+
+export interface RemoteConversationCreateOptions {
+  readonly host: string;
+  readonly request: RemoteConversationCreateRequest;
+  readonly fetch?: RemoteFetchLike;
+  readonly apiKey?: string | null;
+  readonly state?: ConversationState;
+}
+
+export interface RemoteConversationAttachOptions {
   readonly host: string;
   readonly conversationId: string;
   readonly fetch?: RemoteFetchLike;
@@ -39,6 +64,27 @@ export class RemoteConversation {
     this.state = options.state ?? new ConversationState();
     this.fetcher = options.fetch ?? globalRemoteFetch();
     this.apiKey = options.apiKey ?? null;
+  }
+
+  static async create(options: RemoteConversationCreateOptions): Promise<RemoteConversation> {
+    const host = options.host.replace(/\/+$/, '');
+    const fetcher = options.fetch ?? globalRemoteFetch();
+    const apiKey = options.apiKey ?? null;
+    const info = await sendRemoteRequest(fetcher, apiKey, 'POST', `${host}/api/conversations`, serializeCreateRequest(options.request));
+    return RemoteConversation.fromInfo(host, fetcher, apiKey, options.state, info);
+  }
+
+  static async attach(options: RemoteConversationAttachOptions): Promise<RemoteConversation> {
+    const host = options.host.replace(/\/+$/, '');
+    const fetcher = options.fetch ?? globalRemoteFetch();
+    const apiKey = options.apiKey ?? null;
+    const info = await sendRemoteRequest(fetcher, apiKey, 'GET', `${host}/api/conversations/${encodeURIComponent(options.conversationId)}`);
+    return RemoteConversation.fromInfo(host, fetcher, apiKey, options.state, info);
+  }
+
+  private static fromInfo(host: string, fetcher: RemoteFetchLike, apiKey: string | null, state: ConversationState | undefined, info: unknown): RemoteConversation {
+    const id = extractConversationId(info);
+    return new RemoteConversation({ host, conversationId: id, fetch: fetcher, apiKey, state: restoreExecutionStatus(info, state ?? new ConversationState()) });
   }
 
   async sendMessage(message: string | Message, sender?: string): Promise<void> {
@@ -112,21 +158,7 @@ export class RemoteConversation {
   }
 
   private async request(method: string, url: string, payload?: unknown, acceptableStatusCodes?: ReadonlySet<number>): Promise<unknown> {
-    const headers: Record<string, string> = {};
-    if (payload !== undefined) {
-      headers['content-type'] = 'application/json';
-    }
-    if (this.apiKey !== null) {
-      headers['x-session-api-key'] = this.apiKey;
-    }
-    const response = await this.fetcher.request(url, payload === undefined ? { method, headers } : { method, headers, body: JSON.stringify(payload) });
-    if (!(acceptableStatusCodes?.has(response.status) ?? response.ok)) {
-      throw new Error(`Remote conversation request failed with HTTP ${response.status}: ${await response.text()}`);
-    }
-    if (response.status === 204) {
-      return null;
-    }
-    return response.json();
+    return sendRemoteRequest(this.fetcher, this.apiKey, method, url, payload, acceptableStatusCodes);
   }
 
   private get actionBasePath(): string {
@@ -140,6 +172,69 @@ export class RemoteConversation {
 
 function userMessage(text: string): Message {
   return messageSchema.parse({ role: 'user', content: [textContent(text)] });
+}
+
+async function sendRemoteRequest(
+  fetcher: RemoteFetchLike,
+  apiKey: string | null,
+  method: string,
+  url: string,
+  payload?: unknown,
+  acceptableStatusCodes?: ReadonlySet<number>,
+): Promise<unknown> {
+  const headers: Record<string, string> = {};
+  if (payload !== undefined) {
+    headers['content-type'] = 'application/json';
+  }
+  if (apiKey !== null) {
+    headers['x-session-api-key'] = apiKey;
+  }
+  const response = await fetcher.request(url, payload === undefined ? { method, headers } : { method, headers, body: JSON.stringify(payload) });
+  if (!(acceptableStatusCodes?.has(response.status) ?? response.ok)) {
+    throw new Error(`Remote conversation request failed with HTTP ${response.status}: ${await response.text()}`);
+  }
+  if (response.status === 204) {
+    return null;
+  }
+  return response.json();
+}
+
+function serializeCreateRequest(request: RemoteConversationCreateRequest): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
+  if (request.agentProfileId !== undefined && request.agentProfileId !== null) {
+    payload.agent_profile_id = request.agentProfileId;
+  }
+  if (request.agentSettings !== undefined && request.agentSettings !== null) {
+    payload.agent_settings = request.agentSettings;
+  }
+  if (request.conversationId !== undefined && request.conversationId !== null) {
+    payload.conversation_id = request.conversationId;
+  }
+  if (request.maxIterations !== undefined && request.maxIterations !== null) {
+    payload.max_iterations = request.maxIterations;
+  }
+  if (request.tags !== undefined && request.tags !== null) {
+    payload.tags = request.tags;
+  }
+  return payload;
+}
+
+function extractConversationId(info: unknown): string {
+  if (!isRecord(info)) {
+    throw new Error('Invalid response from server: missing conversation id');
+  }
+  const id = info.id ?? info.conversation_id;
+  if (typeof id !== 'string' || id.length === 0) {
+    throw new Error('Invalid response from server: missing conversation id');
+  }
+  return id;
+}
+
+function restoreExecutionStatus(info: unknown, state: ConversationState): ConversationState {
+  if (isRecord(info) && typeof info.execution_status === 'string' && isExecutionStatus(info.execution_status)) {
+    state.executionStatus = info.execution_status;
+  }
+  return state;
 }
 
 function isExecutionStatus(status: string): status is ConversationExecutionStatus {

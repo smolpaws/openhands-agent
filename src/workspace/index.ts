@@ -136,7 +136,7 @@ export class RemoteWorkspace implements BaseWorkspace {
     this.apiKey = options.apiKey ?? options.api_key ?? null;
     this.workingDir = remotePath(options.workingDir ?? options.working_dir ?? 'workspace/project');
     this.readTimeoutSeconds = options.readTimeoutSeconds ?? options.read_timeout ?? 600;
-    this.runtimeConversationId = options.runtimeConversationId ?? options.runtime_conversation_id ?? null;
+    this.runtimeConversationId = normalizeRuntimeConversationId(options.runtimeConversationId ?? options.runtime_conversation_id ?? null);
   }
 
   async alive(): Promise<boolean> {
@@ -166,10 +166,7 @@ export class RemoteWorkspace implements BaseWorkspace {
         headers: { 'content-type': 'application/json' },
         timeoutMs: (timeoutSeconds + 5) * 1000,
       });
-      const started = (await start.json()) as { id?: string };
-      if (started.id === undefined) {
-        throw new Error('agent-server did not return a bash command id');
-      }
+      const commandId = this.parseCommandId(await start.json());
 
       const stdoutParts: string[] = [];
       const stderrParts: string[] = [];
@@ -179,7 +176,7 @@ export class RemoteWorkspace implements BaseWorkspace {
       const deadline = Date.now() + timeoutSeconds * 1000;
 
       while (Date.now() < deadline) {
-        const params = new URLSearchParams({ command_id__eq: started.id, sort_order: 'TIMESTAMP', limit: '100', kind__eq: 'BashOutput' });
+        const params = new URLSearchParams({ command_id__eq: commandId, sort_order: 'TIMESTAMP', limit: '100', kind__eq: 'BashOutput' });
         if (lastOrder >= 0) {
           params.set('order__gt', String(lastOrder));
         }
@@ -237,11 +234,7 @@ export class RemoteWorkspace implements BaseWorkspace {
       headers: { 'content-type': 'application/json' },
       timeoutMs: (timeoutSeconds + 5) * 1000,
     });
-    const started = (await start.json()) as { id?: string };
-    if (typeof started.id !== 'string' || started.id.length === 0) {
-      throw new Error('agent-server did not return a bash command id');
-    }
-    return started.id;
+    return this.parseCommandId(await start.json());
   }
 
   async getCommandOutput(commandId?: string | null): Promise<Record<string, unknown> | null> {
@@ -271,20 +264,18 @@ export class RemoteWorkspace implements BaseWorkspace {
   }
 
   async fileUpload(sourcePath: string | Uint8Array, destinationPath: string): Promise<FileOperationResult> {
-    let source: string;
-    let content: Buffer;
-    let filename: string;
-    if (sourcePath instanceof Uint8Array) {
-      source = 'upload';
-      content = Buffer.from(sourcePath);
-      filename = 'upload';
-    } else {
-      source = resolve(sourcePath);
-      content = await readFile(source);
-      filename = source.split(/[\\/]/u).at(-1) ?? 'file';
-    }
+    const source = sourcePath instanceof Uint8Array ? 'upload' : resolve(sourcePath);
     const destination = joinRemotePath(this.workingDir, destinationPath);
     try {
+      let content: Buffer;
+      let filename: string;
+      if (sourcePath instanceof Uint8Array) {
+        content = Buffer.from(sourcePath);
+        filename = 'upload';
+      } else {
+        content = await readFile(source);
+        filename = source.split(/[\\/]/u).at(-1) ?? 'file';
+      }
       const form = new FormData();
       form.set('file', new Blob([content]), filename);
       const params = new URLSearchParams({ path: destination });
@@ -346,6 +337,14 @@ export class RemoteWorkspace implements BaseWorkspace {
     if (this.runtimeConversationId === null) {
       throw new Error('Runtime lifecycle requires a conversation scope');
     }
+  }
+
+  private parseCommandId(data: unknown): string {
+    const id = isRecord(data) ? data.id : undefined;
+    if (typeof id !== 'string' || id.length === 0) {
+      throw new Error('agent-server did not return a bash command id');
+    }
+    return id;
   }
 
   private async request(path: string, init: FetchRequestInit = {}, acceptableStatusCodes: ReadonlySet<number> = new Set()): Promise<Response> {
@@ -553,6 +552,18 @@ async function delay(ms: number): Promise<void> {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+
+function normalizeRuntimeConversationId(value: string | null): string | null {
+  if (value === null) {
+    return null;
+  }
+  if (!UUID_PATTERN.test(value)) {
+    throw new Error(`runtimeConversationId must be a valid UUID or null, got ${JSON.stringify(value)}`);
+  }
+  return value;
 }
 
 interface ExecError {
