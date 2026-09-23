@@ -39,6 +39,17 @@ describe('RemoteConversation', () => {
     expect(conversation.state.executionStatus).toBe(conversationExecutionStatus.FINISHED);
   });
 
+  it('renames the conversation through the info endpoint', async () => {
+    const fetch = new FakeRemoteFetch([{ status: 204, body: null }]);
+    const conversation = new RemoteConversation({ host: 'https://agent.example', conversationId: 'abc', fetch });
+
+    await conversation.setTitle('Release automation');
+
+    expect(fetch.calls).toHaveLength(1);
+    expect(fetch.calls[0]).toMatchObject({ url: 'https://agent.example/api/conversations/abc', method: 'PATCH' });
+    expect(JSON.parse(fetch.calls[0]?.body ?? '{}')).toEqual({ title: 'Release automation' });
+  });
+
   it('can pause or interrupt remotely', async () => {
     const fetch = new FakeRemoteFetch([
       { status: 204, body: null },

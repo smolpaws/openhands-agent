@@ -78,6 +78,10 @@ export class RemoteConversation {
     this.state.executionStatus = conversationExecutionStatus.PAUSED;
   }
 
+  async setTitle(title: string): Promise<void> {
+    await this.request('PATCH', this.infoPath, { title });
+  }
+
   private async waitForRunCompletion(pollIntervalMs: number, timeoutMs: number): Promise<void> {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() <= deadline) {
