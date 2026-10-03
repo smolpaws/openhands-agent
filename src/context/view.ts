@@ -14,6 +14,7 @@ import { condenseActionSchema, condenseObservationSchema } from '../tool/condens
 import { ManipulationIndices } from './manipulation-indices.js';
 import { viewProperties } from './view-properties.js';
 import { contextWarningMessage } from './context-warnings.js';
+import { readLlmUsageEvent } from '../llm/metrics.js';
 import { AGENT_RESET_NOTICE, HARD_RESET_NOTICE } from './reset-notices.js';
 
 export { ManipulationIndices } from './manipulation-indices.js';
@@ -79,6 +80,13 @@ export class View {
         break;
       case 'ConversationStateUpdateEvent': {
         if (event.key === 'condensation_operation_failure') this.applyRequestFailure(event);
+        const usage = readLlmUsageEvent(event);
+        if (usage?.request_succeeded === true && usage.context_warning_ids !== undefined) {
+          const consumed = new Set(usage.context_warning_ids.map(id => `${id}-message`));
+          const retained = this.events.filter(candidate => !consumed.has(candidate.id));
+          this.events.length = 0;
+          this.events.push(...retained);
+        }
         const warning = contextWarningMessage(event);
         if (warning !== null) this.events.push(warning);
         break;

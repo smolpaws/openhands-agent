@@ -19,8 +19,18 @@ const usageRecordSchema = z.object({
   history_origin: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
   model: z.string(), requested_model: z.string(), timestamp: z.string().datetime(),
   latency: z.number().finite().nonnegative(), usage: llmUsageSchema.nullable(), cost: costSchema.nullable(),
+  // Present on main-agent requests. Persist delivery with successful accounting
+  // so a crash during response dispatch cannot replay a consumed warning.
+  request_succeeded: z.boolean().optional(),
+  context_warning_ids: z.array(z.string().min(1)).optional(),
 }).strict();
 export type UsageRecord = z.infer<typeof usageRecordSchema>;
+
+export function readLlmUsageEvent(event: Event): UsageRecord | null {
+  if (event.kind !== 'ConversationStateUpdateEvent' || event.key !== LLM_USAGE_KEY) return null;
+  const result = usageRecordSchema.safeParse(event.value);
+  return result.success ? result.data : null;
+}
 
 /** Bind opaque provider continuation to its originating profile without persisting credentials. */
 export function llmHistoryOrigin(profile: LLMProfile): string {
@@ -73,6 +83,7 @@ export interface ConversationStats {
 
 export function createLlmUsageEvent(profile: LLMProfile, response: LLMResponseMetadata, timing: {
   startedAt: number; completedAt: number; usageId?: string;
+  requestSucceeded?: boolean; contextWarningIds?: readonly string[];
 }) {
   const recordId = randomUUID();
   const reported = response.usage?.reportedCost;
@@ -86,6 +97,8 @@ export function createLlmUsageEvent(profile: LLMProfile, response: LLMResponseMe
     provider_id: profile.providerId, model: response.model ?? profile.model, requested_model: profile.model,
     timestamp: new Date(timing.completedAt).toISOString(), latency: Math.max(0, timing.completedAt - timing.startedAt) / 1000,
     usage: structuredClone(response.usage), cost,
+    ...(timing.requestSucceeded === undefined ? {} : { request_succeeded: timing.requestSucceeded }),
+    ...(timing.contextWarningIds === undefined ? {} : { context_warning_ids: [...timing.contextWarningIds] }),
   });
   return conversationStateUpdateEventSchema.parse({ id: recordId, key: LLM_USAGE_KEY, value: record });
 }

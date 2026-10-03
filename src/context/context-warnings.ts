@@ -59,7 +59,8 @@ export async function contextWarningEvent(
   const inputLimit = llm.profile.maxInputTokens ?? llm.effectiveMaxInputTokens ?? null;
   if (inputLimit === null) return null;
   if (!Number.isFinite(inputLimit) || inputLimit <= 0) throw new RangeError('Invalid provider input-token limit');
-  const inputTokens = await getTotalTokenCount(view.events, llm, context);
+  const inputTokens = context?.reportedInputTokens === undefined
+    ? await getTotalTokenCount(view.events, llm, context) : context.reportedInputTokens;
   if (inputTokens === null) return null;
   const highestPassed = levels.filter(threshold => inputTokens / inputLimit >= threshold).at(-1);
   if (highestPassed === undefined || highestPassed <= highestWarned) return null;

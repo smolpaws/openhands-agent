@@ -65,6 +65,9 @@ async function assertVisibleTextExceedsBudget(f: ReturnType<typeof fixture>) {
 async function oldSummarizer(modality?: Modality) {
   const f = fixture(modality);
   await assertVisibleTextExceedsBudget(f);
+  // Bootstrap an actual successful response: provider usage drives the next step.
+  await new Agent({ llm: f.main, systemPrompt: 'Fixed identity', tools: [] }).step(f.state);
+  f.fetch.mockClear();
   const agent = new Agent({ llm: f.main, systemPrompt: 'Fixed identity', tools: [],
     // Reproduce Main's older frozen cap being higher than its selected profile.
     condenser: new LLMSummarizingCondenser({ llm: f.summaryClient, maxTokens: 1000, keepFirst: 0 }),
@@ -80,6 +83,9 @@ async function oldSummarizer(modality?: Modality) {
 async function agentReset(modality?: Modality) {
   const f = fixture(modality);
   await assertVisibleTextExceedsBudget(f);
+  // Bootstrap an actual successful response: provider usage drives the next step.
+  await new Agent({ llm: f.main, systemPrompt: 'Fixed identity', tools: [] }).step(f.state);
+  f.fetch.mockClear();
   await new Agent({ llm: f.main, systemPrompt: 'Fixed identity', tools: [],
     condenser: new AgentResetCondenser(),
     hardCondenser: new LLMSummarizingCondenser({ llm: f.summaryClient }),
@@ -106,13 +112,10 @@ describe('configured input budget with opaque context', () => {
   it('agent-reset warns for text-only input while allowing the main request', async () => {
     await agentReset();
   });
-  // Known regressions, reproduced as ordinary failing tests before adding fails.
-  // A budget fix must make these expectations pass; then remove .fails. Vitest
-  // fails an expected-failure test if its body unexpectedly passes.
-  it.fails.each(['image', 'encrypted_reasoning'] as const)(
+  it.each(['image', 'encrypted_reasoning'] as const)(
     'old summarizer must honor the configured budget despite %s', oldSummarizer,
   );
-  it.fails.each(['image', 'encrypted_reasoning'] as const)(
+  it.each(['image', 'encrypted_reasoning'] as const)(
     'agent-reset must warn at the configured budget despite %s', agentReset,
   );
 });

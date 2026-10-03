@@ -58,7 +58,8 @@ export class LLMSummarizingCondenser extends RollingCondenser {
     if (view.unhandledCondensationRequest) reasons.add('request');
     const maxTokens = this.effectiveMaxTokens(agentLlm);
     if (maxTokens !== null && agentLlm) {
-      const total = await getTotalTokenCount(view.events, agentLlm, context);
+      const total = context?.reportedInputTokens === undefined
+        ? await getTotalTokenCount(view.events, agentLlm, context) : context.reportedInputTokens;
       if (total !== null && total > maxTokens) reasons.add('tokens');
     }
     if (view.length > this.maxSize) reasons.add('events');

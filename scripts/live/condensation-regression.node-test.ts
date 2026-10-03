@@ -57,6 +57,7 @@ function fixture(format: 'chat' | 'responses' | 'anthropic' | 'gemini'): FetchLi
   return async (_url, init) => {
     request++;
     const body = JSON.parse(init.body);
+    const inputTokens = 40 + Math.ceil(JSON.stringify(body).length / 4);
     const summary = JSON.stringify(body).includes('You are maintaining a context-aware state summary');
     const restore = JSON.stringify(body).includes('RESTORED-CONDENSATION');
     const step = summary ? 0 : ++calls;
@@ -65,10 +66,10 @@ function fixture(format: 'chat' | 'responses' | 'anthropic' | 'gemini'): FetchLi
     const text = summary ? 'Public earlier work complete; keep current task.' : 'Continuing.';
     const id = `request-${request}`, callId = `call-${request}`;
     const call = tool ? { id: callId, name: tool, args } : null;
-    const response = format === 'chat' ? { id, model: 'fixture', usage: { prompt_tokens: 30, completion_tokens: 10 }, choices: [{ message: { role: 'assistant', content: text, ...(call ? { tool_calls: [{ id: call.id, type: 'function', function: { name: call.name, arguments: JSON.stringify(call.args) } }] } : {}) } }] }
-      : format === 'responses' ? { id, model: 'fixture', usage: { input_tokens: 30, output_tokens: 10 }, output: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text }] }, ...(call ? [{ type: 'function_call', id: `item-${call.id}`, call_id: call.id, name: call.name, arguments: JSON.stringify(call.args) }] : [])] }
-      : format === 'anthropic' ? { id, model: 'fixture', role: 'assistant', usage: { input_tokens: 30, output_tokens: 10 }, content: [...(summary ? [] : [{ type: 'thinking', thinking: 'Public reasoning', signature: `signed-${request}` }]), { type: 'text', text }, ...(call ? [{ type: 'tool_use', id: call.id, name: call.name, input: call.args }] : [])] }
-      : { id, model: 'fixture', usage: { total_input_tokens: 30, total_output_tokens: 10, total_tokens: 40 }, steps: [{ type: 'model_output', content: [{ type: 'text', text }] }, ...(call ? [{ type: 'function_call', id: call.id, name: call.name, arguments: call.args }] : [])] };
+    const response = format === 'chat' ? { id, model: 'fixture', usage: { prompt_tokens: inputTokens, completion_tokens: 10 }, choices: [{ message: { role: 'assistant', content: text, ...(call ? { tool_calls: [{ id: call.id, type: 'function', function: { name: call.name, arguments: JSON.stringify(call.args) } }] } : {}) } }] }
+      : format === 'responses' ? { id, model: 'fixture', usage: { input_tokens: inputTokens, output_tokens: 10 }, output: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text }] }, ...(call ? [{ type: 'function_call', id: `item-${call.id}`, call_id: call.id, name: call.name, arguments: JSON.stringify(call.args) }] : [])] }
+      : format === 'anthropic' ? { id, model: 'fixture', role: 'assistant', usage: { input_tokens: inputTokens, cache_read_input_tokens: 0, cache_creation_input_tokens: 0, output_tokens: 10 }, content: [...(summary ? [] : [{ type: 'thinking', thinking: 'Public reasoning', signature: `signed-${request}` }]), { type: 'text', text }, ...(call ? [{ type: 'tool_use', id: call.id, name: call.name, input: call.args }] : [])] }
+      : { id, model: 'fixture', usage: { total_input_tokens: inputTokens, total_output_tokens: 10, total_tokens: inputTokens + 10 }, steps: [{ type: 'model_output', content: [{ type: 'text', text }] }, ...(call ? [{ type: 'function_call', id: call.id, name: call.name, arguments: call.args }] : [])] };
     return new Response(JSON.stringify(response), { headers: { 'content-type': 'application/json' } });
   };
 }

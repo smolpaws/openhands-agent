@@ -49,7 +49,14 @@ describe('source integration condensation contracts', () => {
     const terminal = new ToolDefinition({ name: 'terminal', description: 'Fixture echo tool', inputSchema: z.object({ command: z.string() }), executor: ({ command }) => {
       executed.push(command); return { text: `${command}\n${'Public context fixture. '.repeat(60)}`, is_error: false };
     } });
-    const complete = vi.fn(async () => { const n = complete.mock.calls.length; return toolResponse(n, n % 2 ? 'terminal' : 'finish', n % 2 ? { command: `echo ${(n + 1) / 2}` } : { message: 'done' }); });
+    const complete = vi.fn(async (messages: readonly Message[]) => {
+      const n = complete.mock.calls.length;
+      const response = toolResponse(n, n % 2 ? 'terminal' : 'finish', n % 2 ? { command: `echo ${(n + 1) / 2}` } : { message: 'done' });
+      // Match this synthetic provider's reported input to its fixture tokenizer,
+      // rather than claiming every growing request was only 20 tokens.
+      response.usage.promptTokens = 40 + Math.ceil(JSON.stringify(messages).length / 4);
+      return response;
+    });
     const main = { profile, complete, getTokenCount: async (messages: readonly Message[]) => 40 + Math.ceil(JSON.stringify(messages).length / 4) };
     const conversation = new LocalConversation({ agent: new Agent({ llm: main, tools: [terminal, FinishTool.create()], condenser: new LLMSummarizingCondenser({ llm: summary, maxSize: mode === 'events' ? 10 : 1000, maxTokens: mode === 'tokens' ? 700 : null, keepFirst: 1 }) }), maxIterations: 15 });
     for (let turn = 1; turn <= 3; turn++) { conversation.sendMessage(`Echo ${turn} and finish.`); await conversation.run(); }

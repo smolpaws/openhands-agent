@@ -68,11 +68,18 @@ The Agent must not put it in normal preflight or a `PipelineCondenser`.
 
 The explicit active-main-profile `maxInputTokens` determines warning percentages,
 even if the client's effective limit is larger. When that profile field is absent,
-resolved main-model metadata may supply the denominator. Counting includes fixed
-system/identity, host memory snapshot, skills, active history and usable tools.
-Unavailable counts/limits remain unavailable; estimates are never billed usage.
+resolved main-model metadata may supply the denominator. The latest successful
+main response's inclusive input usage drives stages on the next model request.
+Counts are scoped to the current profile binding and committed-reset generation;
+auxiliary/failed requests and output/cumulative/cache-miss counts cannot drive warnings.
+Before a first successful response, a local estimate includes fixed system/identity,
+host memory snapshot, skills, active history and usable tools. Unavailable counts
+remain unavailable; estimates are never billed usage.
 The highest newly crossed threshold is persisted per reset generation. A failed
-request or summary does not rearm warnings. Ignored warnings, estimates at/above
+request or summary does not rearm warnings. Warning IDs consumed by a successful
+main response are committed atomically with its usage record, so subsequent View
+projections omit those messages, including after restore or failed tool dispatch.
+A failed model request leaves a pending warning for retry. Ignored warnings, estimates at/above
 100%, event counts and elapsed turns do not reset or prevent a model request.
 
 ## Durable operation and model context

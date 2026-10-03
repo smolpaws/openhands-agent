@@ -18,6 +18,7 @@ import { executeCondenseTool, finishPendingContextReset, recoverContextWindow, t
 import type { AgentContext } from '../context/index.js';
 import { LLMResponseError, type LLMClient } from '../llm/client.js';
 import { createLlmUsageEvent } from '../llm/metrics.js';
+import { latestReportedInputTokens } from '../llm/reported-input.js';
 import { historyForProfile } from '../llm/history.js';
 import { historyForRequests } from '../llm/request-history.js';
 import { isContentPolicyViolation, LLMContextWindowExceedError, LLMMalformedConversationHistoryError } from '../llm/exceptions.js';
@@ -88,6 +89,9 @@ export class Agent {
     }
     const messages = await this.messagesForState(state, history, context);
     if (!Array.isArray(messages)) return [messages];
+    const visibleIds = new Set(View.fromEvents(history).events.map(event => event.id));
+    const warningIds = history.filter(event => event.kind === 'ConversationStateUpdateEvent'
+      && event.key === 'agent_context_warning' && visibleIds.has(`${event.id}-message`)).map(event => event.id);
     let response;
     const startedAt = Date.now();
     try {
@@ -96,6 +100,7 @@ export class Agent {
       if (error instanceof LLMResponseError) {
         await state.appendEventAsync(createLlmUsageEvent(this.llm.profile, error.metadata, {
           startedAt, completedAt: Date.now(), ...(this.usageId === undefined ? {} : { usageId: this.usageId }),
+          requestSucceeded: false,
         }));
       }
       const cause = error instanceof LLMResponseError ? error.cause : error;
@@ -126,6 +131,7 @@ export class Agent {
     }
     const accounting = createLlmUsageEvent(this.llm.profile, response, {
       startedAt, completedAt: Date.now(), ...(this.usageId === undefined ? {} : { usageId: this.usageId }),
+      requestSucceeded: true, contextWarningIds: warningIds,
     });
     await state.appendEventAsync(accounting);
     const emitted = await dispatchLlmResponse(response, state, (action) => {
@@ -156,7 +162,10 @@ export class Agent {
   private condenserContext(state: ConversationState, history: readonly Event[], system: TextContent[] | null): CondenserContext {
     const projectEvents = (events: readonly LLMConvertibleEvent[], profile: typeof this.llm.profile) =>
       historyForProfile(historyForRequests(events, history), history, profile, this.llm.profile);
+    const reportedTokens = this.condenser === null ? undefined
+      : latestReportedInputTokens(history, this.llm.profile, this.usageId);
     return {
+      ...(reportedTokens === undefined ? {} : { reportedInputTokens: reportedTokens }),
       tools: this.tools.filter(tool => tool.usable),
       messagesForEvents: events => {
         const messages = eventsToMessages(projectEvents(events, this.llm.profile));

@@ -143,6 +143,16 @@ condensation and event conversion against it. See [concurrent response evidence 
 
 Native clients expose optional token-counting, effective-input-limit and awaited runtime-metadata capabilities. Local text/tool counting ports the pinned LiteLLM generic BPE recipe; it is an estimate, not billed usage or a promise of provider-specific tokenizer equivalence. The native implementation does not reproduce every Hugging Face tokenizer, chat template, or multimodal token estimator. Unmeasurable images/opaque reasoning return `null`, never an invented zero or silent character-count approximation. Custom clients may omit these capabilities. For ordinary summarizers, event-count, manual-request and typed provider-error condensation remain available when proactive token counting is unavailable. Agent-reset mode instead follows DEV-SDK-012's advisory-only and provider-error-only routing.
 
+The latest successful main response's reported inclusive input tokens take precedence
+over local estimates for pressure detection in the same profile binding and committed
+reset generation. Failed and auxiliary requests, output/total/cache-miss counters and
+cumulative statistics are not substitutes. This is deliberately one request behind;
+new input and tool results may increase the next request. Only before the first
+successful request may pressure detection fall back to local estimation. Missing
+reported usage stays unavailable. A committed condensation invalidates the old count.
+Safe prefix/tail selection still uses candidate estimates; if those are unavailable,
+reported token pressure is hard and uses the existing full-view reset fallback.
+
 Explicit profile input limits take precedence. Known native limits come from a reproducibly generated snapshot of the dependency locked at the canonical Python pin. Route overrides must not inherit an unrelated native catalog limit. Runtime discovery is bounded, cached, provider-owned and restricted to supported metadata routes; unknown limits remain `null`. This differs from Python's fallback-zero token counting and some dependency model resolution. Revisit this policy when adding native tokenizers/modalities or when upstream token accounting/model discovery changes. See [condensation evidence](../transpile/condensation.md).
 
 The TypeScript Agent renders fixed system/context outside the event View. Include those blocks and usable tool declarations in every candidate token count without removing them during condensation. An oversized fixed prompt cannot be repaired by forgetting history; do not silently truncate host identity or memory to conceal it. Preflight estimates never enter the usage ledger.
@@ -163,10 +173,16 @@ LocalConversation changes are this explicit deviation.
 Warnings default to fractional thresholds `[0.75, 0.80, 0.85, 0.90]`. The active main
 profile's explicit `maxInputTokens` is authoritative, even when client metadata reports
 a larger model window. Only an absent explicit limit may use resolved main-model
-metadata. Include fixed system/context, memory snapshot and usable tools in the
-estimate. Counts and limits may be unavailable and must not become an invented zero.
+metadata. Prefer reported main-response input usage as specified in DEV-SDK-010;
+first-request estimates include fixed system/context, memory snapshot and usable tools.
+Counts and limits may be unavailable and must not become an invented zero.
 Persist the highest newly crossed warning per committed-reset generation; restore
-does not repeat it. A warning, a count at or above 100%, event pressure, elapsed turns
+does not repeat it. Successful main accounting atomically persists the warning IDs
+included in that request. View replay omits those consumed warning messages from
+subsequent requests, while retaining the durable stage markers. Failed requests
+leave pending warnings visible for retry. Success before failed tool dispatch still
+consumes the warning. Multi-stage jumps emit only the highest new stage. A warning,
+a count at or above 100%, event pressure, elapsed turns
 or a judgment about note readiness must neither reset context nor block a model request.
 
 A successful sole `condense` tool call clears all eligible old active history without
