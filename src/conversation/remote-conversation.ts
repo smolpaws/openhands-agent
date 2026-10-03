@@ -1,5 +1,7 @@
 import { textContent, messageSchema, type Message } from '../llm/index.js';
-import type { AgentSettings } from '../settings/index.js';
+import { validateAgentSettings, type AgentSettings } from '../settings/index.js';
+import type { HookConfig, HookConfigInput } from '../hooks/index.js';
+import { normalizeUuid } from '../utils/uuid.js';
 import { ConversationState, conversationExecutionStatus, type ConversationExecutionStatus } from './state.js';
 
 export interface RemoteFetchResponseLike {
@@ -22,6 +24,21 @@ export interface RemoteConversationOptions {
 }
 
 export interface RemoteConversationCreateRequest {
+  readonly workspace: { readonly kind: 'LocalWorkspace'; readonly working_dir: string };
+  readonly worktree?: boolean;
+  readonly parentConversationId?: string | null;
+  readonly initialMessage?: { readonly role?: Message['role']; readonly content: Message['content']; readonly run?: boolean } | null;
+  readonly stuckDetection?: boolean;
+  readonly hookConfig?: HookConfig | HookConfigInput | null;
+  readonly agentLaunchAdditions?: { readonly system_message_suffix_append?: string | null } | null;
+  readonly userId?: string | null;
+  readonly observabilityMetadata?: Readonly<Record<string, unknown>>;
+  readonly observabilityTags?: readonly string[];
+  readonly observabilitySpanName?: string;
+  readonly autotitle?: boolean;
+  readonly titleLlmProfile?: string | null;
+  readonly title?: string | null;
+  readonly persistenceDir?: string | null;
   readonly agentProfileId?: string | null;
   readonly agentSettings?: AgentSettings | null;
   readonly conversationId?: string | null;
@@ -30,6 +47,8 @@ export interface RemoteConversationCreateRequest {
 }
 
 export interface RemoteConversationCreateOptions {
+  /** SmolPaws accepts TS AgentSettings as `agent`; Python accepts a saved Agent Profile UUID. */
+  readonly server?: 'smolpaws' | 'python';
   readonly host: string;
   readonly request: RemoteConversationCreateRequest;
   readonly fetch?: RemoteFetchLike;
@@ -70,7 +89,7 @@ export class RemoteConversation {
     const host = options.host.replace(/\/+$/, '');
     const fetcher = options.fetch ?? globalRemoteFetch();
     const apiKey = options.apiKey ?? null;
-    const info = await sendRemoteRequest(fetcher, apiKey, 'POST', `${host}/api/conversations`, serializeCreateRequest(options.request));
+    const info = await sendRemoteRequest(fetcher, apiKey, 'POST', `${host}/api/conversations`, serializeCreateRequest(options.request, options.server ?? 'smolpaws'));
     return RemoteConversation.fromInfo(host, fetcher, apiKey, options.state, info);
   }
 
@@ -78,7 +97,7 @@ export class RemoteConversation {
     const host = options.host.replace(/\/+$/, '');
     const fetcher = options.fetch ?? globalRemoteFetch();
     const apiKey = options.apiKey ?? null;
-    const info = await sendRemoteRequest(fetcher, apiKey, 'GET', `${host}/api/conversations/${encodeURIComponent(options.conversationId)}`);
+    const info = await sendRemoteRequest(fetcher, apiKey, 'GET', `${host}/api/conversations/${encodeURIComponent(normalizeUuid(options.conversationId))}`);
     return RemoteConversation.fromInfo(host, fetcher, apiKey, options.state, info);
   }
 
@@ -199,23 +218,48 @@ async function sendRemoteRequest(
   return response.json();
 }
 
-function serializeCreateRequest(request: RemoteConversationCreateRequest): Record<string, unknown> {
-  const payload: Record<string, unknown> = {};
-  if (request.agentProfileId !== undefined && request.agentProfileId !== null) {
-    payload.agent_profile_id = request.agentProfileId;
+function serializeCreateRequest(request: RemoteConversationCreateRequest, server: 'smolpaws' | 'python'): Record<string, unknown> {
+  if (request.workspace?.kind !== 'LocalWorkspace' || typeof request.workspace.working_dir !== 'string' || !request.workspace.working_dir) {
+    throw new Error('Creation requires a LocalWorkspace with working_dir');
   }
-  if (request.agentSettings !== undefined && request.agentSettings !== null) {
-    payload.agent_settings = request.agentSettings;
+  const payload: Record<string, unknown> = { workspace: request.workspace };
+  const hasSettings = request.agentSettings !== undefined && request.agentSettings !== null;
+  const hasProfile = request.agentProfileId !== undefined && request.agentProfileId !== null;
+  if (server === 'python') {
+    if (!hasProfile || hasSettings) {
+      throw new Error('Python creation requires agentProfileId; TypeScript AgentSettings are not Python settings');
+    }
+    payload.agent_profile_id = normalizeUuid(request.agentProfileId);
+  } else {
+    if (hasProfile || !hasSettings) {
+      throw new Error('SmolPaws creation requires agentSettings with an explicit llm_profile_ref; agentProfileId is a Python Agent Profile UUID');
+    }
+    const settings = validateAgentSettings(request.agentSettings);
+    if (settings.agent_kind !== 'openhands') throw new Error('acp_runtime_not_ported');
+    payload.agent = settings;
   }
-  if (request.conversationId !== undefined && request.conversationId !== null) {
-    payload.conversation_id = request.conversationId;
+  const fields = {
+    worktree: request.worktree,
+    initial_message: request.initialMessage,
+    max_iterations: request.maxIterations ?? undefined,
+    stuck_detection: request.stuckDetection,
+    hook_config: request.hookConfig,
+    agent_launch_additions: request.agentLaunchAdditions,
+    tags: request.tags ?? undefined,
+    user_id: request.userId,
+    observability_metadata: request.observabilityMetadata,
+    observability_tags: request.observabilityTags,
+    observability_span_name: request.observabilitySpanName,
+    autotitle: request.autotitle,
+    title_llm_profile: request.titleLlmProfile,
+    title: request.title,
+    persistence_dir: request.persistenceDir,
+  };
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined) payload[key] = value;
   }
-  if (request.maxIterations !== undefined && request.maxIterations !== null) {
-    payload.max_iterations = request.maxIterations;
-  }
-  if (request.tags !== undefined && request.tags !== null) {
-    payload.tags = request.tags;
-  }
+  if (request.conversationId !== undefined && request.conversationId !== null) payload.conversation_id = normalizeUuid(request.conversationId);
+  if (request.parentConversationId !== undefined && request.parentConversationId !== null) payload.parent_conversation_id = normalizeUuid(request.parentConversationId);
   return payload;
 }
 
@@ -227,13 +271,18 @@ function extractConversationId(info: unknown): string {
   if (typeof id !== 'string' || id.length === 0) {
     throw new Error('Invalid response from server: missing conversation id');
   }
-  return id;
+  try {
+    return normalizeUuid(id);
+  } catch {
+    throw new Error('Invalid response from server: invalid conversation id');
+  }
 }
 
 function restoreExecutionStatus(info: unknown, state: ConversationState): ConversationState {
-  if (isRecord(info) && typeof info.execution_status === 'string' && isExecutionStatus(info.execution_status)) {
-    state.executionStatus = info.execution_status;
+  if (!isRecord(info) || typeof info.execution_status !== 'string' || !isExecutionStatus(info.execution_status)) {
+    throw new Error('Invalid response from server: missing or invalid execution_status');
   }
+  state.executionStatus = info.execution_status;
   return state;
 }
 

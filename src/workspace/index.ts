@@ -1,3 +1,4 @@
+import { normalizeUuid } from '../utils/uuid.js';
 import { exec } from 'node:child_process';
 import { copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, resolve, sep, posix } from 'node:path';
@@ -554,16 +555,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
-
 function normalizeRuntimeConversationId(value: string | null): string | null {
   if (value === null) {
     return null;
   }
-  if (!UUID_PATTERN.test(value)) {
-    throw new Error(`runtimeConversationId must be a valid UUID or null, got ${JSON.stringify(value)}`);
+  try {
+    return normalizeUuid(value);
+  } catch {
+    throw new Error('runtimeConversationId must be a valid UUID or null');
   }
-  return value;
 }
 
 interface ExecError {

@@ -1,0 +1,72 @@
+{
+  "upstreamCommit": "d128a786ee2ee570eb23ff5862ec148b43cfad0b",
+  "validatedCreatePayload": {
+    "workspace": {
+      "kind": "LocalWorkspace",
+      "working_dir": "/workspace"
+    },
+    "agent_profile_id": "12345678-1234-1234-1234-123456789abc",
+    "conversation_id": "12345678-1234-1234-1234-123456789abc",
+    "max_iterations": 17,
+    "stuck_detection": false,
+    "hook_config": {
+      "stop": [
+        {
+          "hooks": [
+            {
+              "command": "true"
+            }
+          ]
+        }
+      ]
+    },
+    "tags": {
+      "automationrun": "run-one"
+    },
+    "observability_metadata": {
+      "run": "one"
+    },
+    "observability_tags": [
+      "automation"
+    ],
+    "observability_span_name": "scheduled-task",
+    "user_id": "operator",
+    "worktree": false,
+    "initial_message": {
+      "role": "user",
+      "content": [],
+      "run": false
+    },
+    "autotitle": false,
+    "title_llm_profile": "titles",
+    "agent_launch_additions": {
+      "system_message_suffix_append": "context"
+    }
+  },
+  "uuids": [
+    {
+      "input": "12345678-1234-1234-1234-123456789ABC",
+      "canonical": "12345678-1234-1234-1234-123456789abc"
+    },
+    {
+      "input": "12345678123412341234123456789abc",
+      "canonical": "12345678-1234-1234-1234-123456789abc"
+    },
+    {
+      "input": "{12345678-1234-1234-1234-123456789abc}",
+      "canonical": "12345678-1234-1234-1234-123456789abc"
+    },
+    {
+      "input": "urn:uuid:12345678-1234-1234-1234-123456789abc",
+      "canonical": "12345678-1234-1234-1234-123456789abc"
+    }
+  ],
+  "invalidUuids": [
+    "",
+    "not-a-uuid",
+    " 12345678-1234-1234-1234-123456789abc",
+    "12345678-1234-1234-1234-123456789abc ",
+    "1234567812-3412341234123456789abc",
+    "{12345678-1234-1234-1234-123456789abc"
+  ]
+}
