@@ -11,6 +11,7 @@ These documents describe `@smolpaws/openhands-agent`, the idiomatic TypeScript t
 - [`Subscription port evidence`](../transpile/subscription-auth.md) — completed SDK/server OAuth support, superseded deferrals, and behavior future transpilation runs must preserve.
 - [`Context and memory evidence`](../transpile/context-memory.md) — supported full-content skills, host file ownership, and the deferred upstream memory-index loader.
 - [`Anthropic cache evidence`](../transpile/anthropic-cache.md) — automatic prompt breakpoints, native/proxy serialization, and live Haiku verification.
+- [`Remote API evidence`](../transpile/remote-api.md) — creation/configuration, Python and TS profile mapping, validated attachment and UUID normalization.
 - [`DRIFT_TOOLING.md`](DRIFT_TOOLING.md) — design for the canonical pin, generated interval reports, weekly watcher, server OpenAPI oracle, and differential evidence.
 - [`DRIFT_AUTOMATION.md`](DRIFT_AUTOMATION.md) — the time-boxed, resumable runbook the weekly unattended pin-advance automation follows.
 
