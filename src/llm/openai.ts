@@ -271,7 +271,7 @@ export function buildOpenAIResponsesBody(
     delete body.temperature;
     delete body.max_output_tokens;
     delete body.include;
-    delete body.reasoning;
+    // Subscription Responses accepts explicit effort/summary; retain the selected profile options.
   }
   applyOpenAIPromptCacheOptions(body, normalizedProfile);
   return body;

@@ -183,7 +183,7 @@ describe('OAuth credentials (Python parity)', () => {
       ],
     ]);
   });
-  it('restores an explicit subscription profile without API keys and streams Codex with refreshed credentials', async () => {
+  it.each(['openai/gpt-5.5', 'gpt-6.1-sol'])('restores %s subscription without API keys and streams with refreshed credentials', async (model) => {
     const s = store();
     s.save(creds());
     const calls: {
@@ -206,7 +206,8 @@ describe('OAuth credentials (Python parity)', () => {
     const p = llmProfileSchema.parse({
       profileId: 'chatgpt',
       providerId: 'openai',
-      model: 'openai/gpt-5.5',
+      model,
+      reasoningEffort: 'high',
       authType: 'subscription',
       temperature: 1,
       maxOutputTokens: 20,
@@ -228,7 +229,8 @@ describe('OAuth credentials (Python parity)', () => {
     expect(call.init.headers.authorization).toBe('Bearer access');
     const body = JSON.parse(call.init.body);
     expect(body).toMatchObject({
-      model: 'gpt-5.5',
+      model: model.replace(/^openai\//, ''),
+      reasoning: { effort: 'high' },
       stream: true,
       store: false,
     });
@@ -261,8 +263,9 @@ it('omits subscription-unsupported options and prior reasoning without changing 
     responses_reasoning_item: { id: 'rs_old', encrypted_content: 'encrypted' },
   });
   const body = buildOpenAIResponsesBody(p, [m]);
-  for (const key of ['reasoning', 'include', 'temperature', 'max_output_tokens', 'prompt_cache_retention'])
+  for (const key of ['include', 'temperature', 'max_output_tokens', 'prompt_cache_retention'])
     expect(body).not.toHaveProperty(key);
+  expect(body.reasoning).toEqual({ effort: 'high', summary: 'detailed' });
   expect(JSON.stringify(body)).not.toContain('rs_old');
   expect(m.responses_reasoning_item?.id).toBe('rs_old');
   expect(buildOpenAIResponsesBody({ ...p, authType: 'api_key', baseUrl: null }, [m])).toHaveProperty('include');

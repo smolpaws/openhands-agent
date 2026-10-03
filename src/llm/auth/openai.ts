@@ -10,9 +10,10 @@ export const CODEX_API_ENDPOINT = 'https://chatgpt.com/backend-api/codex/respons
 export const DEVICE_CODE_TIMEOUT_SECONDS = 900;
 export const OAUTH_TIMEOUT_SECONDS = 300;
 export const DEFAULT_OAUTH_PORT = 1455;
-// Pinned Python settings/acp_providers.py _CODEX_MODELS; this is data, not ACP execution.
+// Pinned Python catalog plus explicit target subscription models (DEV-SDK-004); no ACP execution.
 export const OPENAI_CODEX_MODELS: readonly string[] = [
   'gpt-6-astra',
+  'gpt-6.1-sol',
   'gpt-5.6-sol',
   'gpt-5.6-terra',
   'gpt-5.6-luna',

@@ -87,6 +87,8 @@ The optional `switch_llm` builtin retains the upstream profile-name/reason input
 
 Ordinary summarizing-condenser settings select their own `llm_profile_ref`, or an explicit host-provided default reference. Materialization must resolve that reference independently; it must never silently reuse the main agent client. Disabled/no-op settings require no credential lookup. Missing references and resolution failures are errors at materialization, while old settings without a reference remain loadable for host migration. Profile switches do not implicitly switch the condenser. The opt-in agent-reset mode and its explicit sibling hard fallback are governed by DEV-SDK-012 and EXT-SDK-004.
 
+Subscription profiles may select the target-supported `gpt-6.1-sol` model in addition to the pinned Python catalog. Explicit Responses reasoning effort and summary are preserved for subscription transport; only unsupported sampling/output-limit options and historical opaque reasoning are stripped. These provider capabilities are deliberate DEV-SDK-004 differences from the pinned catalog/serializer, verified by native wire tests and a live subscription smoke. Model additions do not advance the upstream pin or enable ACP execution.
+
 ### DEV-SDK-005 — no ACP runtime execution
 
 ACP execution/model-switching runtime behavior is not part of this transpilation.
