@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { condensationSchema, conversationStateUpdateEventSchema, messageEventSchema, type Event } from '../../event/index.js';
 import { llmProfileSchema, messageSchema } from '../index.js';
-import { createLlmUsageEvent } from '../metrics.js';
+import { createLlmUsageEvent, llmHistoryOrigin } from '../metrics.js';
 import { latestReportedInputTokens } from '../reported-input.js';
 import { requestBoundaryEvent } from '../request-history.js';
 
@@ -35,6 +35,21 @@ describe('latest successful main input report', () => {
     const statsReset = conversationStateUpdateEventSchema.parse({ key: 'llm_metrics_reset', value: { version: 1 } });
     expect(latestReportedInputTokens([usage(750), statsReset], profile)).toBe(750);
     expect(latestReportedInputTokens([usage(750), condensationSchema.parse({ forgotten_event_ids: [] })], profile)).toBeUndefined();
+  });
+  it('does not associate failed legacy accounting with another binding or a partial response boundary', () => {
+    const legacy = createLlmUsageEvent(profile, response(870), { startedAt: 0, completedAt: 1 });
+    const output = messageEventSchema.parse({ source: 'agent', llm_message: response(870).message });
+    const marker = requestBoundaryEvent(null, [output]);
+    expect(latestReportedInputTokens([legacy, marker], profile)).toBeUndefined();
+    expect(latestReportedInputTokens([legacy, usage(200, true, { ...profile, profileId: 'other' }), marker, output], profile)).toBeUndefined();
+  });
+  it('rejects unanchored legacy accounting from a different persisted endpoint origin', () => {
+    const legacy = createLlmUsageEvent(profile, response(870), { startedAt: 0, completedAt: 1 });
+    const value = legacy.value as Record<string, unknown>;
+    delete value.history_origin;
+    const output = messageEventSchema.parse({ source: 'agent', llm_message: response(870).message });
+    const anchor = conversationStateUpdateEventSchema.parse({ key: 'llm_history_origin', value: { version: 1, origin: llmHistoryOrigin(profile) } });
+    expect(latestReportedInputTokens([legacy, requestBoundaryEvent(null, [output]), output, anchor], { ...profile, baseUrl: 'https://different.test/v1' })).toBeUndefined();
   });
   it('reads successful legacy accounting through its completed boundary and survives serialized fork history', () => {
     const legacy = createLlmUsageEvent(profile, response(870), { startedAt: 0, completedAt: 1 });

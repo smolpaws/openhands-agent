@@ -71,12 +71,13 @@ export function hasCompletedLlmRequestAfter(history: readonly Event[], eventId: 
 }
 
 interface CompletedRequestBoundary {
+  readonly markerId: string;
   readonly inputIndex: number;
   readonly responseIds: ReadonlySet<string>;
   readonly firstResponseIndex: number;
 }
 
-function completedRequestBoundaries(history: readonly Event[]): CompletedRequestBoundary[] {
+export function completedRequestBoundaries(history: readonly Event[]): CompletedRequestBoundary[] {
   const indices = new Map(history.map((event, index) => [event.id, index]));
   const completed: CompletedRequestBoundary[] = [];
   for (const [markerIndex, marker] of history.entries()) {
@@ -91,7 +92,7 @@ function completedRequestBoundaries(history: readonly Event[]): CompletedRequest
     const responses = responseIndices.map(index => history[index!]!);
     if (!responses.some(isMainResponse) || !responses.every(event => isMainResponse(event)
       || event.kind === 'MessageEvent' && event.source === 'environment' && event.llm_message.role === 'user')) continue;
-    completed.push({ inputIndex, responseIds, firstResponseIndex: Math.min(...responseIndices as number[]) });
+    completed.push({ markerId: marker.id, inputIndex, responseIds, firstResponseIndex: Math.min(...responseIndices as number[]) });
   }
   return completed;
 }

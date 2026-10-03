@@ -60,7 +60,7 @@ function hasVisibleContent(content: readonly Content[]): boolean {
   return content.some(item => item.type !== 'text' || item.text.trim().length > 0);
 }
 
-function legacyOrigin(events: readonly Event[]): string | null {
+export function legacyOrigin(events: readonly Event[]): string | null {
   let result: string | null = null;
   for (const event of events) {
     if (event.kind !== 'ConversationStateUpdateEvent' || event.key !== LLM_HISTORY_ORIGIN_KEY) continue;
