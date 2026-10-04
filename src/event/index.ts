@@ -15,6 +15,7 @@ import {
 } from '../llm/index.js';
 import { classifyError, errorClassificationSchema } from './error-classification.js';
 import { condensationRequestDetailsSchema, condensationResetSchema } from './condensation-metadata.js';
+import { terminalObservationContent } from '../tools/terminal-observation.js';
 export * from './condensation-metadata.js';
 
 export const N_CHAR_PREVIEW = 500;
@@ -379,7 +380,7 @@ export function toLLMMessage(event: LLMConvertibleEvent): Message {
         responses_reasoning_item: event.responses_reasoning_item,
       };
     case 'ObservationEvent':
-      return toolMessage(event.tool_name, event.tool_call_id, [...observationContent(event.observation), ...event.extended_content]);
+      return toolMessage(event.tool_name, event.tool_call_id, [...observationContent(event.observation, event.tool_name), ...event.extended_content]);
     case 'UserRejectObservation':
       return toolMessage(event.tool_name, event.tool_call_id, [textContent(`Action rejected: ${event.rejection_reason}`)]);
     case 'AgentErrorEvent':
@@ -476,7 +477,11 @@ function toolMessage(name: string, toolCallId: string, content: readonly Content
   };
 }
 
-function observationContent(observation: Record<string, unknown>): Content[] {
+function observationContent(observation: Record<string, unknown>, toolName: string): Content[] {
+  if (toolName === 'terminal') {
+    const terminalContent = terminalObservationContent(observation);
+    if (terminalContent !== null) return terminalContent;
+  }
   const toLlmContent = observation.to_llm_content;
   if (Array.isArray(toLlmContent)) {
     return z.array(contentSchema).parse(toLlmContent);

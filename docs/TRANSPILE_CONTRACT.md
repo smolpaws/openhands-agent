@@ -97,6 +97,14 @@ ACP execution/model-switching runtime behavior is not part of this transpilation
 
 The Python terminal tool runs commands in a persistent tmux/subprocess session: it supports interactive input, returns to the model after 30 seconds without output while the process keeps running (soft timeout, exit code -1), and lets a later call continue or stop it. The TypeScript executor runs each command with Node's `exec`: no interactive input, no persistent session, and a **hard** default timeout (300 seconds unless the action sets `timeout`; `timeout: 0` means no limit) after which the process is killed and the observation reports `timeout: true` with exit code -1. Upstream changes to the terminal tool's soft-timeout, session, or input semantics must still be reviewed against this alternative.
 
+This deviation does not remove Python's terminal output boundary. Cap combined
+terminal output at `MAX_CMD_OUTPUT_SIZE` (30,000 Unicode code points), retaining
+the head and tail around the upstream clipping notice, before emitting an
+observation. Independently cap formatted terminal output at the LLM projection
+boundary, including restored observations, with the upstream separate error
+header and available metadata. The process capture byte limit is a separate
+resource guard. See [terminal output evidence](../transpile/terminal-output.md).
+
 ### DEV-SDK-007 — native accounting with explicit measurement coverage
 
 Preserve per-completion usage, accumulation by usage ID, independent snapshots, and continuity after restore. Native provider adapters normalize token categories once and retain the provider's usage payload. Persist one accounting delta per returned `Agent.step` LLM response, including available accounting metadata on response failures, then project conversation statistics; do not add cumulative response snapshots together or charge a multi-tool response once per action. Use independent local accounting IDs because provider response IDs may be absent or reused. Hosts implementing a metrics-reset fork append a validated reset boundary after the copied history.

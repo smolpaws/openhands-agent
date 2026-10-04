@@ -180,6 +180,14 @@ Raw API keys are separate from profile JSON. With `MacOSKeychainSecretStore`, va
 
 Concrete tools in `src/tools/` include terminal, file editor, glob, grep, task tracker, finish, and injectable browser adapters. They are usable directly or through the agent loop.
 
+The terminal executor clips combined stdout/stderr to 30,000 Unicode code points
+before returning an observation, including failures and killed-command output.
+Its separate 32 MiB process buffer bounds capture rather than model context.
+`src/tools/terminal-observation.ts` renders available terminal metadata and caps
+the formatted body again during event-to-message projection. This also bounds
+older saved terminal results without rewriting the event log. Error notices are
+separate text blocks, as in Python; other tool projections are unchanged.
+
 Workspaces in `src/workspace/` separate execution substrate from agent logic:
 
 - `LocalWorkspace` executes commands/files/git against the local filesystem.

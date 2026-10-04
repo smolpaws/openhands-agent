@@ -106,18 +106,25 @@ export function maybeTruncate(content: string, options: MaybeTruncateOptions = {
     return content;
   }
 
-  if (truncateNotice.length >= truncateAfter) {
-    return truncateNotice.slice(0, truncateAfter);
+  // Python len/slices count Unicode code points, not UTF-16 code units. Keep
+  // ordinary terminal output as a string to avoid allocating an array per byte.
+  const characters = /[\u{10000}-\u{10FFFF}]/u.test(content) ? Array.from(content) : content;
+  if (characters.length <= truncateAfter) return content;
+  const noticeCharacters = Array.from(truncateNotice);
+
+  if (noticeCharacters.length >= truncateAfter) {
+    return noticeCharacters.slice(0, truncateAfter).join('');
   }
 
-  const availableChars = truncateAfter - truncateNotice.length;
+  const availableChars = truncateAfter - noticeCharacters.length;
   const proposedHead = Math.floor(availableChars / 2) + (availableChars % 2);
   let finalNotice = truncateNotice;
 
   if (options.saveDir !== undefined && options.saveDir !== null && options.saveDir !== '') {
     const savedFilePath = saveFullContent(content, options.saveDir, options.toolPrefix ?? 'output');
     if (savedFilePath !== null) {
-      const headContentLines = content.slice(0, proposedHead).split(/\r?\n/u).length;
+      const head = sliceCharacters(characters, 0, proposedHead);
+      const headContentLines = head.split(/\r?\n/u).length;
       finalNotice = DEFAULT_TRUNCATE_NOTICE_WITH_PERSIST.replace('{filePath}', savedFilePath).replace(
         '{lineNum}',
         String(headContentLines + 1),
@@ -125,15 +132,21 @@ export function maybeTruncate(content: string, options: MaybeTruncateOptions = {
     }
   }
 
-  if (finalNotice.length >= truncateAfter) {
-    return finalNotice.slice(0, truncateAfter);
+  const finalNoticeCharacters = Array.from(finalNotice);
+  if (finalNoticeCharacters.length >= truncateAfter) {
+    return finalNoticeCharacters.slice(0, truncateAfter).join('');
   }
 
-  const remaining = truncateAfter - finalNotice.length;
+  const remaining = truncateAfter - finalNoticeCharacters.length;
   const headChars = Math.min(proposedHead, remaining);
   const tailChars = remaining - headChars;
 
-  return content.slice(0, headChars) + finalNotice + (tailChars > 0 ? content.slice(-tailChars) : '');
+  return sliceCharacters(characters, 0, headChars) + finalNotice + (tailChars > 0 ? sliceCharacters(characters, -tailChars) : '');
+}
+
+function sliceCharacters(characters: string | readonly string[], start: number, end?: number): string {
+  const slice = characters.slice(start, end);
+  return typeof slice === 'string' ? slice : slice.join('');
 }
 
 function saveFullContent(content: string, saveDir: string, toolPrefix: string): string | null {

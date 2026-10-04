@@ -6,13 +6,16 @@ import { promisify } from 'node:util';
 import { z } from 'zod';
 
 import { ToolDefinition, toolAnnotationsSchema } from '../tool/index.js';
+import { maybeTruncate } from '../utils/index.js';
+import { MAX_CMD_OUTPUT_SIZE, terminalMetadataSchema } from './terminal-observation.js';
+export { MAX_CMD_OUTPUT_SIZE, terminalMetadataSchema } from './terminal-observation.js';
 
 const execAsync = promisify(exec);
 
 export const baseToolObservationSchema = z.object({ text: z.string(), is_error: z.boolean().default(false) }).strict();
 
 export const terminalActionSchema = z.object({ command: z.string(), is_input: z.boolean().default(false), timeout: z.number().nonnegative().nullable().default(null), reset: z.boolean().default(false) }).strict();
-export const terminalObservationSchema = baseToolObservationSchema.extend({ command: z.string().nullable().default(null), exit_code: z.number().nullable().default(null), timeout: z.boolean().default(false) }).strict();
+export const terminalObservationSchema = baseToolObservationSchema.extend({ command: z.string().nullable().default(null), exit_code: z.number().nullable().default(null), timeout: z.boolean().default(false), metadata: terminalMetadataSchema.optional(), full_output_save_dir: z.string().nullable().optional() }).strict();
 export type TerminalAction = z.infer<typeof terminalActionSchema>;
 export type TerminalObservation = z.infer<typeof terminalObservationSchema>;
 
@@ -35,17 +38,17 @@ export class TerminalExecutor {
   }
   async execute(action: TerminalAction): Promise<TerminalObservation> {
     const parsed = terminalActionSchema.parse(action);
-    if (parsed.is_input) return { text: 'Interactive input is not supported by this executor.', is_error: true, command: parsed.command, exit_code: null, timeout: false };
+    if (parsed.is_input) return this.observation({ text: 'Interactive input is not supported by this executor.', is_error: true, command: parsed.command, exit_code: null, timeout: false });
     try {
       const cwd = await stat(this.workingDir);
       if (!cwd.isDirectory()) throw new Error('not a directory');
     } catch {
-      return { text: `Working directory does not exist: ${this.workingDir}`, is_error: true, command: parsed.command, exit_code: -1, timeout: false };
+      return this.observation({ text: `Working directory does not exist: ${this.workingDir}`, is_error: true, command: parsed.command, exit_code: -1, timeout: false });
     }
     const timeoutSeconds = parsed.timeout === null ? this.defaultTimeoutSeconds : parsed.timeout;
     try {
       const { stdout, stderr } = await execAsync(parsed.command, { cwd: this.workingDir, timeout: timeoutSeconds * 1000, maxBuffer: TERMINAL_MAX_BUFFER_BYTES });
-      return { text: `${stdout}${stderr}`, is_error: false, command: parsed.command, exit_code: 0, timeout: false };
+      return this.observation({ text: `${stdout}${stderr}`, is_error: false, command: parsed.command, exit_code: 0, timeout: false });
     } catch (error) {
       const err = error as { stdout?: string; stderr?: string; code?: number | string; killed?: boolean; signal?: string; message?: string };
       const timedOut = err.killed === true || err.signal === 'SIGTERM';
@@ -54,8 +57,15 @@ export class TerminalExecutor {
         ? `Command timed out after ${timeoutSeconds}s and was killed. Pass a larger \`timeout\` for long-running commands, or run servers in the background.`
         : output.length > 0 ? '' : (err.message ?? String(error));
       const text = output.length > 0 && detail.length > 0 ? `${output}\n${detail}` : output.length > 0 ? output : detail;
-      return { text, is_error: true, command: parsed.command, exit_code: typeof err.code === 'number' ? err.code : -1, timeout: timedOut };
+      return this.observation({ text, is_error: true, command: parsed.command, exit_code: typeof err.code === 'number' ? err.code : -1, timeout: timedOut });
     }
+  }
+  private observation(result: TerminalObservation): TerminalObservation {
+    return {
+      ...result,
+      text: maybeTruncate(result.text, { truncateAfter: MAX_CMD_OUTPUT_SIZE }),
+      metadata: terminalMetadataSchema.parse({ working_dir: this.workingDir, exit_code: result.exit_code ?? -1 }),
+    };
   }
 }
 

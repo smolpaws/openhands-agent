@@ -1,0 +1,187 @@
+{
+  "source": {
+    "repository": "OpenHands/software-agent-sdk",
+    "commit": "d128a786ee2ee570eb23ff5862ec148b43cfad0b"
+  },
+  "cases": [
+    {
+      "id": "short",
+      "text": "Short output",
+      "repeat": 1,
+      "is_error": false,
+      "metadata": {
+        "prefix": "",
+        "suffix": "",
+        "working_dir": "/tmp",
+        "py_interpreter_path": "/usr/bin/python",
+        "exit_code": 0
+      },
+      "expected": [
+        {
+          "characters": 120,
+          "sha256": "a941a5700e21c2731e104efb71d6fdac6bc467beb25617f73d6e46538a5e042f"
+        }
+      ]
+    },
+    {
+      "id": "over-limit",
+      "text": "A",
+      "repeat": 31000,
+      "is_error": false,
+      "metadata": {
+        "prefix": "",
+        "suffix": "",
+        "working_dir": "/tmp",
+        "py_interpreter_path": "/usr/bin/python",
+        "exit_code": 0
+      },
+      "expected": [
+        {
+          "characters": 30000,
+          "sha256": "40343dace2d37013dffc3a93fbceced09795632c6cbbde129574fb2349e8725e"
+        }
+      ]
+    },
+    {
+      "id": "error",
+      "text": "B",
+      "repeat": 30500,
+      "is_error": true,
+      "metadata": {
+        "prefix": "",
+        "suffix": "",
+        "working_dir": "/tmp",
+        "py_interpreter_path": "/usr/bin/python",
+        "exit_code": 1
+      },
+      "expected": [
+        {
+          "characters": 38,
+          "sha256": "9c7950de67783ca7ffabebe79964eb60ef712a2164a82570f5556645ad026da1"
+        },
+        {
+          "characters": 30000,
+          "sha256": "d7a3aa19da300a815b16693e99d3dc6b0f572e8d2e8c69d3a38a80a42d8e8986"
+        }
+      ]
+    },
+    {
+      "id": "exact-limit",
+      "text": "C",
+      "repeat": 29892,
+      "is_error": false,
+      "metadata": {
+        "prefix": "",
+        "suffix": "",
+        "working_dir": "/tmp",
+        "py_interpreter_path": "/usr/bin/python",
+        "exit_code": 0
+      },
+      "expected": [
+        {
+          "characters": 30000,
+          "sha256": "08b6fa69122afa7cd2d0000d49a32d06a35336bf57f95615906520efb5503b5b"
+        }
+      ]
+    },
+    {
+      "id": "prefix-suffix",
+      "text": "D",
+      "repeat": 30200,
+      "is_error": false,
+      "metadata": {
+        "prefix": "[PREFIX] ",
+        "suffix": " [SUFFIX]",
+        "working_dir": "/tmp",
+        "py_interpreter_path": "/usr/bin/python",
+        "exit_code": 0
+      },
+      "expected": [
+        {
+          "characters": 30000,
+          "sha256": "a8ca40bfee544fc6b7bea92b8d731d20190e3dcffbd3cd7a2685241cdb5eb520"
+        }
+      ]
+    },
+    {
+      "id": "unicode",
+      "text": "🙂",
+      "repeat": 30001,
+      "is_error": false,
+      "metadata": {
+        "prefix": "",
+        "suffix": "",
+        "working_dir": "/tmp",
+        "py_interpreter_path": "/usr/bin/python",
+        "exit_code": 0
+      },
+      "expected": [
+        {
+          "characters": 30000,
+          "sha256": "2f5bdba90bef557ebed0deb8bcc7972d503b2172241af894f2b134dfc2e29709"
+        }
+      ]
+    },
+    {
+      "id": "unicode-under-limit",
+      "text": "🙂",
+      "repeat": 20000,
+      "is_error": false,
+      "metadata": {
+        "prefix": "",
+        "suffix": "",
+        "working_dir": "/tmp",
+        "py_interpreter_path": "/usr/bin/python",
+        "exit_code": 0
+      },
+      "expected": [
+        {
+          "characters": 20108,
+          "sha256": "826a8eac6c6b4c120774d515c377e29df4cbd04dd595dc0390bd8eecb02fe511"
+        }
+      ]
+    },
+    {
+      "id": "multiline",
+      "text": "line\n",
+      "repeat": 15000,
+      "is_error": false,
+      "metadata": {
+        "prefix": "",
+        "suffix": "",
+        "working_dir": "/tmp",
+        "py_interpreter_path": "/usr/bin/python",
+        "exit_code": 0
+      },
+      "expected": [
+        {
+          "characters": 30000,
+          "sha256": "6309d6c1ea5363ef876595e7f390353abd1884f7260b0735a7edf3eada13c8d6"
+        }
+      ]
+    },
+    {
+      "id": "timeout",
+      "text": "T",
+      "repeat": 100000,
+      "is_error": true,
+      "metadata": {
+        "prefix": "",
+        "suffix": "\nCommand timed out and was killed.",
+        "working_dir": "/tmp",
+        "py_interpreter_path": "/usr/bin/python",
+        "exit_code": -1
+      },
+      "expected": [
+        {
+          "characters": 38,
+          "sha256": "9c7950de67783ca7ffabebe79964eb60ef712a2164a82570f5556645ad026da1"
+        },
+        {
+          "characters": 30000,
+          "sha256": "33930a8476b5339236c88b4e4ee2014dc138472661b87450594a77009bf5da1b"
+        }
+      ]
+    }
+  ]
+}
