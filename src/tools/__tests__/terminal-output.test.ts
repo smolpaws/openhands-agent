@@ -16,14 +16,18 @@ const ERROR_HEADER = '[An error occurred during execution.]\n';
 const metadata = { prefix: '', suffix: '', working_dir: '/tmp', py_interpreter_path: '/usr/bin/python', exit_code: 0, pid: 123 };
 const trailing = '\n[Current working directory: /tmp]\n[Python interpreter: /usr/bin/python]\n[Command finished with exit code 0]';
 
-function project(observation: Record<string, unknown>) {
+function projectContent(observation: Record<string, unknown>) {
   const event = observationEventSchema.parse({ tool_name: 'terminal', tool_call_id: 'call', action_id: 'action', observation });
   const restored = observationEventSchema.parse(JSON.parse(JSON.stringify(event)));
   const before = JSON.stringify(restored);
   const message = toLLMMessage(restored);
   expect(JSON.stringify(restored)).toBe(before);
   expect(message).toMatchObject({ role: 'tool', tool_call_id: 'call', name: 'terminal' });
-  return message!.content.map((part) => {
+  return message.content;
+}
+
+function project(observation: Record<string, unknown>) {
+  return projectContent(observation).map((part) => {
     expect(part.type).toBe('text');
     return part.type === 'text' ? part.text : '';
   });
@@ -88,6 +92,82 @@ describe('terminal observation projection', () => {
     expect(text).toHaveLength(LIMIT);
     expect(text).toContain(DEFAULT_TRUNCATE_NOTICE);
     expect(text!.endsWith(`tail${trailing}`)).toBe(true);
+  });
+
+  it('caps restored pre-rendered terminal output', () => {
+    const [text] = project({ to_llm_content: [{ type: 'text', text: 'A'.repeat(100_000) }] });
+    expect(text).toHaveLength(LIMIT);
+    expect(text).toContain(DEFAULT_TRUNCATE_NOTICE);
+    expect(text!.startsWith('A')).toBe(true);
+    expect(text!.endsWith('A')).toBe(true);
+  });
+
+  it('shares the pre-rendered text budget across blocks', () => {
+    const parts = projectContent({ to_llm_content: [
+      { type: 'text', text: 'A'.repeat(20_000), cache_prompt: true },
+      { type: 'text', text: 'B'.repeat(20_000), cache_prompt: false },
+    ] });
+    expect(parts).toHaveLength(2);
+    expect(parts.map(part => part.cache_prompt)).toEqual([true, false]);
+    const text = parts.map(part => part.type === 'text' ? part.text : '').join('');
+    expect(text).toHaveLength(LIMIT);
+    expect(text).toContain(DEFAULT_TRUNCATE_NOTICE);
+    expect(text.startsWith('A')).toBe(true);
+    expect(text.endsWith('B')).toBe(true);
+  });
+
+  it('preserves pre-rendered headers, images and Unicode block boundaries', () => {
+    const image = { type: 'image', image_urls: ['https://example.test/output.png'], cache_prompt: true };
+    const parts = projectContent({ is_error: true, to_llm_content: [
+      { type: 'text', text: ERROR_HEADER, cache_prompt: false },
+      { type: 'text', text: '🙂'.repeat(20_000), cache_prompt: true },
+      image,
+      { type: 'text', text: '🐾'.repeat(20_000), cache_prompt: false },
+    ] });
+    expect(parts.map(part => part.type)).toEqual(['text', 'text', 'image', 'text']);
+    expect(parts[0]).toEqual({ type: 'text', text: ERROR_HEADER, cache_prompt: false });
+    expect(parts[2]).toEqual(image);
+    expect(parts.map(part => part.cache_prompt)).toEqual([false, true, true, false]);
+    const body = parts.slice(1).map(part => part.type === 'text' ? part.text : '').join('');
+    expect([...body]).toHaveLength(LIMIT);
+    expect(body).toContain(DEFAULT_TRUNCATE_NOTICE);
+    expect(body.startsWith('🙂')).toBe(true);
+    expect(body.endsWith('🐾')).toBe(true);
+    expect(body).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u);
+  });
+
+  it('omits fully clipped middle text blocks while preserving intervening images', () => {
+    const image = { type: 'image', image_urls: ['https://example.test/output.png'], cache_prompt: true };
+    const parts = projectContent({ to_llm_content: [
+      { type: 'text', text: 'A'.repeat(20_000), cache_prompt: false },
+      image,
+      { type: 'text', text: 'B'.repeat(20_000), cache_prompt: true },
+      { type: 'text', text: 'C'.repeat(20_000), cache_prompt: true },
+    ] });
+    expect(parts.map(part => part.type)).toEqual(['text', 'image', 'text']);
+    expect(parts[1]).toEqual(image);
+    expect(parts.map(part => part.cache_prompt)).toEqual([false, true, true]);
+    const text = parts.map(part => part.type === 'text' ? part.text : '').join('');
+    expect(text).toHaveLength(LIMIT);
+    expect(text).toContain(DEFAULT_TRUNCATE_NOTICE);
+    expect(text).not.toContain('B');
+    expect(text.startsWith('A')).toBe(true);
+    expect(text.endsWith('C')).toBe(true);
+  });
+
+  it('leaves short pre-rendered content unchanged, without formatting it twice', () => {
+    const content = [
+      { type: 'text', text: ERROR_HEADER, cache_prompt: false },
+      { type: 'text', text: 'already formatted', cache_prompt: true },
+      { type: 'image', image_urls: ['https://example.test/output.png'], cache_prompt: false },
+    ];
+    expect(projectContent({ to_llm_content: content, is_error: true, metadata })).toEqual(content);
+  });
+
+  it('preserves explicit pre-rendered precedence over raw text and content', () => {
+    const explicit = [{ type: 'text', text: 'already formatted', cache_prompt: true }];
+    expect(projectContent({ to_llm_content: explicit, text: 'raw text', content: [{ type: 'text', text: 'raw content' }], metadata })).toEqual(explicit);
+    expect(projectContent({ to_llm_content: [], text: 'raw text' })).toEqual([]);
   });
 
   it('does not change the projection of other tools', () => {

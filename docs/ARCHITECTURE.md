@@ -187,6 +187,8 @@ Its separate 32 MiB process buffer bounds capture rather than model context.
 the formatted body again during event-to-message projection. This also bounds
 older saved terminal results without rewriting the event log. Error notices are
 separate text blocks, as in Python; other tool projections are unchanged.
+Pre-rendered terminal `to_llm_content` arrays keep their existing precedence and
+block metadata, with one shared text budget and no second formatting pass.
 
 Workspaces in `src/workspace/` separate execution substrate from agent logic:
 

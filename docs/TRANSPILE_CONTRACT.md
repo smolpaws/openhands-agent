@@ -103,7 +103,10 @@ the head and tail around the upstream clipping notice, before emitting an
 observation. Independently cap formatted terminal output at the LLM projection
 boundary, including restored observations, with the upstream separate error
 header and available metadata. The process capture byte limit is a separate
-resource guard. See [terminal output evidence](../transpile/terminal-output.md).
+resource guard. Existing pre-rendered host results (`to_llm_content`) retain their
+explicit precedence and content blocks under the same combined textual budget;
+do not format their metadata/error header twice.
+See [terminal output evidence](../transpile/terminal-output.md).
 
 ### DEV-SDK-007 — native accounting with explicit measurement coverage
 

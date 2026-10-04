@@ -29,6 +29,16 @@ persisted observations. The exec backend reports its known working directory and
 exit code without inventing interpreter or persistent-session information.
 Other tools retain their existing projection.
 
+Pre-rendered `to_llm_content` arrays are an existing TypeScript host/replay
+representation, not the pinned Python observation wire shape. Their explicit
+rendering takes precedence over raw `text`/`content`. The terminal boundary caps
+their combined textual body to 30,000 Unicode code points, preserving block order,
+nontext content and surviving blocks' cache flags. Fully clipped middle text
+blocks are omitted instead of becoming empty provider blocks.
+An exact leading Python error-header block stays
+outside that body budget. These arrays are already formatted: projection neither
+adds metadata/error headers nor saves them again.
+
 Optional `full_output_save_dir` uses the existing truncation helper's explicit
 file-persistence path. No directory is selected by default. This saves the body
 available at rendering time, which may already have been clipped by the executor;
@@ -43,6 +53,11 @@ limit; error header; prefix/suffix) and `test_terminal_session.py` clipping case
 Additional regressions cover combined stdout/stderr, failures, timeouts, Unicode,
 3.5-million-character restored output, Python-shaped content, event immutability,
 non-terminal projection and explicitly requested file persistence.
+
+2026-10-05 review follow-up: four new regressions first failed for pre-rendered
+replay (100,000 characters passed through), a shared budget across text blocks,
+Unicode with an existing error header and image, and explicit-content precedence.
+They now pass; short pre-rendered mixed content remains unchanged.
 
 The initial 13 cases failed before the repair: a restored 3.5-million-character
 result serialized into 3,500,155 characters, and 100,000-character command results
