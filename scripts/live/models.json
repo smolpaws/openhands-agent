@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-09-17",
+  "updated": "2026-10-07",
   "sources": [
     "https://enyst.github.io/arch/llm-profiles.html",
     "https://enyst.github.io/arch/llm-profile-composer-options.html",
@@ -16,6 +16,27 @@
     "https://opencode.ai/console/guides/inference"
   ],
   "targets": [
+    {
+      "id": "native-haiku-5-5",
+      "label": "Claude Haiku 5.5 / native Messages API",
+      "route": "native",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "CLAUDE_MAX_API_KEY",
+        "keychainAccount": "CLAUDE_MAX_API_KEY"
+      },
+      "profile": {
+        "providerId": "anthropic",
+        "model": "claude-haiku-5-5",
+        "baseUrl": "https://api.anthropic.com",
+        "maxOutputTokens": 4096
+      },
+      "catalog": {
+        "url": "https://api.anthropic.com/v1/models",
+        "modelId": "claude-haiku-5-5"
+      }
+    },
     {
       "id": "native-opus-5",
       "label": "Claude Opus 5 / native",
