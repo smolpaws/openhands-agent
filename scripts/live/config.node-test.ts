@@ -63,3 +63,26 @@ test('native Haiku live target uses the direct Anthropic provider and Max creden
   assert.equal(haiku?.profile.baseUrl, 'https://api.anthropic.com');
   assert.deepEqual(haiku?.credential, { env: 'CLAUDE_MAX_API_KEY', keychainAccount: 'CLAUDE_MAX_API_KEY' });
 });
+
+test('cheap native sweep stays on the three approved models and routes', async () => {
+  const { readConfig } = await import('./config.js');
+  const config = await readConfig();
+  const expected = [
+    ['native-haiku-5-5', 'anthropic', 'claude-haiku-5-5', 'conversation', 'CLAUDE_MAX_API_KEY'],
+    ['native-haiku-5-5-cache', 'anthropic', 'claude-haiku-5-5', 'anthropic-cache', 'CLAUDE_MAX_API_KEY'],
+    ['native-gpt-5-nano', 'openai', 'gpt-5-nano', 'conversation', 'OPENAI_API_KEY'],
+    ['native-deepseek-v4-1-flash', 'deepseek', 'deepseek-flash', 'conversation', 'DEEPSEEK_API_KEY'],
+    ['regression-deepseek-accounting', 'deepseek', 'deepseek-flash', 'deepseek-accounting', 'DEEPSEEK_API_KEY'],
+  ];
+  for (const [id, provider, model, scenario, credential] of expected) {
+    const [target] = selectTargets(config, id);
+    assert.equal(target?.enabled, true);
+    assert.equal(target?.route, 'native');
+    assert.equal(target?.profile.providerId, provider);
+    assert.equal(target?.profile.model, model);
+    assert.equal(target?.scenario, scenario);
+    assert.equal(target?.credential.env, credential);
+  }
+  assert.equal(selectTargets(config, 'native-gpt-5-nano')[0]?.profile.openAiApiMode, 'responses');
+  assert.equal(selectTargets(config, 'native-haiku-5-5-cache')[0]?.profile.anthropicCacheTtl, '1h');
+});

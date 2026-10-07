@@ -241,3 +241,14 @@ conversation regression against Anthropic's native Messages API with
 lifetime. The `Native Haiku live` workflow runs only this target, using the
 `LLM` environment. Apply `haiku-live-tests` to a reviewed same-repository PR
 revision to authorize a run; it does not launch the full model matrix.
+
+### Cheap native provider sweep
+
+Manually dispatch `cheap-native-live.yml` from `main` for the approved small
+sweep: Haiku 5.5 conversation + one-hour cache, GPT-5 nano Responses
+conversation, and DeepSeek Flash conversation + accounting. No Opus, other
+providers, proxies, examples sweep, or `--all`. Each job receives only its
+selected credential, runs one target, and uploads a separate sanitized report.
+Conversation targets allow at most 18 requests; cache allows six; DeepSeek
+accounting allows twelve. Each worker has a 240-second deadline. A failed or
+unavailable target fails its job; the other targets still report their results.
