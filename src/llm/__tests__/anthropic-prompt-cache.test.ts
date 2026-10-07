@@ -85,7 +85,7 @@ describe.each(['5m', '1h'] as const)('Anthropic cache wire contract (%s)', anthr
     { role: 'tool' as const, tool_call_id: 'one', content: [textContent('result one')] },
   ];
 
-  it.each(['claude-fable-5-1', 'claude-opus-5'])('recognizes the pinned %s cache-capable model family', model => {
+  it.each(['claude-fable-5-1', 'claude-opus-5', 'claude-haiku-5-5'])('recognizes the %s cache-capable model family', model => {
     const messages = [{ role: 'user' as const, content: [textContent('automatic')] }];
     const nativeBody = buildAnthropicMessagesBody({ ...native, model }, messages);
     const proxyBody = buildChatCompletionsBody({ ...proxy, model: `anthropic/${model}` }, messages);

@@ -151,3 +151,17 @@ two one-hour markers. Across three completions, inclusive input was 29,496 token
 output was 174, cache reads were 19,548, and all 9,939 cache-write tokens were explicitly
 reported as one hour. Restored accounting matched exactly. This used only synthetic
 test context and Haiku; it did not send a request to a live SmolPaws conversation.
+
+## Haiku 5.5 capability repair (2026-10-07)
+
+Provider compatibility repair under the existing automatic-breakpoint contract;
+no upstream pin or cache policy changes. The native model catalog advertises
+`claude-haiku-5-5`, but the local capability list omitted it. The approved GitHub
+sweep `37689234888` passed conversation tests and failed the native cache smoke.
+A local reproduction sent zero cache markers and recorded zero cache writes.
+
+Add the specific `claude-haiku-5-5` entry. Deterministic native/proxy wire tests
+failed for both TTLs before the repair and passed afterward. A bounded native
+one-hour live smoke then completed three requests: initial cache write 13,813
+tokens, subsequent cache reads 13,813 and 13,933 tokens, restored accounting
+passed. This is live provider evidence, not a claim of new Python parity.
