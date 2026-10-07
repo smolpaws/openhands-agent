@@ -132,7 +132,7 @@ Use these secret names in the canonical repository's **LLM** environment:
 | Route | Environment secret |
 | --- | --- |
 | Native OpenAI | `OPENAI_API_KEY` |
-| Native Anthropic | `ANTHROPIC_API_KEY` |
+| Native Anthropic | `CLAUDE_MAX_API_KEY` |
 | Native Gemini | `GEMINI_API_KEY` |
 | Native DeepSeek | `DEEPSEEK_API_KEY` |
 | OpenCode | `OPENCODE_API_KEY` |
@@ -168,7 +168,7 @@ available for focused local investigation.
   accounting. The default suite target uses eval proxy Haiku with a one-hour TTL.
   The nonce-bearing prefix exceeds Haiku's cache minimum. One-hour runs require
   provider-reported `ephemeral_1h_input_tokens`, not an inferred TTL. A zero-hit
-  run fails. Native direct invocation uses `ANTHROPIC_API_KEY`; proxy invocation
+  run fails. Native direct invocation uses `CLAUDE_MAX_API_KEY`; proxy invocation
   uses `LLM_PROVIDER_ID=litellm_proxy`, `LLM_MODEL`, `LLM_BASE_URL`, and
   `LITELLM_PROXY_API_KEY`. `ANTHROPIC_CACHE_TTL` accepts `5m` or `1h` for direct
   invocation. When unset, the profile omits this optional field and requests retain
@@ -232,3 +232,12 @@ soft deferral and reactive small-context overflow. Its delayed-cut fixture uses
 20% minimum progress to avoid repeated one-event replacements when its deliberately
 protected prefix exceeds the size threshold. The production/source default is 10%.
 The existing Python unit oracles, not paid live results, establish source parity.
+
+### Bounded native Haiku run
+
+`node --import tsx scripts/live/run.ts --target native-haiku-5-5` runs the
+conversation regression against Anthropic's native Messages API with
+`CLAUDE_MAX_API_KEY`. It allows at most 18 requests and a 240-second worker
+lifetime. The `Native Haiku live` workflow runs only this target, using the
+`LLM` environment. Apply `haiku-live-tests` to a reviewed same-repository PR
+revision to authorize a run; it does not launch the full model matrix.

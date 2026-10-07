@@ -1,15 +1,15 @@
-name: Live LLM
+name: Native Haiku live
 
 on:
   workflow_dispatch:
-  pull_request_target:
+  pull_request:
     types: [labeled]
 
 permissions:
   contents: read
 
 concurrency:
-  group: live-llm-${{ github.event.pull_request.number || 'main' }}
+  group: live-haiku-${{ github.event.pull_request.number || 'main' }}
   cancel-in-progress: false
 
 jobs:
@@ -18,13 +18,14 @@ jobs:
     if: >-
       github.repository == 'smolpaws/openhands-agent' &&
       ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-       (github.event_name == 'pull_request_target' && github.event.label.name == 'llm-tests'))
+       (github.event_name == 'pull_request' && github.event.label.name == 'haiku-live-tests' &&
+        github.event.pull_request.head.repo.full_name == github.repository))
     runs-on: ubuntu-latest
     environment: LLM
-    timeout-minutes: 180
+    timeout-minutes: 15
     steps:
-      # This inline gate belongs to the trusted base workflow. Do not move it into
-      # the PR checkout: applying llm-tests grants this exact revision LLM keys.
+      # Explicit same-repository label gate; repository write permission is checked
+      # before checkout, and the exact labeled revision is rechecked before secrets.
       - name: Authorize and capture the exact revision
         id: target
         env:
@@ -49,18 +50,18 @@ jobs:
           }
           let sha;
           let description;
-          if (env.GITHUB_EVENT_NAME === 'pull_request_target') {
-            assert(event.action === 'labeled' && event.label?.name === 'llm-tests', 'Expected the explicit llm-tests label action');
+          if (env.GITHUB_EVENT_NAME === 'pull_request') {
+            assert(event.action === 'labeled' && event.label?.name === 'haiku-live-tests', 'Expected the explicit haiku-live-tests label action');
             const pr = event.pull_request;
             assert(pr.base.repo.full_name === repo && pr.base.ref === 'main', 'Only PRs into canonical main are eligible');
             assert(pr.head.repo?.full_name === repo, 'Fork PR code cannot receive LLM credentials; use a reviewed same-repository branch');
             const current = await api(`pulls/${pr.number}`);
             assert(current.state === 'open', 'The labeled pull request must still be open');
-            assert(current.head.repo?.full_name === repo && current.head.sha === pr.head.sha, 'PR head changed since labeling; review the new revision and reapply llm-tests');
+            assert(current.head.repo?.full_name === repo && current.head.sha === pr.head.sha, 'PR head changed since labeling; review the new revision and reapply haiku-live-tests');
             assert(current.base.ref === 'main' && current.base.repo.full_name === repo, 'PR base changed since labeling');
-            assert(current.labels.some(label => label.name === 'llm-tests'), 'The llm-tests authorization label was removed');
+            assert(current.labels.some(label => label.name === 'haiku-live-tests'), 'The haiku-live-tests authorization label was removed');
             sha = pr.head.sha;
-            description = `PR #${pr.number}; exact head captured when llm-tests was applied`;
+            description = `PR #${pr.number}; exact head captured when haiku-live-tests was applied`;
           } else {
             assert(env.GITHUB_EVENT_NAME === 'workflow_dispatch' && env.GITHUB_REF === 'refs/heads/main', 'Dispatch this workflow from main');
             sha = env.GITHUB_SHA;
@@ -88,7 +89,7 @@ jobs:
       - run: npm run typecheck:examples
 
       - name: Recheck PR authorization before using LLM credentials
-        if: github.event_name == 'pull_request_target'
+        if: github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           AUTHORIZED_SHA: ${{ steps.target.outputs.sha }}
@@ -104,21 +105,14 @@ jobs:
           assert(response.ok, `GitHub PR recheck returned HTTP ${response.status}`);
           const pr = await response.json();
           assert(pr.state === 'open' && pr.head.repo?.full_name === env.GITHUB_REPOSITORY && pr.head.sha === env.AUTHORIZED_SHA,
-            'PR changed during setup; review the new revision and reapply llm-tests');
-          assert(pr.base.ref === 'main' && pr.labels.some(label => label.name === 'llm-tests'), 'PR authorization changed during setup');
+            'PR changed during setup; review the new revision and reapply haiku-live-tests');
+          assert(pr.base.ref === 'main' && pr.labels.some(label => label.name === 'haiku-live-tests'), 'PR authorization changed during setup');
           NODE
 
-      - name: Run all enabled real LLM tests
-        run: node --import tsx scripts/live/run.ts --all
+      - name: Run bounded native Haiku Messages API regression
+        run: node --import tsx scripts/live/run.ts --target native-haiku-5-5
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CLAUDE_MAX_API_KEY: ${{ secrets.CLAUDE_MAX_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          OPENHANDS_API_KEY_APP: ${{ secrets.OPENHANDS_API_KEY_APP }}
-          OPENHANDS_API_KEY_EVAL: ${{ secrets.OPENHANDS_API_KEY_EVAL }}
           LLM_TEST_REVISION: ${{ steps.target.outputs.sha }}
 
       - name: Publish the sanitized result summary
@@ -132,7 +126,7 @@ jobs:
         if: always() && steps.target.outputs.sha != ''
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: llm-results-${{ steps.target.outputs.sha }}-${{ github.run_attempt }}
+          name: haiku-results-${{ steps.target.outputs.sha }}-${{ github.run_attempt }}
           path: artifacts/llm/
           if-no-files-found: warn
           retention-days: 14

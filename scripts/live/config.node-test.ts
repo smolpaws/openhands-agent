@@ -51,3 +51,15 @@ test('cache scenario retains its supported native and explicit proxy routes', ()
   assert.equal(parseConfig(config([cache])).targets[0]?.profile.providerId, 'litellm_proxy');
   assert.equal(parseConfig(config([{ ...target, scenario: 'responses-reasoning' }])).targets[0]?.scenario, 'responses-reasoning');
 });
+
+test('native Haiku live target uses the direct Anthropic provider and Max credential', async () => {
+  const { readConfig } = await import('./config.js');
+  const [haiku] = selectTargets(await readConfig(), 'native-haiku-5-5');
+  assert.equal(haiku?.enabled, true);
+  assert.equal(haiku?.scenario, 'conversation');
+  assert.equal(haiku?.route, 'native');
+  assert.equal(haiku?.profile.providerId, 'anthropic');
+  assert.equal(haiku?.profile.model, 'claude-haiku-5-5');
+  assert.equal(haiku?.profile.baseUrl, 'https://api.anthropic.com');
+  assert.deepEqual(haiku?.credential, { env: 'CLAUDE_MAX_API_KEY', keychainAccount: 'CLAUDE_MAX_API_KEY' });
+});
