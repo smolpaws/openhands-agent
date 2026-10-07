@@ -1019,6 +1019,43 @@
         "reasoningEffort": "low",
         "maxOutputTokens": 4096
       }
+    },
+    {
+      "id": "native-haiku-5-5-cache",
+      "label": "Haiku 5.5 / native cache and restored usage",
+      "route": "native",
+      "enabled": true,
+      "scenario": "anthropic-cache",
+      "credential": {
+        "env": "CLAUDE_MAX_API_KEY",
+        "keychainAccount": "CLAUDE_MAX_API_KEY"
+      },
+      "profile": {
+        "providerId": "anthropic",
+        "model": "claude-haiku-5-5",
+        "baseUrl": "https://api.anthropic.com",
+        "maxOutputTokens": 192,
+        "anthropicCacheTtl": "1h"
+      }
+    },
+    {
+      "id": "native-gpt-5-nano",
+      "label": "GPT-5 nano / native Responses",
+      "route": "native",
+      "enabled": true,
+      "scenario": "conversation",
+      "credential": {
+        "env": "OPENAI_API_KEY",
+        "keychainAccount": "OPENAI_API_KEY"
+      },
+      "profile": {
+        "providerId": "openai",
+        "model": "gpt-5-nano",
+        "baseUrl": "https://api.openai.com/v1",
+        "openAiApiMode": "responses",
+        "reasoningEffort": "low",
+        "maxOutputTokens": 4096
+      }
     }
   ]
 }
