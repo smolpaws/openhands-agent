@@ -165,3 +165,7 @@ failed for both TTLs before the repair and passed afterward. A bounded native
 one-hour live smoke then completed three requests: initial cache write 13,813
 tokens, subsequent cache reads 13,813 and 13,933 tokens, restored accounting
 passed. This is live provider evidence, not a claim of new Python parity.
+
+Opus 5.5 is already covered by the existing `claude-opus-5` substring match.
+Explicit native/proxy wire regression coverage for `claude-opus-5-5` now verifies
+both TTLs too; no redundant capability entry or paid Opus call is needed.
