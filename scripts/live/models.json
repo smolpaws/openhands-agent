@@ -24,8 +24,8 @@
       "reason": "Temporarily paused: native API-key tests are disabled while subscription authentication is being enabled.",
       "scenario": "conversation",
       "credential": {
-        "env": "ANTHROPIC_API_KEY",
-        "keychainAccount": "ANTHROPIC_API_KEY"
+        "env": "CLAUDE_MAX_API_KEY",
+        "keychainAccount": "CLAUDE_MAX_API_KEY"
       },
       "profile": {
         "providerId": "anthropic",
@@ -114,8 +114,8 @@
       "reason": "Temporarily paused: native API-key tests are disabled while subscription authentication is being enabled.",
       "scenario": "conversation",
       "credential": {
-        "env": "ANTHROPIC_API_KEY",
-        "keychainAccount": "ANTHROPIC_API_KEY"
+        "env": "CLAUDE_MAX_API_KEY",
+        "keychainAccount": "CLAUDE_MAX_API_KEY"
       },
       "profile": {
         "providerId": "anthropic",
@@ -949,8 +949,8 @@
       "reason": "Temporarily paused: native API-key tests are disabled while subscription authentication is being enabled.",
       "scenario": "examples",
       "credential": {
-        "env": "ANTHROPIC_API_KEY",
-        "keychainAccount": "ANTHROPIC_API_KEY"
+        "env": "CLAUDE_MAX_API_KEY",
+        "keychainAccount": "CLAUDE_MAX_API_KEY"
       },
       "profile": {
         "providerId": "anthropic",
