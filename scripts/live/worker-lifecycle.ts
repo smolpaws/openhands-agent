@@ -30,7 +30,7 @@ const reportSchema = z.object({
 }).strict().refine(value => value.status !== 'passed' || value.evidence !== undefined);
 
 /** The caller starts a separate process group on POSIX, including any legacy children. */
-export function waitForWorker(worker: ChildProcess, identity: Identity, timeoutMs: number): Promise<LiveResult> {
+export function waitForWorker(worker: ChildProcess, identity: Identity, timeoutMs: number, abortSignal?: AbortSignal): Promise<LiveResult> {
   return new Promise(resolveResult => {
     const started = Date.now();
     let reported: z.infer<typeof reportSchema> | undefined;
@@ -40,8 +40,19 @@ export function waitForWorker(worker: ChildProcess, identity: Identity, timeoutM
         try { process.kill(-worker.pid, 'SIGKILL'); } catch { worker.kill('SIGKILL'); }
       } else worker.kill('SIGKILL');
     };
+    let cancellationTimer: ReturnType<typeof setTimeout> | undefined;
+    const cancel = () => {
+      if (failure) return;
+      failure = 'target-cancelled';
+      // Let cooperative workers abort requests and clean up temporary workspaces.
+      // A blocked worker (including OAuth/network setup) still has a hard stop.
+      if (worker.connected) {
+        try { worker.send({ cancel: true }, () => {}); } catch { /* hard stop below */ }
+      }
+      cancellationTimer = setTimeout(stop, 1_000);
+    };
     const timer = setTimeout(() => {
-      failure = 'target-deadline-exceeded';
+      failure ??= 'target-deadline-exceeded';
       stop();
     }, timeoutMs);
     worker.on('message', message => {
@@ -62,6 +73,8 @@ export function waitForWorker(worker: ChildProcess, identity: Identity, timeoutM
     worker.on('error', () => { failure ??= 'worker-start-failed'; });
     worker.on('close', (code, signal) => {
       clearTimeout(timer);
+      clearTimeout(cancellationTimer);
+      abortSignal?.removeEventListener('abort', cancel);
       // A successful report is provisional until the process exits cleanly.
       // Kill any descendants that survived their worker, on every exit path.
       stop();
@@ -72,10 +85,13 @@ export function waitForWorker(worker: ChildProcess, identity: Identity, timeoutM
         durationMs: Date.now() - started,
       });
     });
+    abortSignal?.addEventListener('abort', cancel, { once: true });
+    if (abortSignal?.aborted) cancel();
   });
 }
 
 function safeReason(reason: string): string {
+  if (['subscription-login-required', 'subscription-auth-unavailable'].includes(reason)) return reason;
   if (/^condensation-(thinking|token-count)-unavailable$/u.test(reason)) return reason;
   if (/^provider-http-\d{3}$/u.test(reason)) return reason;
   if (/^provider-(insufficient-credit|exhausted-quota|model-unavailable)$/u.test(reason)) return reason;

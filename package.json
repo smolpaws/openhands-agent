@@ -46,7 +46,8 @@
     "drift:render": "tsx scripts/drift/render-review.ts",
     "live:regressions": "npm run build && tsx scripts/live/run.ts --all",
     "live:list": "tsx scripts/live/run.ts --list",
-    "test:live-harness": "node --import tsx --test scripts/live/*.node-test.ts"
+    "test:live-harness": "node --import tsx --test scripts/live/*.node-test.ts",
+    "live:subscriptions": "npm run build && node --import tsx scripts/live/subscriptions-run.ts"
   },
   "dependencies": {
     "js-tiktoken": "^1.0.21",
