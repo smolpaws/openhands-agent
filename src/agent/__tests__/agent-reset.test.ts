@@ -144,6 +144,9 @@ describe('agent-controlled context reset', () => {
     expect(state.events.filter(event => event.kind === 'Condensation')).toHaveLength(2);
     expect(state.events.filter(event => event.kind === 'ConversationStateUpdateEvent' && event.key === 'agent_context_warning')).toHaveLength(2);
     expect(View.fromEvents(state.events).events.map(event => event.kind)).toEqual(['MessageEvent', 'ActionEvent', 'ObservationEvent']);
+    for (const event of state.events.filter(event => event.kind === 'Condensation')) {
+      expect([...event.forgotten_event_ids].some(id => id.endsWith('-message'))).toBe(true);
+    }
     const reconstructed = new Agent({ llm, condenser: new AgentResetCondenser(), tools: agent.tools });
     expect(reconstructed.tools.filter(tool => tool.name === 'condense')).toHaveLength(1);
     expect(new Agent({ llm, tools: agent.tools }).tools.some(tool => tool.name === 'condense')).toBe(false);

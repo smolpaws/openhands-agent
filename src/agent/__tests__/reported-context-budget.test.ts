@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Agent } from '../agent.js';
+import { View } from '../../context/view.js';
 import { AgentResetCondenser } from '../../context/agent-reset-condenser.js';
 import { ConversationState } from '../../conversation/state.js';
 import { EventLog } from '../../conversation/event-log.js';
@@ -34,20 +35,28 @@ function fixture(counts: readonly (number | undefined)[] = [750]) {
 }
 
 describe('provider input usage drives advisory context warnings', () => {
-  it('sends each newly crossed stage once, including after restore, using inclusive input rather than totals or cache misses', async () => {
+  it('keeps each crossed stage once at its original position in every subsequent prompt, including after restore', async () => {
     const f = fixture([750, 750, 800, 800, 900, 900, 900]);
     for (let i = 0; i < 7; i++) {
       if (i === 2 || i === 4) f.restore();
       await f.agent.step(f.state());
     }
     expect(f.seen.map(warnings).map(ws => ws.map(w => w.match(/the (\d+)%/)?.[1]))).toEqual([
-      [], ['75'], [], ['80'], [], ['90'], [],
+      [], ['75'], ['75'], ['75', '80'], ['75', '80'], ['75', '80', '90'], ['75', '80', '90'],
     ]);
     expect(stages(f.state()).map(e => e.kind === 'ConversationStateUpdateEvent' ? e.value : null)).toMatchObject([
       { input_tokens: 750, input_limit: 1000, threshold: 0.75 },
       { input_tokens: 800, input_limit: 1000, threshold: 0.8 },
       { input_tokens: 900, input_limit: 1000, threshold: 0.9 },
     ]);
+    for (let i = 1; i < f.seen.length; i++) {
+      const previous = f.seen[i - 1]!;
+      expect(f.seen[i]!.slice(0, previous.length)).toEqual(previous);
+    }
+    const view = View.fromEvents(f.state().events);
+    for (const stage of stages(f.state())) {
+      expect(view.events.filter(e => e.id === `${stage.id}-message`)).toHaveLength(1);
+    }
     expect(f.getTokenCount).toHaveBeenCalledTimes(1); // First request only.
     expect(f.state().events.some(e => e.kind === 'Condensation')).toBe(false);
   });
@@ -60,11 +69,11 @@ describe('provider input usage drives advisory context warnings', () => {
     }));
     await f.agent.step(f.state());
     await f.agent.step(f.state());
-    expect(f.seen.map(warnings).map(ws => ws.map(w => w.match(/the (\d+)%/)?.[1]))).toEqual([[], ['85'], []]);
+    expect(f.seen.map(warnings).map(ws => ws.map(w => w.match(/the (\d+)%/)?.[1]))).toEqual([[], ['85'], ['85']]);
     expect(stages(f.state())).toHaveLength(1);
   });
 
-  it('retries a pending warning after a failed request but stops showing it after a successful response', async () => {
+  it('keeps a warning through failed requests, restore and subsequent successful responses', async () => {
     const f = fixture();
     await f.agent.step(f.state());
     f.complete.mockImplementationOnce(async messages => { f.seen.push([...messages]); throw new Error('Network failed'); });
@@ -72,7 +81,7 @@ describe('provider input usage drives advisory context warnings', () => {
     f.restore();
     await f.agent.step(f.state());
     await f.agent.step(f.state());
-    expect(f.seen.map(warnings).map(ws => ws.length)).toEqual([0, 1, 1, 0]);
+    expect(f.seen.map(warnings).map(ws => ws.length)).toEqual([0, 1, 1, 1]);
     expect(stages(f.state())).toHaveLength(1);
   });
 
@@ -80,7 +89,7 @@ describe('provider input usage drives advisory context warnings', () => {
     const f = fixture();
     await f.agent.step(f.state());
     await f.agent.step(f.state());
-    await f.state().appendEventAsync(condensationSchema.parse({ forgotten_event_ids: [] }));
+    await f.state().appendEventAsync(condensationSchema.parse({ forgotten_event_ids: View.fromEvents(f.state().events).events.map(e => e.id) }));
     f.restore();
     await f.agent.step(f.state());
     await f.agent.step(f.state());
@@ -88,7 +97,7 @@ describe('provider input usage drives advisory context warnings', () => {
     expect(stages(f.state())).toHaveLength(2);
   });
 
-  it('retains one-shot delivery across EventLog restore even if dispatch failed after success accounting', async () => {
+  it('retains the warning across EventLog restore even if dispatch failed after success accounting', async () => {
     const f = fixture();
     await f.agent.step(f.state());
     const append = f.state().appendEventsAsync.bind(f.state());
@@ -99,7 +108,7 @@ describe('provider input usage drives advisory context warnings', () => {
     await expect(f.agent.step(f.state())).rejects.toThrow('Dispatch persistence failed');
     f.restore();
     await f.agent.step(f.state());
-    expect(f.seen.map(warnings).map(ws => ws.length)).toEqual([0, 1, 0]);
+    expect(f.seen.map(warnings).map(ws => ws.length)).toEqual([0, 1, 1]);
     expect(stages(f.state())).toHaveLength(1);
   });
 });

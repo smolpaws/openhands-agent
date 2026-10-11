@@ -43,6 +43,22 @@ function hardReset() {
 }
 
 describe('agent reset View replay', () => {
+  it.each([['voluntary', agentReset], ['hard', hardReset]] as const)(
+    'clears historical warning projections at a %s reset whose forgotten IDs predate persistent warnings',
+    (_name, setup) => {
+      const data = setup();
+      const warning = conversationStateUpdateEventSchema.parse({ key: 'agent_context_warning', value: {
+        version: 1, generation: null, threshold: 0.75, input_tokens: 750, input_limit: 1000,
+      } });
+      const history = [...data.history];
+      history.splice(2, 0, warning);
+      const expected = View.fromEvents(data.history).events;
+      const store = new InMemoryFileStore();
+      new EventLog(store).appendMultiple(history);
+      expect(View.fromEvents(new EventLog(store).toArray()).events).toEqual(expected);
+    },
+  );
+
   it('replays the genuine tool pair after fixed context and a deterministic notice without changing the log', () => {
     const data = agentReset();
     const original = structuredClone(data.history);

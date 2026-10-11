@@ -19,8 +19,8 @@ const usageRecordSchema = z.object({
   history_origin: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
   model: z.string(), requested_model: z.string(), timestamp: z.string().datetime(),
   latency: z.number().finite().nonnegative(), usage: llmUsageSchema.nullable(), cost: costSchema.nullable(),
-  // Present on main-agent requests. Persist delivery with successful accounting
-  // so a crash during response dispatch cannot replay a consumed warning.
+  // Present on main-agent requests. Record the warnings included in each request;
+  // successful delivery does not remove them from model-visible history.
   request_succeeded: z.boolean().optional(),
   context_warning_ids: z.array(z.string().min(1)).optional(),
 }).strict();

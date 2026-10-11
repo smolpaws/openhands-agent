@@ -14,7 +14,6 @@ import { condenseActionSchema, condenseObservationSchema } from '../tool/condens
 import { ManipulationIndices } from './manipulation-indices.js';
 import { viewProperties } from './view-properties.js';
 import { contextWarningMessage } from './context-warnings.js';
-import { readLlmUsageEvent } from '../llm/metrics.js';
 import { AGENT_RESET_NOTICE, HARD_RESET_NOTICE } from './reset-notices.js';
 
 export { ManipulationIndices } from './manipulation-indices.js';
@@ -80,13 +79,6 @@ export class View {
         break;
       case 'ConversationStateUpdateEvent': {
         if (event.key === 'condensation_operation_failure') this.applyRequestFailure(event);
-        const usage = readLlmUsageEvent(event);
-        if (usage?.request_succeeded === true && usage.context_warning_ids !== undefined) {
-          const consumed = new Set(usage.context_warning_ids.map(id => `${id}-message`));
-          const retained = this.events.filter(candidate => !consumed.has(candidate.id));
-          this.events.length = 0;
-          this.events.push(...retained);
-        }
         const warning = contextWarningMessage(event);
         if (warning !== null) this.events.push(warning);
         break;
@@ -149,7 +141,12 @@ export class View {
     const requestIndex = this.history.indexOf(request);
     if (details.input_event_id !== null && inputIndex < 0 || inputIndex >= requestIndex) throw new Error('Invalid reset input boundary');
     const positions = new Map(this.history.map((event, index) => [event.id, index]));
-    const retained = this.events.filter(event => !commit.forgotten_event_ids.has(event.id));
+    // Older reset commits omitted warnings already hidden by success accounting.
+    // Full resets also clear those derived messages when replayed under this policy.
+    const warningIds = new Set(this.history
+      .filter(event => event.kind === 'ConversationStateUpdateEvent' && event.key === 'agent_context_warning')
+      .map(event => `${event.id}-message`));
+    const retained = this.events.filter(event => !commit.forgotten_event_ids.has(event.id) && !warningIds.has(event.id));
     const fixed = retained.filter(event => event.kind === 'SystemPromptEvent');
     const protectedIds = details.trigger === 'provider_context_window'
       ? this.protectedInput(details, inputIndex) : new Set<string>();

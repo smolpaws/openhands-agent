@@ -190,11 +190,13 @@ metadata. Prefer reported main-response input usage as specified in DEV-SDK-010;
 first-request estimates include fixed system/context, memory snapshot and usable tools.
 Counts and limits may be unavailable and must not become an invented zero.
 Persist the highest newly crossed warning per committed-reset generation; restore
-does not repeat it. Successful main accounting atomically persists the warning IDs
-included in that request. View replay omits those consumed warning messages from
-subsequent requests, while retaining the durable stage markers. Failed requests
-leave pending warnings visible for retry. Success before failed tool dispatch still
-consumes the warning. Multi-stage jumps emit only the highest new stage. A warning,
+does not create another marker. View replay keeps each warning's single derived
+message at the marker's original chronological position in every subsequent request,
+including after restore, successful responses and failed requests or tool dispatch.
+Successful main accounting records included warning IDs as provenance, not removal
+instructions. A full context reset clears the old warning projections, including
+legacy reset commits whose forgotten IDs omitted previously hidden warnings.
+Multi-stage jumps emit only the highest new stage. A warning,
 a count at or above 100%, event pressure, elapsed turns
 or a judgment about note readiness must neither reset context nor block a model request.
 

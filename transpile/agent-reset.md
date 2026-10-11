@@ -76,11 +76,13 @@ Before a first successful response, a local estimate includes fixed system/ident
 host memory snapshot, skills, active history and usable tools. Unavailable counts
 remain unavailable; estimates are never billed usage.
 The highest newly crossed threshold is persisted per reset generation. A failed
-request or summary does not rearm warnings. Warning IDs consumed by a successful
-main response are committed atomically with its usage record, so subsequent View
-projections omit those messages, including after restore or failed tool dispatch.
-A failed model request leaves a pending warning for retry. Ignored warnings, estimates at/above
-100%, event counts and elapsed turns do not reset or prevent a model request.
+request or summary does not rearm warnings. Each marker projects one message at
+its original chronological position in every subsequent request, including after
+restore or failed tool dispatch. Successful usage records keep the included warning
+IDs as provenance; they do not consume the messages. Full resets clear old warning
+projections, including when replaying legacy commits that omitted their IDs because
+the old projection had already hidden them. Failed model requests retain warnings.
+Ignored warnings, estimates at/above 100%, event counts and elapsed turns do not reset or prevent a model request.
 
 ## Durable operation and model context
 
