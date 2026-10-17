@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "repository": "OpenHands/software-agent-sdk",
+  "from": "d128a786ee2ee570eb23ff5862ec148b43cfad0b",
+  "to": "e7cc8c27b2b234fc1c104825ad20dddf1c01fa31",
+  "inventorySha256": "dcc966e8b4dc85c7098699d31a2e17a3258ba4a8f1dbdd26ace7bba62728be45",
+  "items": {
+    "1d1a10351bc1fc94cfc00a7e79f12251ecc3b92f:sdk": {
+      "disposition": "PORT",
+      "reason": "Registers deepseek-v4.1-flash as a verified DeepSeek model in model_features.py (SEND_REASONING_CONTENT_MODELS) and verified_models.py; the TS port owns both the isReasoningModel catalog and the generated verified-models catalog.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [
+        "src/llm/__tests__/provider-quirks.test.ts"
+      ],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "28e8ed273617992e9556410804f54937cc059878:server": {
+      "disposition": "DELEGATED",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; the disposition is recorded in that package's server review record.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "004c674a96d7eeeba70fcefc0e6dfc6a87958d3d:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Test-only change: upstream test asserts kimi-k2.5 reasoning_effort support; no TypeScript source counterpart.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "bd5fff06c2fe79d6e0e5d192bbf22339482f2805:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Adds a newly released NVIDIA model to Python verified_models.py; TS verified-models.ts is regenerated from the pinned generator rather than hand-edited.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "09e8980c37abe4e02e29bb9bbfb869811415cfd5:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Preserves caller AgentContext in Python RemoteWorkspace.load_skills_from_agent_server() via a new resolve_auto_skills() method; the TS RemoteWorkspace has no load-skills-from-agent-server surface.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "bf0c72c4164464e70347147afe7ea9476131080a:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Stamps item_id on ModelResponseStream delta chunks in Python llm.py; the TS LLM boundary has no ModelResponseStream/StreamingChoices/Delta surface.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "5b2bb2a659b84f09e9802bb4ece775e494e5f2bf:server": {
+      "disposition": "DELEGATED",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; the disposition is recorded in that package's server review record.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "4726601bb6987ddac497e0edb983e332282ba1f9:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release v1.49.3 version bump regenerating uv.lock and package versions; no SDK source behavior change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "4726601bb6987ddac497e0edb983e332282ba1f9:server": {
+      "disposition": "DELEGATED",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; the disposition is recorded in that package's server review record.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "9bc452ebf6b0093c531f25394c5ba5e9817ff910:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Adds LocalSecretResolver to Python LookupSecret.get_value(); the TS secret layer resolves raw values through the keyring-backed SecretStore and has no LookupSecret/SecretSource URL-based surface.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "9bc452ebf6b0093c531f25394c5ba5e9817ff910:server": {
+      "disposition": "DELEGATED",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; the disposition is recorded in that package's server review record.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "f47d9b926fc91591224579f11524b96be49f4d6a:server": {
+      "disposition": "DELEGATED",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; the disposition is recorded in that package's server review record.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "d834d982fb7d18ad6019ede3b0b2ba6410372e55:sdk": {
+      "disposition": "DEVIATION",
+      "reason": "Adapts Python acp_agent.py to agent-client-protocol 0.12.1 (drops the UNSTABLE models extension and set_session_model); ACP runtime execution is out of scope for this transpilation.",
+      "policy": "DEV-SDK-005",
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "d834d982fb7d18ad6019ede3b0b2ba6410372e55:server": {
+      "disposition": "DELEGATED",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; the disposition is recorded in that package's server review record.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "5e27a54d81de9daa9c743b641cbe9b8ec2380a57:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Dependency bump (joserfc) in pyproject.toml/uv.lock; no SDK source or TS counterpart.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "5e27a54d81de9daa9c743b641cbe9b8ec2380a57:server": {
+      "disposition": "DELEGATED",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; the disposition is recorded in that package's server review record.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "d0c5b6821b20442166f50f1ceed5cf45776e552e:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Dependency bump (psutil) in pyproject.toml/uv.lock; no SDK source or TS counterpart.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "d0c5b6821b20442166f50f1ceed5cf45776e552e:server": {
+      "disposition": "DELEGATED",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; the disposition is recorded in that package's server review record.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "83f85b46c83aa129d1ddce254fe9851357c3a469:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Dependency bump (pyinstaller) in pyproject.toml/uv.lock; no SDK source or TS counterpart.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "83f85b46c83aa129d1ddce254fe9851357c3a469:server": {
+      "disposition": "DELEGATED",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; the disposition is recorded in that package's server review record.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "e7cc8c27b2b234fc1c104825ad20dddf1c01fa31:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release v1.49.4 version bump regenerating uv.lock and package versions; no SDK source behavior change.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "e7cc8c27b2b234fc1c104825ad20dddf1c01fa31:server": {
+      "disposition": "DELEGATED",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; the disposition is recorded in that package's server review record.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    }
+  },
+  "unmapped": {}
+}

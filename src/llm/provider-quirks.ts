@@ -81,6 +81,7 @@ const REASONING_MODELS = [
   'deepseek-r1',
   'deepseek-v4-pro',
   'deepseek-v4-flash',
+  'deepseek-v4.1-flash',
   'kimi-k2-thinking',
   'kimi-k2.5',
   'kimi-k2.6',
