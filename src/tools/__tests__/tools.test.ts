@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { FileEditorExecutor, GlobExecutor, GrepExecutor, TaskTrackerExecutor, TerminalExecutor, BrowserTool } from '../index.js';
+import { FileEditorExecutor, FileEditorTool, GlobExecutor, GrepExecutor, TaskTrackerExecutor, TerminalExecutor, BrowserTool } from '../index.js';
 
 describe('TerminalExecutor', () => {
   it('runs commands in the configured working directory', async () => {
@@ -84,6 +84,27 @@ describe('TerminalExecutor', () => {
 });
 
 describe('FileEditorExecutor', () => {
+  it('edits host files outside the configured workspace through the tool', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'openhands-editor-host-'));
+    const workspaceRoot = join(root, 'workspace');
+    const path = join(root, 'private', 'notes.md');
+    try {
+      await mkdir(workspaceRoot);
+      const editor = FileEditorTool.create({ workspaceRoot });
+      await expect(editor.execute({ command: 'create', path, file_text: 'one\ntwo\n' })).resolves.toMatchObject({ is_error: false, prev_exist: false });
+      await expect(editor.execute({ command: 'view', path })).resolves.toMatchObject({ is_error: false, text: expect.stringContaining('2\ttwo') });
+      await expect(editor.execute({ command: 'str_replace', path, old_str: 'two', new_str: 'three' })).resolves.toMatchObject({ is_error: false });
+      await expect(editor.execute({ command: 'insert', path, insert_line: 1, new_str: 'inserted' })).resolves.toMatchObject({ is_error: false });
+      expect(await readFile(path, 'utf8')).toBe('one\ninserted\nthree\n');
+      await expect(editor.execute({ command: 'undo_edit', path })).resolves.toMatchObject({ is_error: false });
+      expect(await readFile(path, 'utf8')).toBe('one\nthree\n');
+      await expect(editor.execute({ command: 'create', path, file_text: 'overwrite' })).resolves.toMatchObject({ is_error: true, text: expect.stringContaining('already exists') });
+      expect(await readFile(path, 'utf8')).toBe('one\nthree\n');
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it('views, edits, inserts, and undoes edits', async () => {
     const root = await mkdtemp(join(tmpdir(), 'openhands-editor-'));
     const path = join(root, 'file.txt');

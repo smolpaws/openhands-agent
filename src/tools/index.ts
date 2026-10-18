@@ -84,11 +84,12 @@ export type FileEditorObservation = z.infer<typeof fileEditorObservationSchema>;
 
 export class FileEditorExecutor {
   private readonly history = new Map<string, string[]>();
+  /** Workspace context retained for callers; filesystem access follows host permissions. */
   readonly workspaceRoot: string | null;
   constructor(options: { readonly workspaceRoot?: string | null } = {}) { this.workspaceRoot = options.workspaceRoot ? resolve(options.workspaceRoot) : null; }
   async execute(action: FileEditorAction): Promise<FileEditorObservation> {
     const parsed = fileEditorActionSchema.parse(action);
-    const path = this.resolvePath(parsed.path);
+    const path = resolve(parsed.path);
     try {
       if (parsed.command === 'view') return await this.view(path, parsed);
       if (parsed.command === 'create') return await this.create(path, parsed);
@@ -98,11 +99,6 @@ export class FileEditorExecutor {
     } catch (error) {
       return this.observation({ text: error instanceof Error ? error.message : String(error), is_error: true, command: parsed.command, path });
     }
-  }
-  private resolvePath(path: string): string {
-    const resolved = resolve(path);
-    if (this.workspaceRoot !== null && !(resolved === this.workspaceRoot || resolved.startsWith(`${this.workspaceRoot}${sep}`))) throw new Error(`Path escapes workspace: ${path}`);
-    return resolved;
   }
   private async view(path: string, action: FileEditorAction): Promise<FileEditorObservation> {
     const info = await stat(path);
