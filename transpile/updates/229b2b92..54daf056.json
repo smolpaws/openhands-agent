@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "repository": "OpenHands/software-agent-sdk",
+  "from": "229b2b920d4541eab7a34b051a1f6f2bca5ebabf",
+  "to": "54daf056bd863bb46f922a2fe9324dd736b37ff6",
+  "inventorySha256": "30e372628d7228e51569edc4688ea4bab46d9efdd6e54110214934ac0a913a7c",
+  "items": {
+    "de30ec0111fc1c1435a1639d4ec27aead297d5b8:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Excludes installed-package directories from load_user_skills and adds an optional exclude_dirs parameter to load_skills_from_dir. The TS port has no load_user_skills / get_installed_skills_dir counterpart: skill discovery is host-owned via LaunchStores.skills(), and src/skills/loadSkillsFromDir has no caller that needs an exclusion set, so no TypeScript behavior changes.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "eeba47cd6f17758f20e651074f2d47b5d7fc5822:server": {
+      "disposition": "DELEGATED",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; the disposition is recorded in that package's server review record.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "091d451f5fdd1952994f7da4fcf201a1d21bb615:server": {
+      "disposition": "DELEGATED",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; the disposition is recorded in that package's server review record.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "affa75bca5d9b6dc53d8831da8edbff59af0b675:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Internal refactor inlines the _get_bool_env helper into maybe_init_laminar with identical boolean parsing (no observable behavior change). The removed tests (tests/sdk/config/test_llm_config.py, tests/sdk/observability/test_laminar.py) are Python-only low-value coverage. The TS observability module is host-adapter-based and has no counterpart for the inlined helper or the removed Python tests.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "54daf056bd863bb46f922a2fe9324dd736b37ff6:sdk": {
+      "disposition": "NO_TARGET_CHANGE",
+      "reason": "Release version bump only: openhands-{sdk,tools,workspace}/pyproject.toml move 1.52.0 -> 1.53.0 alongside uv.lock. No TypeScript source counterpart; the npm package version is managed independently in package.json.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    },
+    "54daf056bd863bb46f922a2fe9324dd736b37ff6:server": {
+      "disposition": "DELEGATED",
+      "reason": "openhands-agent-server is transpiled separately in smolpaws/smolpaws/packages/openhands-agent-server; the disposition is recorded in that package's server review record.",
+      "policy": null,
+      "tracking": [],
+      "evidence": [],
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "none",
+      "docs": []
+    }
+  },
+  "unmapped": {}
+}
