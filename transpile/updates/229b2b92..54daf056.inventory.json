@@ -1,0 +1,355 @@
+{
+  "schemaVersion": 1,
+  "repository": "OpenHands/software-agent-sdk",
+  "from": "229b2b920d4541eab7a34b051a1f6f2bca5ebabf",
+  "to": "54daf056bd863bb46f922a2fe9324dd736b37ff6",
+  "fromAuthoredAt": "2026-10-05T00:09:55-04:00",
+  "toAuthoredAt": "2026-10-05T09:18:14-04:00",
+  "totalCommits": 7,
+  "firstParentCommits": 7,
+  "commits": [
+    {
+      "sha": "de30ec0111fc1c1435a1639d4ec27aead297d5b8",
+      "authoredAt": "2026-10-05T09:44:17+02:00",
+      "subject": "fix(skills): exclude installed packages from the user skills scan (#5024)",
+      "units": {
+        "sdk": {
+          "target": "sdk",
+          "files": [
+            {
+              "status": "M",
+              "path": "openhands-sdk/openhands/sdk/skills/skill.py",
+              "previousPath": null,
+              "target": "sdk",
+              "kind": "source",
+              "module": "skills",
+              "policyHints": []
+            },
+            {
+              "status": "M",
+              "path": "tests/sdk/skills/test_load_user_skills.py",
+              "previousPath": null,
+              "target": "sdk",
+              "kind": "test",
+              "module": "skills",
+              "policyHints": []
+            }
+          ],
+          "modules": [
+            "skills"
+          ],
+          "policyHints": []
+        }
+      },
+      "ignoredPaths": [],
+      "unmappedPaths": []
+    },
+    {
+      "sha": "56bd60cc9f1b287a295252d43ce2eb71bca54788",
+      "authoredAt": "2026-10-05T12:28:57+02:00",
+      "subject": "fix(ci): pin the TypeScript client's Agent Server in the release PR (#5476)",
+      "units": {},
+      "ignoredPaths": [
+        ".github/workflows/README-RELEASE.md",
+        ".github/workflows/prepare-release.yml",
+        ".github/workflows/typescript-client-github-packages-publish.yml",
+        ".github/workflows/typescript-client-npm-publish.yml"
+      ],
+      "unmappedPaths": []
+    },
+    {
+      "sha": "eeba47cd6f17758f20e651074f2d47b5d7fc5822",
+      "authoredAt": "2026-10-05T13:07:13+02:00",
+      "subject": "feat(agent-server): serve a manifest-declared SVG icon for canvas extensions (#5479)",
+      "units": {
+        "server": {
+          "target": "server",
+          "files": [
+            {
+              "status": "M",
+              "path": "openhands-agent-server/openhands/agent_server/canvas_extensions_router.py",
+              "previousPath": null,
+              "target": "server",
+              "kind": "source",
+              "module": "canvas_extensions",
+              "policyHints": []
+            },
+            {
+              "status": "M",
+              "path": "openhands-agent-server/openhands/agent_server/canvas_extensions/installed.py",
+              "previousPath": null,
+              "target": "server",
+              "kind": "source",
+              "module": "canvas_extensions",
+              "policyHints": []
+            },
+            {
+              "status": "M",
+              "path": "openhands-agent-server/openhands/agent_server/canvas_extensions/manifest.py",
+              "previousPath": null,
+              "target": "server",
+              "kind": "source",
+              "module": "canvas_extensions",
+              "policyHints": []
+            },
+            {
+              "status": "M",
+              "path": "tests/agent_server/test_canvas_extensions_router.py",
+              "previousPath": null,
+              "target": "server",
+              "kind": "test",
+              "module": "test_canvas_extensions",
+              "policyHints": []
+            }
+          ],
+          "modules": [
+            "canvas_extensions",
+            "test_canvas_extensions"
+          ],
+          "policyHints": []
+        }
+      },
+      "ignoredPaths": [
+        ".pr/stop-bash-evidence.md",
+        ".pr/stop-bash-evidence.py"
+      ],
+      "unmappedPaths": []
+    },
+    {
+      "sha": "7a1d08a988423e34b380d77406b2e22c19c1a161",
+      "authoredAt": "2026-10-05T08:37:02-04:00",
+      "subject": "docs: refresh AGENTS.md guidance (#5513)",
+      "units": {},
+      "ignoredPaths": [
+        "AGENTS.md",
+        "clients/typescript/AGENTS.md"
+      ],
+      "unmappedPaths": []
+    },
+    {
+      "sha": "091d451f5fdd1952994f7da4fcf201a1d21bb615",
+      "authoredAt": "2026-10-05T14:43:26+02:00",
+      "subject": "fix(ci): read the unreleased Agent Server contract from source on release PRs (#5512)",
+      "units": {
+        "server": {
+          "target": "server",
+          "files": [
+            {
+              "status": "A",
+              "path": "tests/cross/test_resolve_typescript_client_agent_server.py",
+              "previousPath": null,
+              "target": "server",
+              "kind": "test",
+              "module": "test_resolve_typescript_client_agent_server",
+              "policyHints": []
+            }
+          ],
+          "modules": [
+            "test_resolve_typescript_client_agent_server"
+          ],
+          "policyHints": []
+        }
+      },
+      "ignoredPaths": [
+        ".github/scripts/resolve_typescript_client_agent_server.py",
+        ".github/workflows/typescript-client-ci.yml",
+        ".github/workflows/typescript-client-endpoint-audit.yml",
+        ".github/workflows/typescript-client-integration-tests.yml",
+        "clients/typescript/scripts/endpoint-audit.mjs"
+      ],
+      "unmappedPaths": []
+    },
+    {
+      "sha": "affa75bca5d9b6dc53d8831da8edbff59af0b675",
+      "authoredAt": "2026-10-05T14:51:23+02:00",
+      "subject": "chore: weekly test sweep removes low-value coverage (#4782)",
+      "units": {
+        "sdk": {
+          "target": "sdk",
+          "files": [
+            {
+              "status": "M",
+              "path": "openhands-sdk/openhands/sdk/observability/laminar.py",
+              "previousPath": null,
+              "target": "sdk",
+              "kind": "source",
+              "module": "observability",
+              "policyHints": []
+            },
+            {
+              "status": "M",
+              "path": "tests/sdk/config/test_llm_config.py",
+              "previousPath": null,
+              "target": "sdk",
+              "kind": "test",
+              "module": "config",
+              "policyHints": []
+            },
+            {
+              "status": "M",
+              "path": "tests/sdk/observability/test_laminar.py",
+              "previousPath": null,
+              "target": "sdk",
+              "kind": "test",
+              "module": "observability",
+              "policyHints": []
+            }
+          ],
+          "modules": [
+            "config",
+            "observability"
+          ],
+          "policyHints": []
+        }
+      },
+      "ignoredPaths": [],
+      "unmappedPaths": []
+    },
+    {
+      "sha": "54daf056bd863bb46f922a2fe9324dd736b37ff6",
+      "authoredAt": "2026-10-05T09:18:14-04:00",
+      "subject": "Release v1.53.0 (#5509)",
+      "units": {
+        "sdk": {
+          "target": "sdk",
+          "files": [
+            {
+              "status": "M",
+              "path": "openhands-sdk/pyproject.toml",
+              "previousPath": null,
+              "target": "sdk",
+              "kind": "source",
+              "module": "pyproject",
+              "policyHints": []
+            },
+            {
+              "status": "M",
+              "path": "openhands-tools/pyproject.toml",
+              "previousPath": null,
+              "target": "sdk",
+              "kind": "source",
+              "module": "pyproject",
+              "policyHints": []
+            },
+            {
+              "status": "M",
+              "path": "openhands-workspace/pyproject.toml",
+              "previousPath": null,
+              "target": "sdk",
+              "kind": "source",
+              "module": "workspace",
+              "policyHints": []
+            },
+            {
+              "status": "M",
+              "path": "uv.lock",
+              "previousPath": null,
+              "target": "sdk",
+              "kind": "shared",
+              "module": "dependencies",
+              "policyHints": [
+                "DEV-SDK-010"
+              ]
+            }
+          ],
+          "modules": [
+            "dependencies",
+            "pyproject",
+            "workspace"
+          ],
+          "policyHints": [
+            "DEV-SDK-010"
+          ]
+        },
+        "server": {
+          "target": "server",
+          "files": [
+            {
+              "status": "M",
+              "path": "openhands-agent-server/pyproject.toml",
+              "previousPath": null,
+              "target": "server",
+              "kind": "source",
+              "module": "pyproject",
+              "policyHints": []
+            },
+            {
+              "status": "M",
+              "path": "uv.lock",
+              "previousPath": null,
+              "target": "server",
+              "kind": "shared",
+              "module": "dependencies",
+              "policyHints": []
+            }
+          ],
+          "modules": [
+            "dependencies",
+            "pyproject"
+          ],
+          "policyHints": []
+        }
+      },
+      "ignoredPaths": [
+        "clients/typescript/package-lock.json",
+        "clients/typescript/package.json",
+        "clients/typescript/src/generated/agent-server-schema.ts"
+      ],
+      "unmappedPaths": []
+    }
+  ],
+  "summary": {
+    "targets": {
+      "sdk": {
+        "commitUnits": 3,
+        "files": 9,
+        "modules": [
+          "config",
+          "dependencies",
+          "observability",
+          "pyproject",
+          "skills",
+          "workspace"
+        ],
+        "tests": 3,
+        "examples": 0,
+        "policyHints": [
+          "DEV-SDK-010"
+        ]
+      },
+      "server": {
+        "commitUnits": 3,
+        "files": 7,
+        "modules": [
+          "canvas_extensions",
+          "dependencies",
+          "pyproject",
+          "test_canvas_extensions",
+          "test_resolve_typescript_client_agent_server"
+        ],
+        "tests": 2,
+        "examples": 0,
+        "policyHints": []
+      }
+    },
+    "ignoredPaths": [
+      ".github/scripts/resolve_typescript_client_agent_server.py",
+      ".github/workflows/README-RELEASE.md",
+      ".github/workflows/prepare-release.yml",
+      ".github/workflows/typescript-client-ci.yml",
+      ".github/workflows/typescript-client-endpoint-audit.yml",
+      ".github/workflows/typescript-client-github-packages-publish.yml",
+      ".github/workflows/typescript-client-integration-tests.yml",
+      ".github/workflows/typescript-client-npm-publish.yml",
+      ".pr/stop-bash-evidence.md",
+      ".pr/stop-bash-evidence.py",
+      "AGENTS.md",
+      "clients/typescript/AGENTS.md",
+      "clients/typescript/package-lock.json",
+      "clients/typescript/package.json",
+      "clients/typescript/scripts/endpoint-audit.mjs",
+      "clients/typescript/src/generated/agent-server-schema.ts"
+    ],
+    "unmappedPaths": []
+  }
+}
