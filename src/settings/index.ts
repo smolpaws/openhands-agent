@@ -103,17 +103,17 @@ const openHandsAgentSettingsObjectSchema = z
     }
   });
 
-function rejectRemovedSettingsInput(data: unknown, options: { readonly acp?: boolean } = {}): unknown {
+function rejectRemovedSettingsInput(data: unknown, context: z.RefinementCtx, options: { readonly acp?: boolean } = {}): unknown {
   if (!isRecord(data)) return data;
   const removed: string[] = [];
   if ('enable_sub_agents' in data) removed.push('enable_sub_agents');
   if ('enable_switch_llm_tool' in data) removed.push('enable_switch_llm_tool');
   if ((options.acp === true || data.agent_kind === 'acp') && 'llm' in data) removed.push('llm');
-  if (removed.length > 0) throw new Error(`Removed agent settings: ${removed.join(', ')}`);
+  if (removed.length > 0) context.addIssue({ code: 'custom', message: `Removed agent settings: ${removed.sort().join(', ')}` });
   return data;
 }
 
-export const openHandsAgentSettingsSchema = z.preprocess(data => rejectRemovedSettingsInput(data), openHandsAgentSettingsObjectSchema);
+export const openHandsAgentSettingsSchema = z.preprocess((data, context) => rejectRemovedSettingsInput(data, context), openHandsAgentSettingsObjectSchema);
 
 const acpAgentSettingsObjectSchema = z
   .object({
@@ -129,7 +129,7 @@ const acpAgentSettingsObjectSchema = z
   })
   .strict();
 
-export const acpAgentSettingsSchema = z.preprocess(data => rejectRemovedSettingsInput(data, { acp: true }), acpAgentSettingsObjectSchema);
+export const acpAgentSettingsSchema = z.preprocess((data, context) => rejectRemovedSettingsInput(data, context, { acp: true }), acpAgentSettingsObjectSchema);
 
 export const agentSettingsSchema = z.union([openHandsAgentSettingsSchema, acpAgentSettingsSchema]);
 
@@ -167,10 +167,7 @@ export function clearRawLlmFieldsWhenProfileSelected<T extends ProfileSelectedLl
 
 export function validateAgentSettings(data: unknown, options: { readonly persisted?: boolean } = {}): AgentSettings {
   const originalVersion = isRecord(data) ? data.schema_version : undefined;
-  const isRequest = options.persisted !== true && originalVersion === undefined;
   let payload = applySettingsVersion(data, AGENT_SETTINGS_SCHEMA_VERSION, 'AgentSettings');
-
-  if (isRequest) rejectRemovedSettingsInput(payload);
 
   const kind = payload.agent_kind ?? 'openhands';
   const version = typeof originalVersion === 'number' ? originalVersion : (options.persisted === true ? 7 : AGENT_SETTINGS_SCHEMA_VERSION);

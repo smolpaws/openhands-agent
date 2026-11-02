@@ -95,9 +95,9 @@ const openHandsAgentProfileObjectSchema = z
     }
   });
 
-function rejectRemovedToolSwitches(data: unknown): unknown {
+function rejectRemovedToolSwitches(data: unknown, context: z.RefinementCtx): unknown {
   if (isRecord(data) && ('enable_sub_agents' in data || 'enable_switch_llm_tool' in data)) {
-    throw new Error('Retired tool switches were removed; select tools instead.');
+    context.addIssue({ code: 'custom', message: 'Retired tool switches were removed; select tools instead.' });
   }
   return data;
 }

@@ -1,9 +1,68 @@
 import { describe, expect, it } from 'vitest';
-import { validateAgentSettings, openHandsAgentSettingsSchema, AGENT_SETTINGS_SCHEMA_VERSION } from '../index.js';
-import { validateAgentProfile } from '../../profiles/index.js';
+import { validateAgentSettings, openHandsAgentSettingsSchema, acpAgentSettingsSchema, agentSettingsSchema, AGENT_SETTINGS_SCHEMA_VERSION } from '../index.js';
+import { validateAgentProfile, openHandsAgentProfileSchema, agentProfileSchema, AGENT_PROFILE_SCHEMA_VERSION } from '../../profiles/index.js';
 const base = { llm_profile_ref: 'main' };
 
-describe('v8 settings and v3 profile migration (upstream #41443fc)', () => {
+describe('retired tool-switch migrations (upstream #41443fc and #33d8aa29)', () => {
+  it('reports removed fields through the exported schemas without throwing from safeParse', () => {
+    for (const schema of [openHandsAgentSettingsSchema, agentSettingsSchema]) {
+      const result = schema.safeParse({ ...base, enable_sub_agents: true });
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error.message).toContain('Removed agent settings');
+    }
+    const acp = acpAgentSettingsSchema.safeParse({ llm: { api_key: 'REDACT_ME_TEST_VALUE' } });
+    expect(acp.success).toBe(false);
+    if (!acp.success) expect(acp.error.message).not.toContain('REDACT_ME_TEST_VALUE');
+    for (const schema of [openHandsAgentProfileSchema, agentProfileSchema]) {
+      const result = schema.safeParse({ ...base, name: 'p', enable_switch_llm_tool: false });
+      expect(result.success).toBe(false);
+    }
+  });
+
+  // Adapted from test_saved_v8_retired_switches_are_discarded_without_crashing.
+  it.each([null, [], [{ name: 'terminal', params: {} }]])('preserves v8 tool selection while dropping saved switches: %j', tools => {
+    const settings = validateAgentSettings({
+      ...base, schema_version: 8, tools, enable_sub_agents: true, enable_switch_llm_tool: false,
+    }, { persisted: true });
+    expect(settings.tools).toEqual(tools);
+    expect(settings).not.toHaveProperty('enable_sub_agents');
+    expect(settings).not.toHaveProperty('enable_switch_llm_tool');
+    expect(validateAgentSettings(JSON.parse(JSON.stringify(settings)), { persisted: true })).toEqual(settings);
+  });
+
+  // Adapted from test_v3_persisted_payload_discards_retired_switches.
+  it.each([null, [], [{ name: 'terminal', params: {} }]])('preserves v3 profile tool selection while dropping saved switches: %j', tools => {
+    const profile = validateAgentProfile({
+      ...base, name: 'p', schema_version: 3, tools, enable_sub_agents: true, enable_switch_llm_tool: false,
+    });
+    expect(profile.tools).toEqual(tools);
+    expect(profile.schema_version).toBe(AGENT_PROFILE_SCHEMA_VERSION);
+    expect(profile).not.toHaveProperty('enable_sub_agents');
+    expect(profile).not.toHaveProperty('enable_switch_llm_tool');
+    expect(validateAgentProfile(JSON.parse(JSON.stringify(profile)))).toEqual(profile);
+  });
+
+  it.each(['enable_sub_agents', 'enable_switch_llm_tool'])('rejects current %s input, including explicit current versions', switchName => {
+    for (const schema_version of [undefined, null, AGENT_SETTINGS_SCHEMA_VERSION]) {
+      expect(() => validateAgentSettings({ ...base, schema_version, [switchName]: true })).toThrow('Removed agent settings');
+    }
+    for (const schema_version of [undefined, null, AGENT_PROFILE_SCHEMA_VERSION]) {
+      expect(() => validateAgentProfile({ ...base, name: 'p', schema_version, [switchName]: true })).toThrow('Retired tool switches');
+    }
+  });
+
+  // Adapted from test_saved_acp_llm_is_discarded_without_leaking_credentials.
+  it.each([undefined, null, 6, 7, 8])('drops stored ACP credentials at legacy version %s', schema_version => {
+    const settings = validateAgentSettings({
+      agent_kind: 'acp', schema_version, acp_model: 'sonnet',
+      llm: { model: 'ignored', api_key: 'REDACT_ME_TEST_VALUE' }, enable_sub_agents: true,
+    }, { persisted: true });
+    expect(settings).toMatchObject({ agent_kind: 'acp', acp_model: 'sonnet', schema_version: AGENT_SETTINGS_SCHEMA_VERSION });
+    expect(settings).not.toHaveProperty('llm');
+    expect(settings).not.toHaveProperty('enable_sub_agents');
+    expect(JSON.stringify(settings)).not.toContain('REDACT_ME_TEST_VALUE');
+  });
+
   it('distinguishes bare new requests from legacy persisted empty lists', () => {
     expect(validateAgentSettings({ ...base, tools: [] }).tools).toEqual([]);
     expect(validateAgentSettings({ ...base, tools: [] }, { persisted: true }).tools).toBeNull();

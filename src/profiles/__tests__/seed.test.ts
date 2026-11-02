@@ -11,7 +11,7 @@ describe('native default profile seed', () => {
       tool_concurrency_limit: 4, verification: { critic_enabled: true, critic_model_name: 'critic' } });
     const context = new AgentContext({ disabledSkills: ['beta', 'missing'], systemMessageSuffix: 'Keep the suffix', secrets: { TOKEN: 'not-persisted' } });
     const profile = buildSeedProfile(settings, 'selected', { context });
-    expect(profile).toMatchObject({ schema_version: 3, name: 'default', llm_profile_ref: 'selected', tools: [], persona: 'Tester',
+    expect(profile).toMatchObject({ schema_version: 4, name: 'default', llm_profile_ref: 'selected', tools: [], persona: 'Tester',
       disabled_skills: ['beta', 'missing'], system_message_suffix: 'Keep the suffix', public_skills: null,
       mcp_server_refs: null, enable_classify_and_switch_llm_tool: true, meta_profile_ref: 'routing', tool_concurrency_limit: 4,
       verification: { critic_enabled: true, critic_model_name: 'critic' } });
