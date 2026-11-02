@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { foldDeprecatedToolSwitches, foldRetiredToolSwitches } from '../tool/defaults.js';
+import { dropRetiredToolSwitches, foldRetiredToolSwitches } from '../tool/defaults.js';
 import { persistedToolSpecsSchema } from '../tool/spec-validation.js';
 
 import { condenserSettingsSchema, hardCondenserSettingsSchema } from './condenser-settings.js';
@@ -40,7 +40,7 @@ export type ProfileSelectedLlmSettings = {
   readonly [K in RawLlmFieldIgnoredWhenProfileSelected]?: unknown;
 };
 
-export const AGENT_SETTINGS_SCHEMA_VERSION = 8;
+export const AGENT_SETTINGS_SCHEMA_VERSION = 9;
 export const CONVERSATION_SETTINGS_SCHEMA_VERSION = 1;
 
 const settingsSchemaVersion = (version: number) => z.literal(version).default(version);
@@ -103,7 +103,17 @@ const openHandsAgentSettingsObjectSchema = z
     }
   });
 
-export const openHandsAgentSettingsSchema = z.preprocess(foldDeprecatedToolSwitches, openHandsAgentSettingsObjectSchema);
+function rejectRemovedSettingsInput(data: unknown, options: { readonly acp?: boolean } = {}): unknown {
+  if (!isRecord(data)) return data;
+  const removed: string[] = [];
+  if ('enable_sub_agents' in data) removed.push('enable_sub_agents');
+  if ('enable_switch_llm_tool' in data) removed.push('enable_switch_llm_tool');
+  if ((options.acp === true || data.agent_kind === 'acp') && 'llm' in data) removed.push('llm');
+  if (removed.length > 0) throw new Error(`Removed agent settings: ${removed.join(', ')}`);
+  return data;
+}
+
+export const openHandsAgentSettingsSchema = z.preprocess(data => rejectRemovedSettingsInput(data), openHandsAgentSettingsObjectSchema);
 
 const acpAgentSettingsObjectSchema = z
   .object({
@@ -119,15 +129,7 @@ const acpAgentSettingsObjectSchema = z
   })
   .strict();
 
-export const acpAgentSettingsSchema = z.preprocess(data => {
-  if (!isRecord(data)) return data;
-  const payload = { ...data };
-  if ('llm' in payload) process.emitWarning('ACPAgentSettings.llm is deprecated and ignored; ACP manages its own LLM.', { type: 'DeprecationWarning', code: 'OPENHANDS_ACP_LLM_IGNORED' });
-  delete payload.llm;
-  delete payload.enable_sub_agents;
-  delete payload.enable_switch_llm_tool;
-  return payload;
-}, acpAgentSettingsObjectSchema);
+export const acpAgentSettingsSchema = z.preprocess(data => rejectRemovedSettingsInput(data, { acp: true }), acpAgentSettingsObjectSchema);
 
 export const agentSettingsSchema = z.union([openHandsAgentSettingsSchema, acpAgentSettingsSchema]);
 
@@ -164,16 +166,24 @@ export function clearRawLlmFieldsWhenProfileSelected<T extends ProfileSelectedLl
 }
 
 export function validateAgentSettings(data: unknown, options: { readonly persisted?: boolean } = {}): AgentSettings {
-  let payload = applySettingsVersion(data, AGENT_SETTINGS_SCHEMA_VERSION, 'AgentSettings');
   const originalVersion = isRecord(data) ? data.schema_version : undefined;
-  const legacy = typeof originalVersion === 'number' ? originalVersion < 8 : options.persisted === true;
-  if (legacy && (payload.agent_kind ?? 'openhands') !== 'acp') payload = foldRetiredToolSwitches(payload);
-  const legacyAcpLlm = typeof originalVersion === 'number' ? originalVersion < 7 : options.persisted === true;
-  if (payload.agent_kind === 'acp' && legacyAcpLlm) delete payload.llm;
+  const isRequest = options.persisted !== true && originalVersion === undefined;
+  let payload = applySettingsVersion(data, AGENT_SETTINGS_SCHEMA_VERSION, 'AgentSettings');
+
+  if (isRequest) rejectRemovedSettingsInput(payload);
+
   const kind = payload.agent_kind ?? 'openhands';
+  const version = typeof originalVersion === 'number' ? originalVersion : (options.persisted === true ? 7 : AGENT_SETTINGS_SCHEMA_VERSION);
+
   if (kind === 'acp') {
+    if (version <= 8) payload = dropRetiredToolSwitches(payload);
+    if (version <= 8) delete payload.llm;
     return acpAgentSettingsSchema.parse(payload);
   }
+
+  if (version < 8) payload = foldRetiredToolSwitches(payload);
+  else if (version === 8) payload = dropRetiredToolSwitches(payload);
+
   if (kind === 'llm' || kind === 'openhands') {
     return openHandsAgentSettingsSchema.parse({ ...payload, agent_kind: 'openhands' });
   }

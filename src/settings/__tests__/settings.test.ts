@@ -49,9 +49,7 @@ describe('AgentSettings', () => {
   it('parses profile-first OpenHands agent settings', () => {
     const settings = openHandsAgentSettingsSchema.parse({
       llm_profile_ref: 'default',
-      tools: [{ name: 'TerminalTool' }],
-      enable_sub_agents: true,
-      enable_switch_llm_tool: false,
+      tools: [{ name: 'TerminalTool' }, { name: 'task_tool_set' }],
       tool_concurrency_limit: 3,
     });
 
@@ -70,8 +68,6 @@ describe('AgentSettings', () => {
       llm_profile_ref: 'cat-prod',
       agent: 'CodeActAgent',
       tools: [{ name: 'TerminalTool' }],
-      enable_sub_agents: true,
-      enable_switch_llm_tool: false,
       tool_concurrency_limit: 2,
       mcp_config: { mcpServers: {} },
       condenser: { condenser_kind: 'noop' },

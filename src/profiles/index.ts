@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
 
 import { z } from 'zod';
-import { foldDeprecatedToolSwitches, foldRetiredToolSwitches } from '../tool/defaults.js';
+import { dropRetiredToolSwitches, foldRetiredToolSwitches } from '../tool/defaults.js';
 import { persistedToolSpecsSchema } from '../tool/spec-validation.js';
 import { condenserSettingsSchema, hardCondenserSettingsSchema } from '../settings/condenser-settings.js';
 
-export const AGENT_PROFILE_SCHEMA_VERSION = 3;
+export const AGENT_PROFILE_SCHEMA_VERSION = 4;
 
 // Pydantic's summary integer accepts booleans and decimal integer strings, but
 // not Number()'s hex/exponent/empty-string coercions. Keep stored profiles strict.
@@ -95,7 +95,14 @@ const openHandsAgentProfileObjectSchema = z
     }
   });
 
-export const openHandsAgentProfileSchema = z.preprocess(foldDeprecatedToolSwitches, openHandsAgentProfileObjectSchema);
+function rejectRemovedToolSwitches(data: unknown): unknown {
+  if (isRecord(data) && ('enable_sub_agents' in data || 'enable_switch_llm_tool' in data)) {
+    throw new Error('Retired tool switches were removed; select tools instead.');
+  }
+  return data;
+}
+
+export const openHandsAgentProfileSchema = z.preprocess(rejectRemovedToolSwitches, openHandsAgentProfileObjectSchema);
 
 export const acpAgentProfileSchema = z
   .object({
@@ -173,6 +180,8 @@ function applyAgentProfileMigrations(data: unknown): Record<string, unknown> {
   if (version < 3) {
     if ((migrated.agent_kind ?? 'openhands') === 'openhands') migrated = foldRetiredToolSwitches(migrated);
     else { delete migrated.enable_sub_agents; delete migrated.enable_switch_llm_tool; }
+  } else if (version === 3) {
+    migrated = dropRetiredToolSwitches(migrated);
   }
   migrated.schema_version = AGENT_PROFILE_SCHEMA_VERSION;
   return migrated;

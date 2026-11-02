@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { validateAgentSettings, openHandsAgentSettingsSchema } from '../index.js';
+import { describe, expect, it } from 'vitest';
+import { validateAgentSettings, openHandsAgentSettingsSchema, AGENT_SETTINGS_SCHEMA_VERSION } from '../index.js';
 import { validateAgentProfile } from '../../profiles/index.js';
 const base = { llm_profile_ref: 'main' };
 
@@ -10,34 +10,28 @@ describe('v8 settings and v3 profile migration (upstream #41443fc)', () => {
     expect(validateAgentSettings({ ...base, schema_version: 7, tools: [] }).tools).toBeNull();
     expect(validateAgentSettings({ ...base, schema_version: 8, tools: [] }, { persisted: true }).tools).toEqual([]);
   });
-  it('folds sparse switches, serializes only tools, and preserves parameterized aliases', () => {
-    const settings = openHandsAgentSettingsSchema.parse({ ...base, tools: [], enable_sub_agents: true });
-    expect(settings.tools).toEqual([{ name: 'task_tool_set', params: {} }]);
-    expect(JSON.stringify(settings)).not.toMatch(/enable_sub_agents|enable_switch_llm_tool/u);
+  it('rejects removed switches on requests and preserves parameterized aliases', () => {
+    expect(() => openHandsAgentSettingsSchema.parse({ ...base, tools: [], enable_sub_agents: true })).toThrow('Removed agent settings');
+    expect(() => validateAgentSettings({ ...base, enable_switch_llm_tool: false })).toThrow('Removed agent settings');
     const explicit = validateAgentSettings({ ...base, tools: [{ name: 'ClassifyAndSwitchLLMTool', params: { active_meta_profile: 'chosen' } }, { name: 'route_task_to_model', params: { active_meta_profile: 'ignored' } }] });
     expect(explicit.tools).toEqual([{ name: 'route_task_to_model', params: { active_meta_profile: 'chosen' } }]);
   });
   it('migrates v2 profiles and never reinterprets current empty tools', () => {
     const old = validateAgentProfile({ ...base, name: 'custom', schema_version: 2, tools: [], enable_switch_llm_tool: false });
-    expect(old.schema_version).toBe(3);
+    expect(old.schema_version).toBe(4);
     expect(old.tools).toEqual(['terminal', 'file_editor', 'task_tracker', 'browser_tool_set'].map(name => ({ name, params: {} })));
     expect(validateAgentProfile({ ...base, name: 'new', tools: [] }).tools).toEqual([]);
     expect(() => validateAgentProfile({ ...base, name: 'invalid', schema_version: 0 })).toThrow('No migration');
   });
-  it('warns only on deprecated current request input, not migrated legacy storage', () => {
-    const warning = vi.spyOn(process, 'emitWarning').mockImplementation(() => {});
-    try {
-      validateAgentSettings({ ...base, enable_switch_llm_tool: false });
-      expect(warning).toHaveBeenCalledTimes(1);
-      validateAgentSettings({ agent_kind: 'acp', llm: { api_key: 'secret' } });
-      expect(warning).toHaveBeenCalledTimes(2);
-      validateAgentSettings({ agent_kind: 'acp', schema_version: 6, llm: { api_key: 'secret' } });
-      validateAgentSettings({ ...base, schema_version: 7, enable_switch_llm_tool: false });
-      expect(warning).toHaveBeenCalledTimes(2);
-      validateAgentSettings({ agent_kind: 'acp', schema_version: 8, llm: {} }, { persisted: true });
-      expect(warning).toHaveBeenCalledTimes(3);
-      expect(JSON.stringify(warning.mock.calls)).not.toContain('secret');
-    } finally { warning.mockRestore(); }
+  it('rejects removed settings on requests and drops them from persisted legacy storage', () => {
+    expect(() => validateAgentSettings({ ...base, enable_switch_llm_tool: false })).toThrow('Removed agent settings');
+    expect(() => validateAgentSettings({ agent_kind: 'acp', llm: { api_key: 'secret' } })).toThrow('Removed agent settings');
+    const acp6 = validateAgentSettings({ agent_kind: 'acp', schema_version: 6, llm: { api_key: 'secret' } });
+    expect(JSON.stringify(acp6)).not.toContain('secret');
+    const v7 = validateAgentSettings({ ...base, schema_version: 7, enable_switch_llm_tool: false });
+    expect(v7.schema_version).toBe(AGENT_SETTINGS_SCHEMA_VERSION);
+    const acp8 = validateAgentSettings({ agent_kind: 'acp', schema_version: 8, llm: {} }, { persisted: true });
+    expect(JSON.stringify(acp8)).not.toContain('llm');
   });
   it('drops ACP llm, rejects it on OpenHands, and keeps persona bounded and OpenHands-only', () => {
     const acp = validateAgentSettings({ agent_kind: 'acp', schema_version: 6, llm: { api_key: 'secret' } });
