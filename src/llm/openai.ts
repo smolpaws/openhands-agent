@@ -120,7 +120,7 @@ export class OpenAIResponsesClient implements LLMClient {
       const requestHeaders = buildHeaders({ ...this.profile, headers }, key);
       const response = await this.fetchImpl(`${resolveBaseUrl(this.profile)}/responses`, {
         method: 'POST',
-        headers: applyLLMCallContextHeaders(refreshed ? replaceCredentialHeader(requestHeaders, 'authorization', `Bearer ${key}`) : requestHeaders, context),
+        headers: applyResponsesCallContextHeaders(refreshed ? replaceCredentialHeader(requestHeaders, 'authorization', `Bearer ${key}`) : requestHeaders, context, this.profile.authType === 'subscription'),
         body: serializedBody,
         signal: deadline.signal,
       }).catch(error => { throw mapProviderException(error); });
@@ -142,6 +142,18 @@ export class OpenAIResponsesClient implements LLMClient {
     }), !this.subscriptionAuth && this.profile.authType === 'api_key');
     return parseOpenAIResponsesResponse(raw);
   }
+}
+
+function applyResponsesCallContextHeaders(headers: Readonly<Record<string, string>>, context: LLMCallContext, subscription: boolean): Readonly<Record<string, string>> {
+  const contextualHeaders = applyLLMCallContextHeaders(headers, context);
+  if (!subscription || !context.sessionId) return contextualHeaders;
+  // Codex cache affinity needs conversation identity as well as the body cache key.
+  // Replace configured variants without changing the saved profile or a shared client.
+  return {
+    ...Object.fromEntries(Object.entries(contextualHeaders).filter(([name]) => !['session-id', 'thread-id'].includes(name.toLowerCase()))),
+    'session-id': context.sessionId,
+    'thread-id': context.sessionId,
+  };
 }
 
 export async function createOpenAIChatClientFromProfile(
