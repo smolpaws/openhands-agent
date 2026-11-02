@@ -85,11 +85,7 @@ export function foldRetiredToolSwitches(payload: Readonly<Record<string, unknown
   return folded;
 }
 export function dropRetiredToolSwitches(payload: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  const dropped: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(payload)) {
-    if (key !== 'enable_sub_agents' && key !== 'enable_switch_llm_tool') dropped[key] = value;
-  }
-  return dropped;
+  return Object.fromEntries(Object.entries(payload).filter(([key]) => key !== 'enable_sub_agents' && key !== 'enable_switch_llm_tool'));
 }
 function toggle(entries: ToolSpec[], name: string, enabled: boolean): ToolSpec[] {
   if (!enabled) return entries.filter(entry => canonicalToolName(entry.name) !== name);

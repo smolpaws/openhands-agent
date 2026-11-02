@@ -4,6 +4,19 @@ import { validateAgentProfile, openHandsAgentProfileSchema, agentProfileSchema, 
 const base = { llm_profile_ref: 'main' };
 
 describe('retired tool-switch migrations (upstream #41443fc and #33d8aa29)', () => {
+  it.each(['settings', 'profile'])('does not inherit %s fields from saved prototype keys', kind => {
+    const payload = JSON.parse(`{"agent_kind":"acp","name":"saved","schema_version":${kind === 'settings' ? 8 : 3},"__proto__":{"acp_model":"hidden-model"}}`);
+    if (kind === 'settings') delete payload.name;
+    const validate = kind === 'settings' ? validateAgentSettings : validateAgentProfile;
+    const migrated = validate(payload);
+    expect(migrated.agent_kind).toBe('acp');
+    if (migrated.agent_kind === 'acp') expect(migrated.acp_model).toBeNull();
+    expect(JSON.stringify(migrated)).not.toContain('hidden-model');
+    expect(Object.getPrototypeOf(payload)).toBe(Object.prototype);
+    expect(Object.hasOwn(payload, '__proto__')).toBe(true);
+    expect(payload.acp_model).toBeUndefined();
+  });
+
   it('reports removed fields through the exported schemas without throwing from safeParse', () => {
     for (const schema of [openHandsAgentSettingsSchema, agentSettingsSchema]) {
       const result = schema.safeParse({ ...base, enable_sub_agents: true });
