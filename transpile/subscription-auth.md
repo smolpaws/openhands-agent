@@ -26,3 +26,39 @@ Differential evidence: `scripts/parity/generate-subscription-fixtures.py` extrac
 - The source-derived and generated Python differential regressions described above. Keep server device-session, logout-race and restored-profile tests alongside them; a live request supplements rather than replaces those checks.
 
 The [older `56ac317..54dfbc5` review](updates/56ac317..54dfbc5.md) describes `2c993a1d895f:sdk` as having no subscription-credential runtime. That premise was superseded by SDK PR #31. The server's historical `3896f1869363:server` preflight classification was likewise superseded by server PR #173, as its current contract explains. Those frozen records describe what was believed at that earlier review; they do not authorize removing subscription support or treating it as still deferred. Use the current [subscription contract](../docs/TRANSPILE_CONTRACT.md#subscription-oauth-authentication), code and regression tests when reviewing new upstream changes.
+
+## Codex prompt-cache session headers
+
+Classification: **PORT**, a focused provider compatibility fix under the
+[provider compatibility rule](../docs/TRANSPILE_CONTRACT.md#provider-compatibility-without-litellm).
+The immutable source is [OpenHands/software-agent-sdk#6364](https://github.com/OpenHands/software-agent-sdk/pull/6364),
+merged as `eebe235ee537ed085f2cf3a351a5be687ff5e034`. The reviewed changes are
+`openhands-sdk/openhands/sdk/llm/call_context.py`,
+`openhands-sdk/openhands/sdk/llm/options/responses_options.py`, and
+`tests/sdk/llm/test_subscription_mode.py`. This focused fix does not itself
+advance the canonical Python pin or claim review of the intervening upstream
+history; the next interval containing that commit must account for this evidence.
+
+The native Responses provider now adds `session-id` and `thread-id` to
+subscription requests with a conversation context. Both use the runtime
+conversation identity, independently of an explicitly shared `prompt_cache_key`.
+The provider replaces stale configured variants case-insensitively and leaves
+saved profiles untouched. Ordinary API requests and calls without conversation
+identity retain their previous behavior, including caller-supplied headers.
+
+`src/llm/__tests__/subscription-cache.test.ts` adapts all three upstream
+regressions to the real native request boundary. It also verifies shared cache
+shards, mixed-case stale headers, explicit empty context, overlapping calls
+through one client, and execution after restoring a persisted conversation.
+Requests use synthetic credentials and a fake transport; no provider calls are
+made. The first test run produced five expected failures for missing or stale
+headers, with the three unchanged-behavior cases passing. After implementation,
+all eight cases and the surrounding subscription/call-context suites passed
+(five files, 52 tests):
+
+```sh
+npx vitest run src/llm/__tests__/subscription-cache.test.ts src/llm/__tests__/subscription-auth.test.ts src/llm/__tests__/call-options.test.ts src/llm/__tests__/call-context.test.ts src/conversation/__tests__/call-context.test.ts
+```
+
+This deterministic evidence proves request construction and lifecycle identity;
+provider cache-hit improvement must be measured separately after deployment.

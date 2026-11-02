@@ -663,17 +663,21 @@
       "docs": []
     },
     "33d8aa29c3078d074799e2fbf5e847aeb2d71360:sdk": {
-      "disposition": "DEFERRED",
-      "reason": "v1.56.0 removes the deprecated tool-switch folding (enable_sub_agents/enable_switch_llm_tool), bumps AGENT_PROFILE_SCHEMA_VERSION 3->4 and AGENT_SETTINGS_SCHEMA_VERSION 8->9, removes ACPAgentSettings.llm, and drops the enable_browser prompt kwarg; the TS port still carries the deprecated fold path and the old schema versions.",
+      "disposition": "PORT",
+      "reason": "Ported the v1.56.0 settings/profile migration tests-first: AGENT_PROFILE_SCHEMA_VERSION 3->4, AGENT_SETTINGS_SCHEMA_VERSION 8->9, removed deprecated tool-switch folding (enable_sub_agents/enable_switch_llm_tool now rejected on requests), and removed ACPAgentSettings.llm. The enable_browser system_prompt_kwargs removal has no TS counterpart (src/agent exposes no enable_browser kwarg).",
       "policy": null,
-      "tracking": [
-        "33d8aa29c3078d074799e2fbf5e847aeb2d71360"
+      "tracking": [],
+      "evidence": [
+        "src/settings/__tests__/tool-migrations.test.ts",
+        "src/settings/__tests__/settings.test.ts",
+        "src/profiles/__tests__/agent-profile.test.ts"
       ],
-      "evidence": [],
-      "compatibilityConsequence": "TS still validates/persists profiles and settings at schema v3/v8 and folds the retired switches; upstream v1.56.0 is v4/v9 and rejects them.",
-      "revisitTrigger": "next interval; port the v1.56.0 fold removal across src/profiles, src/settings, src/tool/defaults, and src/agent.",
-      "docsImpact": "none",
-      "docs": []
+      "compatibilityConsequence": null,
+      "revisitTrigger": null,
+      "docsImpact": "update",
+      "docs": [
+        "docs/TRANSPILE_CONTRACT.md"
+      ]
     },
     "33d8aa29c3078d074799e2fbf5e847aeb2d71360:server": {
       "disposition": "DELEGATED",

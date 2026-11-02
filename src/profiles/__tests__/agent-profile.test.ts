@@ -11,7 +11,7 @@ describe('AgentProfile schemas', () => {
   it('preserves public-skill selection without changing schema versions or ACP fields', () => {
     for (const public_skills of [null, [], ['git', 'missing']]) {
       const parsed = validateAgentProfile({ name: 'selection', llm_profile_ref: 'main', public_skills });
-      expect(parsed).toMatchObject({ schema_version: 3, public_skills });
+      expect(parsed).toMatchObject({ schema_version: 4, public_skills });
       expect(validateAgentProfile(JSON.parse(JSON.stringify(parsed)))).toEqual(parsed);
     }
     expect(validateAgentProfile({ name: 'all', llm_profile_ref: 'main' })).toMatchObject({ public_skills: null });
@@ -25,7 +25,6 @@ describe('AgentProfile schemas', () => {
       revision: 3,
       mcp_server_refs: ['fetch'],
       system_message_suffix: 'be terse',
-      enable_sub_agents: true,
       tool_concurrency_limit: 4,
     });
     const reloaded = validateAgentProfile(JSON.parse(JSON.stringify(profile)));

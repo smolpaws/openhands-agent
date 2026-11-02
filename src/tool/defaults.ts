@@ -84,12 +84,8 @@ export function foldRetiredToolSwitches(payload: Readonly<Record<string, unknown
   folded.tools = entries;
   return folded;
 }
-export function foldDeprecatedToolSwitches(data: unknown): unknown {
-  if (typeof data !== 'object' || data === null || Array.isArray(data)) return data;
-  const payload = data as Record<string, unknown>;
-  if (!('enable_sub_agents' in payload || 'enable_switch_llm_tool' in payload)) return data;
-  process.emitWarning('enable_sub_agents and enable_switch_llm_tool are deprecated; select task_tool_set and switch_llm in tools instead.', { type: 'DeprecationWarning', code: 'OPENHANDS_RETIRED_TOOL_SWITCHES' });
-  return foldRetiredToolSwitches(payload, { sparse: true });
+export function dropRetiredToolSwitches(payload: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(payload).filter(([key]) => key !== 'enable_sub_agents' && key !== 'enable_switch_llm_tool'));
 }
 function toggle(entries: ToolSpec[], name: string, enabled: boolean): ToolSpec[] {
   if (!enabled) return entries.filter(entry => canonicalToolName(entry.name) !== name);

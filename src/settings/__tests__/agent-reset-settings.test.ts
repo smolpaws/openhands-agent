@@ -78,7 +78,7 @@ describe('agent-controlled condenser settings', () => {
     const schema = z.toJSONSchema(settings.openHandsAgentSettingsSchema);
     expect(schema.properties).toHaveProperty('hard_condenser');
     expect(schema.required).not.toContain('hard_condenser');
-    expect(settings.AGENT_SETTINGS_SCHEMA_VERSION).toBe(8);
+    expect(settings.AGENT_SETTINGS_SCHEMA_VERSION).toBe(9);
   });
 });
 
