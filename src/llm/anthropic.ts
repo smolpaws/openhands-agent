@@ -10,7 +10,7 @@ import { getLlmApiKey } from '../secrets/index.js';
 import type { SecretStore } from '../secrets/index.js';
 import type { ToolDefinition } from '../tool/index.js';
 import { llmCompletionResponseSchema, llmResponseMetadataSchema, parseLlmResponseWithMetadata, throwProviderErrorWithMetadata, type FetchLike, type LLMClient, type LLMCompletionResponse, type LLMResponseMetadata } from './client.js';
-import { providerResponseError, mapProviderException } from './exceptions.js';
+import { LLMBadRequestError, providerResponseError, mapProviderException } from './exceptions.js';
 import { messageSchema, reduceTextContent, type Content, type LLMProfile, type Message, type MessageToolCall } from './index.js';
 import { getAnthropicThinkingBudget, normalizeGenerationParamsForModel } from './provider-quirks.js';
 import { ANTHROPIC_CACHE_CONTROL, prepareAnthropicPromptCaching, finalizeAnthropicCacheBreakpoints } from './anthropic-prompt-cache.js';
@@ -48,8 +48,8 @@ export class AnthropicMessagesClient implements LLMClient {
   async complete(messages: readonly Message[], tools?: readonly ToolDefinition[], options?: LLMCompletionOptions): Promise<LLMCompletionResponse> {
     const context = getLLMCallContext(options?.callContext);
     const body = buildAnthropicMessagesBody(this.profile, messages, tools);
-    const serializedBody = JSON.stringify(body);
-    const raw = await requestWithRecovery(this.apiKey, this.requestOptions, (key, refreshed) => withAttemptDeadline(this.profile, async deadline => {
+    let serializedBody = JSON.stringify(body);
+    const request = () => requestWithRecovery(this.apiKey, this.requestOptions, (key, refreshed) => withAttemptDeadline(this.profile, async deadline => {
       const headers = buildHeaders(this.profile, key);
       const response = await this.fetchImpl(`${resolveBaseUrl(this.profile)}/v1/messages`, {
         method: 'POST',
@@ -59,13 +59,53 @@ export class AnthropicMessagesClient implements LLMClient {
       }).catch(error => { throw mapProviderException(error); });
       if (!response.ok) {
         const text = await deadline.collect(() => response.text());
+        if (isThinkingBindingRejection(response.status, text)) throw new ThinkingBindingError();
         throwProviderErrorWithMetadata(text, providerResponseError('Anthropic messages', response.status, text), parseAnthropicMetadata);
       }
       return deadline.collect(() => response.json());
     }), this.profile.authType === 'api_key');
 
+    let raw: unknown;
+    try { raw = await request(); }
+    catch (error) {
+      if (!(error instanceof ThinkingBindingError)) throw error;
+      const repaired = withoutBoundThinking(body);
+      if (repaired === null) throw error;
+      serializedBody = JSON.stringify(repaired);
+      raw = await request();
+    }
     return parseAnthropicMessagesResponse(raw);
   }
+}
+
+class ThinkingBindingError extends LLMBadRequestError {
+  constructor() {
+    super('Anthropic rejected a thinking block bound to a different conversation prefix (HTTP 400).');
+  }
+}
+
+function isThinkingBindingRejection(status: number, text: string): boolean {
+  if (status !== 400) return false;
+  let payload: unknown;
+  try { payload = JSON.parse(text) as unknown; } catch { return false; }
+  const parsed = z.object({ error: z.object({ type: z.literal('invalid_request_error'), message: z.string() }) }).safeParse(payload);
+  if (!parsed.success) return false;
+  const message = parsed.data.error.message;
+  return message.includes('thinking') && message.includes('bound to a different conversation');
+}
+
+/** The provider validates prefix binding; ordinary signed continuation is untouched. */
+function withoutBoundThinking(body: Record<string, unknown>): Record<string, unknown> | null {
+  const messages = body.messages as { role: string; content: Record<string, unknown>[] }[];
+  let changed = false;
+  const repaired = messages.flatMap(message => {
+    if (message.role !== 'assistant') return [message];
+    const content = message.content.filter(block => block.type !== 'thinking' && block.type !== 'redacted_thinking');
+    if (content.length === message.content.length) return [message];
+    changed = true;
+    return content.length > 0 ? [{ ...message, content }] : [];
+  });
+  return changed ? { ...body, messages: repaired } : null;
 }
 
 export async function createAnthropicClientFromProfile(
