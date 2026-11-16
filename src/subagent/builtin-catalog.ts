@@ -3,7 +3,7 @@ import type { AgentDefinitionOptions } from './index.js';
 
 export const builtinAgentSource = {
   "repository": "OpenHands/software-agent-sdk",
-  "commit": "5fa4dea24c52fe3ac53fa4e3e67a1376b72189e2",
+  "commit": "33d8aa29c3078d074799e2fbf5e847aeb2d71360",
   "factory": "openhands-tools/openhands/tools/preset/default.py::discover_builtin_agents",
   "files": {
     "openhands-tools/openhands/tools/preset/subagents/bash_runner.md": "6485915175e28dadc1371d68448a6371e353491896a4ef5eea0422425f12444c",

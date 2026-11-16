@@ -1,6 +1,6 @@
 // Generated from pinned Python llm/utils/verified_models.py; run scripts/parity/generate-verified-models.py.
 export const VERIFIED_MODELS_PROVENANCE = {
-  "upstream_commit": "5fa4dea24c52fe3ac53fa4e3e67a1376b72189e2",
+  "upstream_commit": "33d8aa29c3078d074799e2fbf5e847aeb2d71360",
   "source_sha256": "b4cd26bbba23906a0b9937f7a1aaf8c5589cbf9e0a586972d58c65631402ffe4",
   "litellm_version": "1.93.0",
   "model_map_sha256": "cc1955f7f1cdc2cdd9ebf216e7eebbc90bbb3528b62439327f7e8b893eda7c12",
