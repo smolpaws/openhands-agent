@@ -1,7 +1,7 @@
 // Generated offline by scripts/parity/generate-model-discovery.py.
 export const MODEL_DISCOVERY_PROVENANCE = {
-  "upstream_commit": "5fa4dea24c52fe3ac53fa4e3e67a1376b72189e2",
-  "uv_lock_sha256": "64f012d63f2feeb570102be251d2474def6501b0cf90de085302ed635f41bc7f",
+  "upstream_commit": "33d8aa29c3078d074799e2fbf5e847aeb2d71360",
+  "uv_lock_sha256": "e62b05565d1fb465f252913e6e6fe2e699d107e08a0978222654c25a1a07c263",
   "litellm_version": "1.93.0",
   "litellm_sdist_sha256": "140bf215e264c71601bca9c06d2436c5451bb59e1e195ea23fc2d3d87b6929ec",
   "source_sha256": {
